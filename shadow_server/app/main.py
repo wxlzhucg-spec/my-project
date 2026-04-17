@@ -46,7 +46,7 @@ def create_app() -> FastAPI:
 
     @application.get("/health")
     async def health():
-        return {"status": "ok"}
+        return {"status": "ok", "version": "1.0.0", "service": "xinyu-shadow"}
 
     return application
 
