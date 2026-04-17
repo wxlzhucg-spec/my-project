@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>心语 - 细节像素级精修</title>
+    <style>
+        :root {
+            --bg-page: #f2f2f2;
+            --bg-card: #ffffff;
+            --text-main: #1a1a1a;
+            --text-sub: #999999;
+            --accent: #d9d9d9;
+            --border: #f0f0f0;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'PingFang SC', -apple-system, sans-serif;
+            background-color: #e5e5e5;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* 页面切换逻辑 */
+        .page-view {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+        }
+        .page-view.active {
+            display: flex;
+        }
+
+        .phone-mockup {
+            width: 375px;
+            min-height: 812px;
+            background: var(--bg-page);
+            border-radius: 36px;
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.2);
+            padding: 24px 16px 100px 16px;
+            position: relative;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        /* === 顶部状态栏 === */
+        .status-bar {
+            height: 24px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #000;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* === 公用卡片样式 === */
+        .card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 18px 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.02);
+            position: relative;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        /* === 心情卡片 (高保真) === */
+        .emotion-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .score-display {
+            display: flex;
+            align-items: baseline;
+        }
+
+        .score-big {
+            font-size: 52px;
+            font-weight: bold;
+            line-height: 1;
+            color: #000;
+        }
+
+        .score-unit {
+            font-size: 14px;
+            margin-left: 4px;
+            font-weight: 500;
+            color: #000;
+        }
+
+        .ring-group {
+            display: flex;
+            gap: 16px;
+        }
+
+        .ring-item {
+            position: relative;
+            width: 52px;
+            height: 52px;
+        }
+
+        .ring-svg {
+            transform: rotate(-90deg);
+        }
+
+        .ring-bg {
+            fill: none;
+            stroke: #f0f0f0;
+            stroke-width: 5;
+        }
+
+        .ring-fill {
+            fill: none;
+            stroke: #444;
+            stroke-width: 5;
+            stroke-linecap: round;
+            transition: stroke-dasharray 0.3s;
+        }
+
+        .ring-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .ring-val {
+            font-size: 12px;
+            font-weight: bold;
+            line-height: 1;
+            margin-bottom: 2px;
+        }
+
+        .ring-lab {
+            font-size: 8px;
+            color: #999;
+            transform: scale(0.9);
+        }
+
+        /* === 趋势图表 (Bezier 曲线) === */
+        .chart-container {
+            width: 100%;
+            height: 100px;
+            margin-top: 10px;
+            position: relative;
+        }
+
+        .chart-svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        .chart-path {
+            fill: none;
+            stroke: #666;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .chart-area {
+            fill: url(#chartGrad);
+            opacity: 0.15;
+        }
+
+        .chart-dot {
+            fill: #fff;
+            stroke: #444;
+            stroke-width: 2;
+        }
+
+        /* === 星座卡片 === */
+        .horo-tag {
+            background: #f0f0f0;
+            color: #666;
+            font-size: 10px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .stars-row {
+            display: flex;
+            gap: 12px;
+            margin: 12px 0;
+        }
+
+        .star-box {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            color: #999;
+        }
+
+        .star-icons {
+            color: #333;
+            font-size: 10px;
+            letter-spacing: 1px;
+        }
+
+        .horo-body {
+            font-size: 13px;
+            color: #444;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .expand-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            font-size: 12px;
+            color: #333;
+            font-weight: 500;
+            padding-top: 12px;
+            border-top: 1px solid #f5f5f5;
+        }
+
+        /* === 塔罗牌 === */
+        .tarot-stage {
+            background: #efefef;
+            height: 190px;
+            border-radius: 12px;
+            position: relative;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .cards-arc {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            width: 100%;
+            height: 150px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .draw-btn {
+            background: #d9d9d9;
+            border-radius: 8px;
+            width: 140px;
+            height: 32px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 500;
+            color: #333;
+            cursor: pointer;
+        }
+
+        /* === 导航栏 === */
+        .tab-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 75px;
+            background: #fff;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: 15px;
+        }
+
+        .tab-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: #ccc;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .tab-icon {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            background: #f0f0f0;
+        }
+
+        .tab-item.active {
+            color: #000;
+        }
+
+        .tab-item.active .tab-icon {
+            background: #000;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="phone-mockup">
+        <!-- 页面切换容器：主页 -->
+        <div id="home-view" class="page-view active">
+            <div class="status-bar">
+                <span>9:41</span>
+                <div style="display:flex; gap:6px;"><span>📶</span><span>🔋</span></div>
+            </div>
+
+            <!-- 今日心情 - 细节重塑 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title" style="display:flex; flex-direction:column;">
+                        你好, 晓龙
+                        <span style="font-size:10px; color:#aaa; font-weight:400; margin-top:2px;">11月24日 星期日</span>
+                    </span>
+                    <!-- 右侧更新提示 (点击可跳转记录页) -->
+                    <div style="display:flex; align-items:center; gap:6px; background:#f8f8f8; padding:4px 10px; border-radius:12px; cursor:pointer;" onclick="switchPage('record')">
+                        <div style="width:6px; height:6px; background:#ff4d4f; border-radius:50%;"></div>
+                        <span style="font-size:11px; color:#999; font-weight:600;">今日更新</span>
+                    </div>
+                </div>
+                <div class="card-header" style="margin-top:-10px; margin-bottom:12px;">
+                    <span class="card-title">综合情绪</span>
+                </div>
+                <div class="emotion-content">
+                    <div class="score-display">
+                        <span class="score-big">89</span>
+                        <span class="score-unit">分</span>
+                    </div>
+                    <div class="ring-group">
+                        <div class="ring-item">
+                            <svg class="ring-svg" width="52" height="52">
+                                <circle class="ring-bg" cx="26" cy="26" r="23" />
+                                <circle class="ring-fill" cx="26" cy="26" r="23" style="stroke-dasharray: 108, 145;" />
+                            </svg>
+                            <div class="ring-text">
+                                <span class="ring-val">76</span>
+                                <span class="ring-lab">情绪</span>
+                            </div>
+                        </div>
+                        <div class="ring-item">
+                            <svg class="ring-svg" width="52" height="52">
+                                <circle class="ring-bg" cx="26" cy="26" r="23" />
+                                <circle class="ring-fill" cx="26" cy="26" r="23" style="stroke-dasharray: 132, 145;" />
+                            </svg>
+                            <div class="ring-text">
+                                <span class="ring-val">92</span>
+                                <span class="ring-lab">活力</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 心情趋势 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">近7天心情变化</span>
+                </div>
+                <div class="chart-container">
+                    <svg class="chart-svg" viewBox="0 0 300 100">
+                        <defs>
+                            <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#444" stop-opacity="0.3" />
+                                <stop offset="100%" stop-color="#444" stop-opacity="0" />
+                            </linearGradient>
+                        </defs>
+                        <path class="chart-area" d="M0,100 C20,90 40,85 60,65 C80,45 100,55 120,50 C140,45 160,20 180,25 C200,30 220,60 240,55 C260,50 280,30 300,40 L300,100 Z" />
+                        <path class="chart-path" d="M0,80 C20,90 40,85 60,65 C80,45 100,55 120,50 C140,45 160,20 180,25 C200,30 220,60 240,55 C260,50 280,30 300,40" />
+                        <circle class="chart-dot" cx="60" cy="65" r="3" />
+                        <circle class="chart-dot" cx="120" cy="50" r="3" />
+                        <circle class="chart-dot" cx="180" cy="25" r="3" />
+                        <circle class="chart-dot" cx="240" cy="55" r="3" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- 星座卡片 -->
+            <div class="card">
+                <div class="card-header">
+                    <span style="font-size:16px; font-weight:bold;">天蝎座 <span style="font-weight:400; font-size:14px; margin-left:4px; color:#333;">你今天运气开挂啦~~</span></span>
+                    <span class="horo-tag">影子总结</span>
+                </div>
+                <div class="stars-row">
+                    <div class="star-box">综合 <span class="star-icons">★★★★☆</span></div>
+                    <div class="star-box">爱情 <span class="star-icons">★★★☆☆</span></div>
+                </div>
+                <div class="horo-body">
+                    今天要把钱包看紧一点，这是最重要的。另外，很多事可能会有所延迟，要保持一个平常心对待...
+                </div>
+                <div class="expand-btn">
+                    <span>展开全部</span>
+                    <span style="font-size:10px;">▼</span>
+                </div>
+            </div>
+
+            <!-- 塔罗板块 -->
+            <div class="card" style="padding:16px; background:#efefef;">
+                <span class="card-title">塔罗解惑</span>
+                <div class="tarot-stage" id="tarotStage"></div>
+                <div class="draw-btn">抽取卡牌</div>
+            </div>
+
+            <!-- 底部导航 -->
+            <div class="tab-bar">
+                <div class="tab-item active">
+                    <div class="tab-icon"></div>首页
+                </div>
+                <div class="tab-item">
+                    <div class="tab-icon"></div>探索
+                </div>
+                <div class="tab-item">
+                    <div class="tab-icon"></div>影子
+                </div>
+                <div class="tab-item">
+                    <div class="tab-icon"></div>我的
+                </div>
+            </div>
+        </div>
+
+        <!-- 沉浸式还原：爆炸开心 (Figma API 精准同步) -->
+        <div id="record-view" class="page-view" style="margin:-24px -16px; position:absolute; top:0; left:0; right:0; bottom:0; border-radius:36px; z-index:100; overflow:hidden; font-family:'PingFang SC';">
+            <!-- 0.85 不透明度黑色底色 (Node 18:386) -->
+            <div style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85);"></div>
+            
+            <!-- 顶部橙色渐变光晕 (Node 18:413) -->
+            <div style="position:absolute; top:0; left:0; width:100%; height:480px; background:linear-gradient(180deg, rgba(255, 153, 0, 0.7) 0%, rgba(255, 153, 0, 0.3) 42.28%, rgba(255, 153, 0, 0) 100%);"></div>
+
+            <!-- 顶部输入条 (Node 18:645 Union with Pointer) -->
+            <div style="position:absolute; top:52px; left:50%; transform:translateX(-50%); width:251px; height:41px; background:rgba(255,255,255,0.2); border-radius:26px; display:flex; align-items:center; justify-content:center; gap:4px; border:0.5px solid rgba(255,255,255,0.3);">
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                    <path d="M15 3.33331H5C4.08 3.33331 3.33333 4.07998 3.33333 4.99998V15C3.33333 15.92 4.08 16.6666 5 16.6666H15C15.92 16.6666 16.6667 15.92 16.6667 15V4.99998C16.6667 4.07998 15.92 3.33331 15 3.33331ZM15 15H5V4.99998H15V15ZM12.5 7.49998L11.325 8.67498L13.15 10.5H6.66667V12.1666H13.15L11.325 13.9916L12.5 15.1666L16.3333 11.3333L12.5 7.49998Z" fill="white"/>
+                </svg>
+                <span style="font-size:16px; color:#fff; font-weight:400;">写个小纸条，记录此刻感受</span>
+                <!-- 指示小箭头 (Node 18:643) -->
+                <div style="position:absolute; bottom:-12px; left:50%; transform:translateX(-50%); width:0; height:0; border-left:12px solid transparent; border-right:12px solid transparent; border-top:12px solid rgba(255,255,255,0.2);"></div>
+            </div>
+
+            <!-- 精灵角色 (Node 18:390/398 - 3-Part Union Shape) -->
+            <div style="position:absolute; top:133px; left:50%; transform:translateX(-50%); width:241px; height:240px; display:flex; flex-direction:column; align-items:center;">
+                <svg width="242" height="189" viewBox="0 0 242 189" style="filter: blur(0.5px);">
+                    <defs>
+                        <radialGradient id="figmaCloudGrad" cx="50%" cy="50%" r="50%">
+                            <stop offset="22.6%" stop-color="#FFE6A8"/>
+                            <stop offset="100%" stop-color="#FFE6A8" stop-opacity="0.69"/>
+                        </radialGradient>
+                    </defs>
+                    <!-- Figma 几何还原：Union of nodes 18:391, 18:392, 18:393 -->
+                    <g filter="drop-shadow(0 0 44rpx rgba(255, 230, 168, 0.4))">
+                        <!-- Ellipse 6 (18:393) -->
+                        <circle cx="90.5" cy="118.5" r="35.3" fill="url(#figmaCloudGrad)"/>
+                        <!-- Ellipse 5 (18:392) -->
+                        <circle cx="148.5" cy="92.8" r="61.8" fill="url(#figmaCloudGrad)"/>
+                        <!-- Rectangle 23 (18:391 - pill shape) -->
+                        <rect x="0" y="123" width="241.4" height="66" rx="33" fill="url(#figmaCloudGrad)"/>
+                    </g>
+                    <!-- 表情 (Node 18:399-408) -->
+                    <!-- 眯眯眼 (Node 18:400, 18:408) -->
+                    <path d="M83 105 Q90 95 97 105" stroke="#C95700" stroke-width="4" fill="none" stroke-linecap="round"/>
+                    <path d="M145 105 Q152 95 159 105" stroke="#C95700" stroke-width="4" fill="none" stroke-linecap="round"/>
+                    <!-- 嘴巴 (Node 18:399) -->
+                    <path d="M93 125 Q120 160 147 125" fill="#C95700"/>
+                    <path d="M110 135 Q120 150 130 135" fill="#FF7B7D"/>
+                </svg>
+                <div style="margin-top:20px; font-size:24px; font-weight:400; color:#fff; font-family:'FZZhengHeiS-B-GB';">爆炸开心</div>
+                <!-- 金色星星装饰 (Node 18:409/410) -->
+                <div style="position:absolute; top:30px; left:20px; font-size:16px; color:#FFDF89; opacity:0.8;">✦</div>
+                <div style="position:absolute; top:60px; right:40px; font-size:14px; color:#FFDF89; opacity:0.6;">✧</div>
+                <div style="position:absolute; bottom:80px; left:10px; font-size:18px; color:#FFDF89; opacity:0.7;">✦</div>
+            </div>
+
+            <!-- 情绪值滑块 (Node 18:418) -->
+            <div style="position:absolute; top:436px; left:25px; right:25px;">
+                <div style="color:#fff; font-size:16px; margin-bottom:12px;">情绪值</div>
+                <div style="position:relative; width:100%; height:12px; border-radius:10px; background:linear-gradient(90deg, #6B86FF 0%, #939CCD 24.04%, #FFD747 49.21%, #FF7676 100%); opacity:0.5;">
+                </div>
+                <!-- 滑块 Thumb (Node 18:421) -->
+                <div style="position:absolute; left:50%; top:40px; transform:translate(-50%, -50%); width:29px; height:18px; background:#F6CC34; border:1px solid #fff; border-radius:10px; box-shadow:0 0 9px rgba(0,0,0,0.25);"></div>
+                <div style="display:flex; justify-content:space-between; margin-top:24px; font-size:12px; color:rgba(255,255,255,0.6);">
+                    <span>难过</span><span>开心</span><span>愤怒</span>
+                </div>
+            </div>
+
+            <!-- 活力值滑块 (Node 18:427) -->
+            <div style="position:absolute; top:540px; left:25px; right:25px;">
+                <div style="color:#fff; font-size:16px; margin-bottom:12px;">活力值</div>
+                <div style="position:relative; width:100%; height:12px; border-radius:10px; background:linear-gradient(90deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 1) 100%); opacity:0.5;">
+                </div>
+                <!-- 滑块 Thumb (Node 18:428) -->
+                <div style="position:absolute; left:75%; top:40px; transform:translate(-50%, -50%); width:29px; height:18px; background:#D4D4D4; border:1px solid #fff; border-radius:10px; box-shadow:0 0 9px rgba(0,0,0,0.25);"></div>
+                <div style="display:flex; justify-content:space-between; margin-top:24px; font-size:12px; color:rgba(255,255,255,0.6);">
+                    <span>无力</span><span>正常</span><span>兴奋</span>
+                </div>
+            </div>
+
+            <!-- OK 确认按钮 (Node 18:495) -->
+            <div style="position:absolute; bottom:50px; left:50%; transform:translateX(-50%); width:238px; height:44px; background:#fff; border-radius:22px; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:bold; color:#0f0f0f; cursor:pointer;" onclick="switchPage('home')">
+                ok
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟页面切换功能
+        function switchPage(pageId) {
+            document.querySelectorAll('.page-view').forEach(view => {
+                view.classList.remove('active');
+            });
+            document.getElementById(pageId + '-view').classList.add('active');
+        }
+
+        // 渲染塔罗牌
+        const stage = document.getElementById('tarotStage');
+        const angles = [-22, -15, -9, -4, 0, 4, 9, 15, 22];
+        angles.forEach((deg, i) => {
+            const el = document.createElement('div');
+            el.className = 'card-item';
+            const offset = (i - 4) * 22; 
+            const yShift = Math.abs(i - 4) * 3;
+            el.style.cssText = `
+                position:absolute; 
+                bottom:${30 - yShift}px; 
+                left:calc(50% + ${offset}px - 30px); 
+                width:60px; height:84px;
+                background:#2a2a2a; 
+                border:1px solid #555;
+                border-radius:6px;
+                z-index:${i < 4 ? i : 8 - i + 4}; 
+                transform:rotate(${deg}deg); 
+                transform-origin:bottom center;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            `;
+            stage.appendChild(el);
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>情绪记录弹层 · 精灵预览</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'PingFang SC', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #111;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  /* ── Phone frame ── */
+  .phone {
+    width: 375px;
+    height: 812px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 44px;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06);
+    background: #111;
+    flex-shrink: 0;
+  }
+
+  /* ── Home screen ── */
+  .home-bg {
+    position: absolute; inset: 0;
+    background: linear-gradient(160deg, #f1ede5 0%, #e9e4dc 100%);
+    display: flex; flex-direction: column;
+    padding: 80px 20px 30px; gap: 16px;
+  }
+  .home-card {
+    background: #fff; border-radius: 20px;
+    padding: 18px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  }
+  .update-chip {
+    display: flex; align-items: center; gap: 6px;
+    background: #f4f4f4; border-radius: 20px; padding: 5px 12px;
+    cursor: pointer; user-select: none; transition: background .15s;
+  }
+  .update-chip:hover { background: #ebebeb; }
+
+  /* ── Overlay ── */
+  .overlay {
+    position: absolute; inset: 0; z-index: 10;
+    display: none; flex-direction: column; overflow: hidden;
+  }
+  .overlay.visible { display: flex; }
+  .overlay-backdrop { position: absolute; inset: 0; background: rgba(14,11,34,0.78); }
+  .overlay-gradient {
+    position: absolute; left: 0; right: 0; top: 0; height: 400px;
+    pointer-events: none; transition: background .35s ease;
+  }
+  .overlay-gradient.happy {
+    background: linear-gradient(180deg,rgba(130,110,220,.90) 0%,rgba(110,90,200,.45) 38%,transparent 100%);
+  }
+  .overlay-gradient.calm {
+    background: linear-gradient(180deg,rgba(100,88,195,.82) 0%,rgba(88,76,180,.38) 38%,transparent 100%);
+  }
+  .overlay-gradient.sad {
+    background: linear-gradient(180deg,rgba(68,55,170,.90) 0%,rgba(60,48,158,.46) 38%,transparent 100%);
+  }
+  .overlay-inner {
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column;
+    height: 100%; padding: 0 20px 24px; overflow: hidden;
+  }
+
+  /* ── Note chip ── */
+  .note-chip {
+    position: relative; display: inline-flex; align-items: center; gap: 8px;
+    padding: 11px 20px; border-radius: 999px;
+    background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.12);
+    backdrop-filter: blur(14px); cursor: pointer; user-select: none;
+    transition: background .15s;
+  }
+  .note-chip:hover { background: rgba(255,255,255,.26); }
+  .note-chip-tail {
+    position: absolute; left: 50%; bottom: -12px; transform: translateX(-50%);
+    width: 22px; height: 14px;
+    background: rgba(255,255,255,.18);
+    clip-path: polygon(0 0,100% 0,50% 100%);
+  }
+  .note-icon {
+    position: relative; width: 18px; height: 18px;
+    border: 1.5px solid #fff; border-radius: 3px; flex-shrink: 0;
+  }
+  .note-line {
+    position: absolute; background: #fff; border-radius: 999px;
+  }
+  .note-line-top  { left:4px; top:4px;  width:10px; height:1.5px; }
+  .note-line-mid  { left:4px; top:8px;  width:7px;  height:1.5px; }
+  .note-line-slash{ right:-1px; bottom:2px; width:7px; height:1.5px; transform:rotate(-38deg); }
+
+  /* ══════════════════════════════════════════
+     SPRITE
+  ══════════════════════════════════════════ */
+  .sprite-shell {
+    position: relative; width: 280px; height: 215px; flex-shrink: 0;
+    transition: transform .4s ease;
+    animation: spriteFloat 2.4s ease-in-out infinite;
+  }
+
+  /* Radial glow behind cloud */
+  .sprite-glow {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%,-50%);
+    width: 220px; height: 168px; border-radius: 50%;
+    filter: blur(22px);
+    transition: background .4s, opacity .4s;
+  }
+
+  /* Cloud pieces */
+  .cloud-piece {
+    position: absolute;
+    transition: background .4s ease, box-shadow .4s ease;
+  }
+  /* lobe positions inside 280×215 shell */
+  .lobe-l  { left:16px; top:70px;  width:104px; height:100px; border-radius:50%; }
+  .lobe-c  { left:80px; top:10px;  width:124px; height:124px; border-radius:50%; }
+  .lobe-r  { right:12px;top:58px;  width:116px; height:110px; border-radius:50%; }
+  .body-p  { left:30px; right:24px;bottom:10px; height:118px; border-radius:60px; }
+
+  /* happy/calm cloud — lavender purple */
+  .cloud-warm .cloud-piece {
+    background: radial-gradient(circle at 45% 35%, #f0ecff 0%, #d8cef5 50%, #b8aadf 100%);
+    box-shadow: inset 0 -18px 36px rgba(80,60,160,.14), inset 0 6px 16px rgba(255,255,255,.72);
+  }
+  /* sad cloud — deeper indigo */
+  .cloud-sad .cloud-piece {
+    background: radial-gradient(circle at 42% 34%, #dcd8f8 0%, #bab4e8 46%, #9890cc 100%);
+    box-shadow: inset 0 -16px 32px rgba(48,36,130,.14), inset 0 5px 14px rgba(255,255,255,.38);
+  }
+
+  /* ── Face layer ── */
+  .sprite-face { position: absolute; inset: 0; }
+
+  /* Happy / calm : pill eyes */
+  .eye-pill {
+    position: absolute; top: 92px;
+    width: 10px; height: 26px;
+    background: #6c5bc4;
+    border-radius: 999px;
+    display: none;
+    box-shadow: 0 0 10px rgba(108,91,196,.38);
+  }
+  .eye-pill-l { left: 94px; }
+  .eye-pill-r { right: 94px; }
+
+  /* Sad : round dot eyes */
+  .eye-dot {
+    position: absolute; top: 97px;
+    width: 14px; height: 12px;
+    border-radius: 50%; background: #3328b4;
+    display: none;
+    box-shadow: 2px -2px 0 rgba(255,255,255,.32) inset, 0 0 8px rgba(90,75,220,.35);
+  }
+  .eye-dot-l { left: 92px; }
+  .eye-dot-r { right: 92px; }
+
+  /* Sad tear drops */
+  .tear-drop {
+    position: absolute; top: 113px;
+    width: 6px; height: 14px;
+    border-radius: 0 0 999px 999px;
+    background: linear-gradient(180deg,rgba(120,100,240,.7) 0%,rgba(160,140,255,.4) 100%);
+    display: none;
+  }
+  .tear-l { left: 96px; }
+  .tear-r { right: 96px; }
+
+  /* Blush (happy / calm only) */
+  .blush-group {
+    position: absolute; top: 118px;
+    display: none; flex-direction: row; gap: 4px;
+  }
+  .blush-group-l { left: 74px;  transform: rotate(22deg); }
+  .blush-group-r { right: 72px; transform: rotate(-22deg); }
+  .blush-pill {
+    width: 5px; height: 14px; border-radius: 999px;
+    background: #ff7496;
+  }
+  .blush-pill-sm { height: 9px; opacity: .68; }
+
+  /* Mouth base */
+  .mouth {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    display: none; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .mouth-inner {
+    position: absolute;
+    left: 8px; right: 8px; top: 7px;
+    height: 40%; border-radius: 999px 999px 8px 8px;
+    opacity: .22;
+  }
+
+  /* Happy mouth: big purple arc */
+  .mouth-happy {
+    top: 122px; width: 84px; height: 58px;
+    background: linear-gradient(170deg, #9b8de0 0%, #7260c0 100%);
+    border-radius: 16px 16px 44px 44px;
+    box-shadow: inset 0 14px 24px rgba(40,20,100,.30), 0 4px 12px rgba(90,70,180,.22);
+  }
+  .mouth-happy .mouth-inner { background: rgba(36,24,90,.4); top: 8px; height: 38%; }
+
+  /* Calm mouth: smaller soft purple */
+  .mouth-calm {
+    top: 118px; width: 54px; height: 38px;
+    background: linear-gradient(170deg, #8a7dd0 0%, #6b5db8 100%);
+    border-radius: 12px 12px 28px 28px;
+    box-shadow: inset 0 8px 14px rgba(40,20,100,.20);
+  }
+  .mouth-calm .mouth-inner { background: rgba(36,24,90,.32); }
+
+  /* Sad mouth: round shocked deep indigo */
+  .mouth-sad {
+    top: 112px; width: 62px; height: 54px;
+    background: linear-gradient(180deg, #7060c8 0%, #4838a8 100%);
+    border-radius: 32px;
+    box-shadow: inset 0 -12px 18px rgba(28,18,90,.32), 0 4px 14px rgba(60,42,160,.24);
+  }
+  .mouth-sad .mouth-inner {
+    top: auto; bottom: 7px; height: 32%;
+    border-radius: 8px 8px 999px 999px; background: rgba(28,18,80,.32);
+  }
+
+  /* CSS heart */
+  .heart { position: relative; width: 15px; height: 13px; transform: rotate(-45deg); flex-shrink: 0; }
+  .heart::before, .heart::after {
+    content: ''; position: absolute; border-radius: 50%;
+    width: 15px; height: 15px;
+  }
+  .heart::before { top: -7.5px; left: 0; }
+  .heart::after  { left: 7.5px; top: 0; }
+  .heart-pink::before, .heart-pink::after { background: #ff84aa; }
+  .heart-gold::before, .heart-gold::after { background: #ffd940; }
+
+  /* Sparkle pills — lavender */
+  .spark-pill {
+    position: absolute; top: 122px;
+    width: 11px; height: 28px; border-radius: 999px;
+    background: linear-gradient(180deg, #d4caff 0%, #a896f0 100%);
+    box-shadow: 0 0 12px rgba(180,160,255,.55);
+  }
+  .spark-l { left: 14px;  transform: rotate(-30deg); }
+  .spark-r { right: 12px; transform: rotate(26deg); }
+
+  /* ── Mood title ── */
+  .mood-title {
+    text-align: center; font-size: 30px; font-weight: 900; line-height: 1;
+    color: #fff; letter-spacing: -.5px;
+    text-shadow: 0 5px 14px rgba(0,0,0,.22);
+    transition: opacity .2s;
+  }
+
+  /* ── Sliders ── */
+  .slider-hitbox {
+    position: relative; height: 30px;
+    cursor: pointer; user-select: none;
+  }
+  .slider-track {
+    position: absolute; left: 0; right: 0; top: 50%; height: 12px;
+    border-radius: 999px; transform: translateY(-50%);
+  }
+  .slider-track-emotion {
+    background: linear-gradient(90deg,
+      rgba(100,120,248,.92) 0%, rgba(140,120,228,.90) 40%,
+      rgba(190,170,255,.86) 72%, rgba(210,195,255,.80) 100%);
+    box-shadow: 0 4px 12px rgba(80,60,160,.18);
+  }
+  .slider-track-vitality {
+    background: linear-gradient(90deg, rgba(214,203,245,.18) 0%, rgba(178,164,228,.54) 50%, rgba(214,203,245,.22) 100%);
+  }
+  .slider-thumb {
+    position: absolute; top: 50%; width: 30px; height: 20px;
+    border: 2px solid rgba(255,255,255,.96); border-radius: 999px;
+    box-shadow: 0 5px 14px rgba(0,0,0,.22), 0 0 0 3px rgba(255,255,255,.12);
+    transform: translate(-50%,-50%);
+    cursor: grab; transition: background .25s ease, transform .1s ease;
+  }
+  .slider-thumb:active { cursor: grabbing; transform: translate(-50%,-50%) scale(1.1); }
+
+  /* ── OK Button ── */
+  .ok-button {
+    display: flex; align-items: center; justify-content: center;
+    height: 58px; border-radius: 999px;
+    background: linear-gradient(148deg, #9a8fcb 0%, #8276ba 52%, #7264af 100%);
+    box-shadow: 0 10px 28px rgba(100,88,170,.40), inset 0 1px 0 rgba(255,255,255,.16);
+    cursor: pointer; user-select: none; transition: opacity .15s, transform .1s;
+  }
+  .ok-button:active { opacity: .85; transform: scale(.98); }
+
+  @keyframes spriteFloat {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-6px); }
+  }
+</style>
+</head>
+<body>
+
+<!-- Phone -->
+<div class="phone">
+
+  <!-- Home screen -->
+  <div class="home-bg">
+    <div class="home-card">
+      <div class="flex justify-between items-center mb-3">
+        <span class="text-sm font-semibold text-gray-900">今日心情</span>
+        <div class="update-chip" id="openBtn">
+          <div class="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+          <span class="text-[11px] text-gray-400 font-semibold">今日更新</span>
+        </div>
+      </div>
+      <div class="flex items-baseline gap-1">
+        <span class="text-[52px] font-black text-gray-900 leading-none">89</span>
+        <span class="text-sm text-gray-700">分</span>
+      </div>
+    </div>
+    <div class="home-card h-24"></div>
+    <div class="home-card h-36"></div>
+  </div>
+
+  <!-- Overlay -->
+  <div class="overlay" id="overlay">
+    <div class="overlay-backdrop" id="backdrop"></div>
+    <div class="overlay-gradient happy" id="gradientEl"></div>
+
+    <div class="overlay-inner">
+
+      <!-- Note chip -->
+      <div class="flex justify-center mt-10">
+        <div class="note-chip">
+          <div class="note-icon">
+            <div class="note-line note-line-top"></div>
+            <div class="note-line note-line-mid"></div>
+            <div class="note-line note-line-slash"></div>
+          </div>
+          <span class="text-[15px] font-semibold text-white">写个小纸条，记录此刻感受</span>
+          <div class="note-chip-tail"></div>
+        </div>
+      </div>
+
+      <!-- ── Sprite ── -->
+      <div class="flex justify-center mt-8">
+        <div class="sprite-shell" id="spriteShell">
+
+          <!-- Glow -->
+          <div class="sprite-glow" id="spriteGlow"></div>
+
+          <!-- Cloud -->
+          <div id="spriteCloud" class="cloud-warm">
+            <div class="cloud-piece lobe-l"></div>
+            <div class="cloud-piece lobe-c"></div>
+            <div class="cloud-piece lobe-r"></div>
+            <div class="cloud-piece body-p"></div>
+          </div>
+
+          <!-- Face -->
+          <div class="sprite-face">
+            <!-- Eyes: arc (happy/calm) -->
+            <div class="eye-arc eye-arc-l" id="eyeArcL"></div>
+            <div class="eye-arc eye-arc-r" id="eyeArcR"></div>
+            <!-- Eyes: dots (sad) -->
+            <div class="eye-dot eye-dot-l" id="eyeDotL"></div>
+            <div class="eye-dot eye-dot-r" id="eyeDotR"></div>
+            <!-- Tears (sad) -->
+            <div class="tear-drop tear-l" id="tearL"></div>
+            <div class="tear-drop tear-r" id="tearR"></div>
+            <!-- Blush (happy/calm) -->
+            <div class="blush-group blush-group-l" id="blushL">
+              <div class="blush-pill"></div>
+              <div class="blush-pill blush-pill-sm"></div>
+            </div>
+            <div class="blush-group blush-group-r" id="blushR">
+              <div class="blush-pill"></div>
+              <div class="blush-pill blush-pill-sm"></div>
+            </div>
+            <!-- Mouth happy -->
+            <div class="mouth mouth-happy" id="mouthHappy">
+              <div class="mouth-inner"></div>
+              <div class="heart heart-pink"></div>
+            </div>
+            <!-- Mouth calm -->
+            <div class="mouth mouth-calm" id="mouthCalm">
+              <div class="mouth-inner"></div>
+              <div class="heart heart-pink" style="width:11px;height:10px;"></div>
+            </div>
+            <!-- Mouth sad -->
+            <div class="mouth mouth-sad" id="mouthSad">
+              <div class="mouth-inner"></div>
+              <div class="heart heart-gold"></div>
+            </div>
+          </div>
+
+          <!-- Sparkles -->
+          <div class="spark-pill spark-l" id="sparkL"></div>
+          <div class="spark-pill spark-r" id="sparkR"></div>
+        </div>
+      </div>
+
+      <!-- Mood title -->
+      <div class="mood-title mt-4" id="moodTitle">爆炸开心</div>
+
+      <!-- Emotion slider -->
+      <div class="mt-6">
+        <span class="block mb-2.5 text-base font-semibold text-white">情绪值</span>
+        <div class="slider-hitbox" id="emotionHitbox">
+          <div class="slider-track slider-track-emotion"></div>
+          <div class="slider-thumb" id="emotionThumb" style="left:78%;background:#f7c62f;"></div>
+        </div>
+        <div class="flex justify-between mt-2 text-xs text-white/70">
+          <span>难过</span><span>开心</span><span>愤怒</span>
+        </div>
+      </div>
+
+      <!-- Vitality slider -->
+      <div class="mt-5">
+        <span class="block mb-2.5 text-base font-semibold text-white">活力值</span>
+        <div class="slider-hitbox" id="vitalityHitbox">
+          <div class="slider-track slider-track-vitality"></div>
+          <div class="slider-thumb" id="vitalityThumb" style="left:66%;background:#d5d5d5;"></div>
+        </div>
+        <div class="flex justify-between mt-2 text-xs text-white/70">
+          <span>无力</span><span>正常</span><span>兴奋</span>
+        </div>
+      </div>
+
+      <!-- OK -->
+      <div class="mt-auto pt-4">
+        <div class="ok-button" id="okBtn">
+          <span class="text-[28px] font-bold text-white leading-none">ok</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  const state = { mood: 78, vitality: 66 }
+
+  const overlay     = document.getElementById('overlay')
+  const gradientEl  = document.getElementById('gradientEl')
+  const spriteShell = document.getElementById('spriteShell')
+  const spriteGlow  = document.getElementById('spriteGlow')
+  const spriteCloud = document.getElementById('spriteCloud')
+  const moodTitle   = document.getElementById('moodTitle')
+  const emotionThumb  = document.getElementById('emotionThumb')
+  const vitalityThumb = document.getElementById('vitalityThumb')
+
+  const eyeArcL  = document.getElementById('eyeArcL')
+  const eyeArcR  = document.getElementById('eyeArcR')
+  const eyeDotL  = document.getElementById('eyeDotL')
+  const eyeDotR  = document.getElementById('eyeDotR')
+  const tearL    = document.getElementById('tearL')
+  const tearR    = document.getElementById('tearR')
+  const blushL   = document.getElementById('blushL')
+  const blushR   = document.getElementById('blushR')
+  const mouthHappy = document.getElementById('mouthHappy')
+  const mouthCalm  = document.getElementById('mouthCalm')
+  const mouthSad   = document.getElementById('mouthSad')
+  const sparkL   = document.getElementById('sparkL')
+  const sparkR   = document.getElementById('sparkR')
+
+  document.getElementById('openBtn').addEventListener('click', () => {
+    overlay.classList.add('visible'); update()
+  })
+  document.getElementById('backdrop').addEventListener('click', () => {
+    overlay.classList.remove('visible')
+  })
+  document.getElementById('okBtn').addEventListener('click', () => {
+    overlay.classList.remove('visible')
+  })
+
+  function getMoodState(v) {
+    if (v <= 34) return 'sad'
+    if (v >= 68) return 'happy'
+    return 'calm'
+  }
+  function getMoodTitle(v) {
+    if (v <= 20) return '哭唧唧'
+    if (v <= 45) return '有点低落'
+    if (v <= 67) return '慢慢放松'
+    if (v <= 85) return '今天很甜'
+    return '爆炸开心'
+  }
+  function getThumbColor(s) {
+    if (s === 'sad')  return '#8880d8'
+    if (s === 'calm') return '#a090e0'
+    return '#c0b0f0'
+  }
+
+  function show(el, displayType='flex') {
+    el.style.display = displayType
+  }
+  function hide(el) { el.style.display = 'none' }
+
+  function update() {
+    const s = getMoodState(state.mood)
+
+    /* ── gradient ── */
+    gradientEl.className = 'overlay-gradient ' + s
+
+    /* ── cloud colour ── */
+    spriteCloud.className = (s === 'sad') ? 'cloud-sad' : 'cloud-warm'
+
+    /* ── glow — all purple variants ── */
+    if (s === 'happy') {
+      spriteGlow.style.background = 'radial-gradient(circle, rgba(200,188,255,.72) 0%, rgba(170,152,240,.42) 50%, transparent 100%)'
+    } else if (s === 'calm') {
+      spriteGlow.style.background = 'radial-gradient(circle, rgba(185,172,248,.60) 0%, rgba(155,138,228,.35) 50%, transparent 100%)'
+    } else {
+      spriteGlow.style.background = 'radial-gradient(circle, rgba(160,145,238,.80) 0%, rgba(128,112,220,.48) 50%, transparent 100%)'
+    }
+
+    /* ── eyes ── */
+    if (s === 'sad') {
+      show(eyeDotL,'block'); show(eyeDotR,'block')
+      show(tearL,'block');   show(tearR,'block')
+      hide(eyeArcL);         hide(eyeArcR)
+    } else {
+      hide(eyeDotL);  hide(eyeDotR)
+      hide(tearL);    hide(tearR)
+      show(eyeArcL,'block'); show(eyeArcR,'block')
+    }
+
+    /* ── blush ── */
+    if (s === 'sad') { hide(blushL); hide(blushR) }
+    else { show(blushL); show(blushR) }
+
+    /* ── mouth ── */
+    hide(mouthHappy); hide(mouthCalm); hide(mouthSad)
+    if (s === 'happy') show(mouthHappy)
+    else if (s === 'calm') show(mouthCalm)
+    else show(mouthSad)
+
+    /* ── sparkles ── */
+    if (s === 'sad') { hide(sparkL); hide(sparkR) }
+    else { show(sparkL,'block'); show(sparkR,'block') }
+
+    /* ── title & thumb color ── */
+    moodTitle.textContent = getMoodTitle(state.mood)
+    emotionThumb.style.background = getThumbColor(s)
+
+    /* ── vitality → scale + float + glow opacity ── */
+    const scale    = 0.96 + state.vitality / 350
+    const duration = Math.max(1.2, 3.2 - state.vitality / 45)
+    const glowOp   = Math.min(1, 0.45 + state.vitality / 200)
+    spriteShell.style.transform        = `scale(${scale.toFixed(3)})`
+    spriteShell.style.animationDuration = duration.toFixed(2) + 's'
+    spriteGlow.style.opacity           = glowOp.toFixed(2)
+
+    /* ── thumb positions ── */
+    emotionThumb.style.left  = state.mood     + '%'
+    vitalityThumb.style.left = state.vitality + '%'
+  }
+
+  /* drag helper */
+  function makeSlider(hitbox, key) {
+    let active = false
+    function calc(cx) {
+      const r = hitbox.getBoundingClientRect()
+      state[key] = Math.max(0, Math.min(100, Math.round(((cx - r.left) / r.width) * 100)))
+      update()
+    }
+    hitbox.addEventListener('mousedown',  e => { active = true; calc(e.clientX) })
+    hitbox.addEventListener('touchstart', e => { active = true; calc(e.touches[0].clientX) }, { passive: true })
+    window.addEventListener('mousemove',  e => { if (active) calc(e.clientX) })
+    window.addEventListener('touchmove',  e => { if (active) calc(e.touches[0].clientX) }, { passive: true })
+    window.addEventListener('mouseup',  () => active = false)
+    window.addEventListener('touchend', () => active = false)
+  }
+
+  makeSlider(document.getElementById('emotionHitbox'),  'mood')
+  makeSlider(document.getElementById('vitalityHitbox'), 'vitality')
+
+  update()
+</script>
+</body>
+</html>

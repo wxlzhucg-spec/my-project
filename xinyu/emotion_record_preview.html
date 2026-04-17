@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>心情追踪</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #e5e5e5;
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh;
+      font-family: 'PingFang SC','Helvetica Neue',Arial,sans-serif;
+    }
+    .phone {
+      width: 375px; height: 812px;
+      position: relative; overflow: hidden;
+      border-radius: 44px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.28);
+      background: #f7f7f9;
+    }
+
+    /* ── Status Bar ── */
+    .status-bar { position: absolute; height: 44px; left: 0; top: 0; width: 375px; z-index: 3; }
+    .status-bar .time { position: absolute; left: 21px; top: 8px; font-size: 15px; font-weight: 600; letter-spacing: -0.33px; color: #1a1a1a; line-height: 23px; }
+    .status-bar .icons { position: absolute; right: 14px; top: 15px; width: 68px; height: 16px; }
+
+    /* ── Home ── */
+    .home-main {
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, #f9f8f4 0%, #f1eee7 45%, #ece8df 100%);
+      padding: 62px 18px 108px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .card {
+      background: rgba(255,255,255,0.82);
+      border: 1px solid rgba(255,255,255,0.72);
+      border-radius: 18px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+    }
+    .hero-card { padding: 18px 16px; height: 124px; display: flex; justify-content: space-between; align-items: center; }
+    .hero-title { font-size: 20px; font-weight: 700; color: #171717; margin-bottom: 8px; }
+    .hero-desc { font-size: 13px; color: #686868; line-height: 1.4; }
+    .update-btn {
+      border: none; border-radius: 14px; padding: 10px 14px;
+      background: #1d1d1f; color: #fff; font-size: 14px; font-weight: 600;
+      cursor: pointer; white-space: nowrap;
+      transition: transform 0.15s, opacity 0.15s;
+    }
+    .update-btn:active { transform: scale(0.97); opacity: 0.85; }
+    .mini-card { height: 88px; padding: 14px; display: flex; align-items: center; justify-content: space-between; color: #525252; font-size: 13px; }
+
+    /* ── Bottom Nav ── */
+    .bottom-nav {
+      position: absolute; left: 0; bottom: 34px; width: 100%; height: 64px;
+      display: grid; grid-template-columns: repeat(4,1fr);
+      align-items: center; padding: 0 8px; z-index: 3;
+      background: rgba(248,247,244,0.72);
+      border-top: 1px solid rgba(0,0,0,0.05);
+    }
+    .bottom-nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; opacity: 0.42; }
+    .bottom-nav-item.is-active { opacity: 0.88; }
+    .bottom-nav-icon { width: 18px; height: 18px; border-radius: 5px; background: #111; opacity: 0.35; }
+    .bottom-nav-label { font-size: 10px; color: #111; opacity: 0.58; }
+    .home-indicator { position: absolute; left: 0; bottom: 0; width: 100%; height: 34px; display: flex; align-items: center; justify-content: center; z-index: 3; }
+    .home-indicator-bar { width: 134px; height: 5px; border-radius: 100px; background: #111; opacity: 0.85; }
+
+    /* ── Modal ── */
+    .modal-hidden { display: none !important; }
+    #modal { position: absolute; inset: 0; z-index: 10; }
+    .modal-backdrop { position: absolute; inset: 0; background: rgba(14,11,34,0.72); }
+    .modal-gradient {
+      position: absolute; top: 0; left: 0; width: 100%; height: 480px;
+      pointer-events: none;
+      background: linear-gradient(180deg,rgba(110,100,195,0.72) 0%,rgba(90,80,175,0.20) 58%,transparent 100%);
+      transition: background 0.35s ease;
+    }
+
+    /* ── Mascot ── */
+    .mascot-wrap {
+      position: absolute; left: 67px; top: 100px;
+      width: 241px; height: 190px;
+      transform-origin: 50% 60%;
+      filter: drop-shadow(0 16px 30px rgba(0,0,0,0.18));
+      will-change: transform;
+    }
+    .mascot-wrap svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+    /* ── Modal UI ── */
+    .note-input-container {
+      position: absolute; top: 344px; left: 50%; transform: translateX(-50%); z-index: 12;
+      width: 280px; height: 46px;
+      background: rgba(130,110,210,0.18);
+      border: 1px solid rgba(214,203,245,0.28);
+      border-radius: 23px;
+      display: flex; align-items: center; padding: 0 18px; gap: 10px;
+      box-shadow: 0 6px 20px rgba(20,15,50,0.18), inset 0 1px 0 rgba(255,255,255,0.08);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+    .note-input-container:focus-within {
+      background: rgba(140,120,220,0.26);
+      border-color: rgba(214,203,245,0.52);
+      box-shadow: 0 8px 28px rgba(20,15,50,0.22), inset 0 1px 0 rgba(255,255,255,0.12);
+    }
+    .note-input-container svg { width: 18px; height: 18px; opacity: 0.9; flex-shrink: 0; }
+    .note-input {
+      flex: 1; background: transparent; border: none; outline: none;
+      color: #fff; font-size: 15px; font-family: inherit; font-weight: 500;
+    }
+    .note-input::placeholder { color: rgba(255,255,255,0.65); font-weight: 400; }
+    
+    .slider-label { position: absolute; font-size: 16px; color: rgba(214,205,236,0.88); left: 27px; z-index: 12; font-weight: 600; }
+    .slider-label.emotion  { top: 416px; }
+    .slider-label.vitality { top: 508px; }
+    .slider-wrap { position: absolute; z-index: 12; height: 18px; width: 323px; left: 26px; }
+    .slider-wrap.emotion  { top: 448px; }
+    .slider-wrap.vitality { top: 540px; }
+    .slider-track { position: absolute; top: 3px; left: 0; right: 0; height: 12px; border-radius: 10px; pointer-events: none; }
+    .slider-track.emotion {
+      background: linear-gradient(90deg,rgba(116,132,240,0.90) 0%,rgba(146,126,212,0.86) 52%,rgba(200,170,255,0.72) 100%);
+    }
+    .slider-track.vitality { background: linear-gradient(90deg,rgba(214,203,245,0.12) 0%,rgba(178,164,228,0.48) 50%,rgba(214,203,245,0.18) 100%); }
+    .slider-input {
+      position: absolute; top: 0; left: 0; width: 100%; height: 18px;
+      -webkit-appearance: none; appearance: none; background: transparent;
+      cursor: pointer; z-index: 2;
+    }
+    .slider-input::-webkit-slider-thumb { -webkit-appearance: none; width: 30px; height: 18px; background: transparent; }
+    .slider-input::-moz-range-thumb { width: 30px; height: 18px; background: transparent; border: none; }
+    .slider-thumb {
+      position: absolute; top: 0; width: 29px; height: 18px;
+      border-radius: 10px; border: 1.5px solid rgba(255,255,255,0.95);
+      box-shadow: 0 0 9px rgba(0,0,0,0.25);
+      pointer-events: none; z-index: 3;
+      will-change: left, background-color;
+    }
+    .slider-hints { position: absolute; left: 27px; right: 27px; top: 467px; display: flex; justify-content: space-between; z-index: 12; }
+    .slider-hints span { font-size: 12px; color: rgba(214,205,236,0.44); }
+    .ok-btn {
+      position: absolute; top: 623px; left: 50%; transform: translateX(-50%); z-index: 12;
+      width: 238px;
+      background: linear-gradient(148deg, #9a8fcb 0%, #8276ba 52%, #7264af 100%);
+      border: none; border-radius: 22px;
+      padding: 10px 80px; font-size: 20px; font-weight: 700; color: #fff;
+      cursor: pointer; transition: background 0.15s;
+      box-shadow: 0 10px 28px rgba(100,88,170,0.42), inset 0 1px 0 rgba(255,255,255,0.16);
+    }
+    .ok-btn:hover {
+      background: linear-gradient(148deg, #a899d5 0%, #9084c4 52%, #8272bb 100%);
+    }
+  </style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <div class="time">6:18</div>
+    <div class="icons">
+      <svg width="68" height="16" viewBox="0 0 68 16" fill="none">
+        <path d="M2.667 8.333h1v2h-1zM7.334 6.333h1v4h-1zM12 4h1v6.333h-1z" fill="#1A1A1A"/>
+        <path d="M16.667 1.667h1V10.333h-1z" fill="#1A1A1A"/>
+        <g transform="translate(22,1)"><path d="M8.1 9.8c1.29-1.065 3.173-1.065 4.46 0l.103.222-2.015 1.991-.224.009-.225-.009L8.096 10.02l.004-.22zm-2.668-2.865c2.762-2.579 7.04-2.579 9.803 0l.099.232-1.161 1.178c-.12.12-.313.12-.44 0-.907-.824-2.087-1.28-3.31-1.28-1.223 0-2.402.456-3.31 1.28-.12.12-.314.12-.44 0L5.43 7.167l.002-.232z" fill="#1A1A1A"/></g>
+        <g transform="translate(43,2)"><rect x="0.5" y="0.833" width="21" height="10.333" rx="2.167" stroke="#1A1A1A"/><path d="M23 4v4c.808-.34 1.333-1.127 1.333-2 0-.873-.525-1.661-1.333-2" fill="#1A1A1A"/><rect x="2" y="2.333" width="18" height="7.333" rx="1.333" fill="#1A1A1A"/></g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Home Content -->
+  <div class="home-main">
+    <div class="card hero-card">
+      <div>
+        <div class="hero-title">今天过得怎么样？</div>
+        <div class="hero-desc">记录心情，精灵感知你的状态</div>
+      </div>
+      <button class="update-btn" id="open-btn">今日更新</button>
+    </div>
+    <div class="card mini-card"><span>冥想计划</span><span>连续 6 天</span></div>
+    <div class="card mini-card"><span>睡眠记录</span><span>7h 22m</span></div>
+    <div class="card mini-card"><span>压力指数</span><span>轻度</span></div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <div class="bottom-nav-item is-active"><div class="bottom-nav-icon"></div><span class="bottom-nav-label">首页</span></div>
+    <div class="bottom-nav-item"><div class="bottom-nav-icon"></div><span class="bottom-nav-label">探索</span></div>
+    <div class="bottom-nav-item"><div class="bottom-nav-icon"></div><span class="bottom-nav-label">影子</span></div>
+    <div class="bottom-nav-item"><div class="bottom-nav-icon"></div><span class="bottom-nav-label">我的</span></div>
+  </div>
+  <div class="home-indicator"><div class="home-indicator-bar"></div></div>
+
+  <!-- ═══════════════ MODAL ═══════════════ -->
+  <div id="modal" class="modal-hidden">
+    <div class="modal-backdrop" id="modal-backdrop"></div>
+    <div class="modal-gradient" id="modal-gradient"></div>
+
+    <!-- ═══ MASCOT SVG (face-layer fully inside) ═══ -->
+    <div class="mascot-wrap" id="mascot-wrap">
+      <svg fill="none" viewBox="0 0 241.376 188.924">
+
+        <!-- Cloud body mask -->
+        <mask id="body-mask" maskUnits="userSpaceOnUse" style="mask-type:alpha">
+          <path d="M148.652 0C182.792 0.000197914 210.468 27.6759 210.468 61.8154C210.468 65.0652 210.216 68.2567 209.732 71.3711C228.627 82.089 241.376 102.386 241.376 125.66C241.376 158.482 215.946 185.714 183.158 187.199C162.354 188.141 139.439 188.924 120.688 188.924C101.936 188.924 79.0222 188.141 58.2178 187.199C25.4299 185.714 0 158.482 0 125.66C0 100.709 14.651 79.1799 35.8194 69.2061C35.4947 67.2817 35.3233 65.3048 35.3233 63.2881C35.3233 43.7796 51.138 27.9648 70.6465 27.9648C78.9593 27.9648 86.6002 30.8374 92.6338 35.6426C102.489 14.5861 123.868 0 148.652 0Z" fill="white"/>
+        </mask>
+
+        <!-- Cloud body fill (inside mask) -->
+        <g mask="url(#body-mask)">
+          <g filter="url(#body-glow-filter)">
+            <ellipse id="body-glow" cx="125.451" cy="107.208" rx="111.979" ry="90.3693" fill="url(#body-grad)"/>
+          </g>
+          <!-- mood tint overlay (opacity set by JS) -->
+          <rect id="body-tint" x="-5" y="-5" width="252" height="200" fill="#8888ee" opacity="0"/>
+        </g>
+
+        <!-- Side sparkles (vitality) -->
+        <path id="spark-r" d="M218 154 C222 152 227 145 228 138" stroke="#c4b8f8" stroke-linecap="round" stroke-width="5.2" fill="none"/>
+        <path id="spark-l" d="M29 89 C26 90 22 95 21 100" stroke="#c4b8f8" stroke-linecap="round" stroke-width="5.2" fill="none"/>
+
+        <!-- ════════════════════════════════
+             FACE LAYER — all SVG coords
+             viewBox 0 0 241.376 188.924
+             Cloud center ≈ (120.7, 110)
+             Left eye  cx=91  cy=90
+             Right eye cx=151 cy=90
+        ════════════════════════════════ -->
+        <g id="face-layer">
+          <g id="face-inner">
+            <!-- EYEBROWS -->
+            <path id="brow-l" d="" stroke="#2C2C35" stroke-width="5" stroke-linecap="round" fill="none"/>
+            <path id="brow-r" d="" stroke="#2C2C35" stroke-width="5" stroke-linecap="round" fill="none"/>
+
+            <!-- EYES -->
+            <ellipse id="eye-l" cx="91" cy="98" rx="7.5" ry="7.5" fill="#2C2C35"/>
+            <ellipse id="eye-r" cx="151" cy="98" rx="7.5" ry="7.5" fill="#2C2C35"/>
+
+            <!-- BLUSH -->
+            <g id="blush" opacity="0.6">
+              <ellipse cx="68" cy="108" rx="11" ry="6" fill="#FF7799" transform="rotate(-12, 68, 108)"/>
+              <ellipse cx="174" cy="108" rx="11" ry="6" fill="#FF7799" transform="rotate(12, 174, 108)"/>
+            </g>
+
+            <!-- TEARS -->
+            <g id="tears" opacity="0">
+              <path d="M91 111 Q87 120 89 128 Q91 136 93 128 Q95 120 91 111Z" fill="#88BBFF"/>
+              <path d="M151 111 Q147 120 149 128 Q151 136 153 128 Q155 120 151 111Z" fill="#88BBFF"/>
+            </g>
+
+            <!-- MOUTH -->
+            <path id="mouth-arc" d="" fill="none" stroke="#2C2C35" stroke-width="5.5" stroke-linecap="round"/>
+          </g>
+        </g><!-- /face-layer -->
+
+        <defs>
+          <filter id="body-glow-filter" x="-40%" y="-30%" width="180%" height="160%" filterUnits="objectBoundingBox" color-interpolation-filters="sRGB">
+            <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+            <feBlend in="SourceGraphic" in2="BackgroundImageFix" mode="normal" result="shape"/>
+            <feGaussianBlur stdDeviation="16"/>
+          </filter>
+          <filter id="ear-shadow" x="-20%" y="-20%" width="200%" height="250%" filterUnits="objectBoundingBox" color-interpolation-filters="sRGB">
+            <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+            <feColorMatrix in="SourceAlpha" result="hardAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"/>
+            <feOffset dy="3.5"/>
+            <feGaussianBlur stdDeviation="1.8"/>
+            <feComposite in2="hardAlpha" operator="out"/>
+            <feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 0.585 0 0 0 0 0.245 0 0 0 0.68 0"/>
+            <feBlend in2="BackgroundImageFix" result="shadow"/>
+            <feBlend in="SourceGraphic" in2="shadow"/>
+          </filter>
+          <radialGradient id="body-grad" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(125.451 107.208) rotate(90) scale(90.37 111.98)">
+            <stop id="grad-stop1" offset="0.22" stop-color="#dcd5ff"/>
+            <stop id="grad-stop2" offset="1"    stop-color="#dcd5ff" stop-opacity="0.65"/>
+          </radialGradient>
+        </defs>
+      </svg>
+    </div><!-- /mascot-wrap -->
+
+    <!-- Modal UI layer -->
+    <div class="note-input-container">
+      <svg fill="none" viewBox="0 0 20 20"><path d="M9.167 2.5H4.167C3.724 2.5 3.301 2.676 2.988 2.988C2.676 3.301 2.5 3.725 2.5 4.167V15.833C2.5 16.275 2.676 16.699 2.988 17.012C3.301 17.324 3.724 17.5 4.167 17.5H15.833C16.275 17.5 16.699 17.324 17.012 17.012C17.324 16.699 17.5 16.275 17.5 15.833V10.833M16.083 2.745C16.239 2.589 16.451 2.501 16.672 2.501C16.893 2.501 17.105 2.589 17.261 2.745C17.417 2.9 17.505 3.112 17.505 3.333C17.505 3.554 17.417 3.766 17.261 3.922L9.601 11.583C9.444 11.735 9.233 11.819 9.015 11.817C8.797 11.815 8.588 11.728 8.433 11.573C8.279 11.419 8.191 11.21 8.189 10.991C8.187 10.773 8.271 10.562 8.423 10.405L16.083 2.745Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <input type="text" class="note-input" placeholder="写个小纸条，记录此刻感受..." />
+    </div>
+
+    <span class="slider-label emotion">情绪值</span>
+    <div class="slider-wrap emotion">
+      <div class="slider-track emotion"></div>
+      <input class="slider-input" type="range" min="0" max="100" value="76" id="emotion-slider"/>
+      <div class="slider-thumb" id="emotion-thumb" style="left:calc(76% - 14.5px);background:#f6cc34;"></div>
+    </div>
+    <div class="slider-hints"><span>难过</span><span>平静</span><span>开心</span></div>
+
+    <span class="slider-label vitality">活力值</span>
+    <div class="slider-wrap vitality">
+      <div class="slider-track vitality"></div>
+      <input class="slider-input" type="range" min="0" max="100" value="65" id="vitality-slider"/>
+      <div class="slider-thumb" id="vitality-thumb" style="left:calc(65% - 14.5px);background:#d4d4d4;"></div>
+    </div>
+
+    <button class="ok-btn" id="close-btn">ok</button>
+  </div><!-- /modal -->
+
+</div><!-- /phone -->
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  DOM refs
+// ═══════════════════════════════════════════════════════
+const modal        = document.getElementById('modal');
+const openBtn      = document.getElementById('open-btn');
+const closeBtn     = document.getElementById('close-btn');
+const backdrop     = document.getElementById('modal-backdrop');
+const gradientEl   = document.getElementById('modal-gradient');
+const mascotWrap   = document.getElementById('mascot-wrap');
+const emotionSlider  = document.getElementById('emotion-slider');
+const vitalitySlider = document.getElementById('vitality-slider');
+const emotionThumb   = document.getElementById('emotion-thumb');
+const vitalityThumb  = document.getElementById('vitality-thumb');
+
+// SVG face elements
+const f = {
+  faceInner:    document.getElementById('face-inner'),
+  browL:        document.getElementById('brow-l'),
+  browR:        document.getElementById('brow-r'),
+  eyeL:         document.getElementById('eye-l'),
+  eyeR:         document.getElementById('eye-r'),
+  blush:        document.getElementById('blush'),
+  tears:        document.getElementById('tears'),
+  mouthArc:     document.getElementById('mouth-arc'),
+  bodyTint:     document.getElementById('body-tint'),
+  sparkL:       document.getElementById('spark-l'),
+  sparkR:       document.getElementById('spark-r'),
+  gradStop1:    document.getElementById('grad-stop1'),
+  gradStop2:    document.getElementById('grad-stop2'),
+};
+
+// ═══════════════════════════════════════════════════════
+//  State
+// ═══════════════════════════════════════════════════════
+let targetMood = 76, targetVit = 65;
+let curMood    = 76, curVit    = 65;
+let rafId = null, lastTs = 0;
+
+// ═══════════════════════════════════════════════════════
+//  Helpers
+// ═══════════════════════════════════════════════════════
+const lerp  = (a, b, t) => a + (b - a) * t;
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const sa    = (el, attr, val) => el.setAttribute(attr, val);
+
+// Weighted blend of arrays: each arr has same length, weights sum should ≈ 1
+function weightedArr(arrs, weights) {
+  const n = arrs[0].length;
+  const out = new Array(n).fill(0);
+  arrs.forEach((arr, i) => {
+    for (let j = 0; j < n; j++) out[j] += arr[j] * weights[i];
+  });
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════
+//  State weight computation (soft cross-fade)
+//  emotion 0-100: sad → calm → happy
+// ═══════════════════════════════════════════════════════
+function getWeights(e) {
+  // Linear interpolation across 3 states
+  let sad = 0, calm = 0, happy = 0;
+  if (e < 50) {
+    sad = 1 - (e / 50);
+    calm = e / 50;
+  } else {
+    calm = 1 - ((e - 50) / 50);
+    happy = (e - 50) / 50;
+  }
+  return { sad, calm, happy, angry: 0 };
+}
+
+// ═══════════════════════════════════════════════════════
+//  Brow keyframes  [x1,y1, cx,cy, x2,y2]
+// ═══════════════════════════════════════════════════════
+const BROW = {
+  //          x1   y1    cx   cy    x2   y2
+  happy: { l:[79,  87,  91,  81,  103,  87], r:[138,  87, 150,  81, 162,  87] }, // high arch
+  calm:  { l:[79,  89,  91,  88,  103,  89], r:[138,  89, 150,  88, 162,  89] }, // flat
+  sad:   { l:[79,  91,  91,  84,  103,  89], r:[138,  89, 150,  84, 162,  91] }, // inner up
+  angry: { l:[79,  85,  91,  92,  103,  85], r:[138,  85, 150,  92, 162,  85] }, // V shape
+};
+
+// ═══════════════════════════════════════════════════════
+//  Mouth arc keyframes  [x1, y, cx, cy, x2, y]
+// ═══════════════════════════════════════════════════════
+const MOUTH_ARC = {
+  happy: [100, 120, 120.7, 138, 141, 120], // deep U smile
+  calm:  [108, 124, 120.7, 128, 133, 124], // small smile
+  sad:   [108, 130, 120.7, 122, 133, 130], // frown
+  angry: [105, 128, 120.7, 124, 136, 128], // tight grimace
+};
+
+// ═══════════════════════════════════════════════════════
+//  Gradient / tint colors per state  [r,g,b]
+// ═══════════════════════════════════════════════════════
+const GRAD_COLOR  = { sad:[200,195,255], calm:[215,205,255], happy:[220,210,255], angry:[255,200,220] };
+const TINT        = { sad:[100,100,220,0.22], calm:[150,130,230,0.08], happy:[180,160,240,0.06], angry:[220,100,150,0.14] };
+
+// Modal gradient per state  rgba strings
+const MODAL_GRAD  = {
+  sad:   [80,  82, 175],
+  calm:  [108, 96, 200],
+  happy: [130, 118, 215],
+  angry: [160,  72, 130],
+};
+
+// ═══════════════════════════════════════════════════════
+//  Blink — smooth cosine ease-in/out (no harsh triangle wave)
+// ═══════════════════════════════════════════════════════
+const BLINK_PERIOD = 4000;  // ms between blinks
+const BLINK_DUR    = 150;   // ms for one full close→open
+function blinkScale(ts) {
+  const phase = (ts + 1400) % BLINK_PERIOD;
+  if (phase >= BLINK_DUR) return 1;
+  // smooth cosine: 1 → 0 → 1
+  return 0.5 + 0.5 * Math.cos((phase / BLINK_DUR) * Math.PI * 2);
+}
+
+// ═══════════════════════════════════════════════════════
+//  Per-frame render
+// ═══════════════════════════════════════════════════════
+function render(ts) {
+  const w = getWeights(curMood);
+  const states = ['sad','calm','happy','angry'];
+  const weights = [w.sad, w.calm, w.happy, w.angry];
+
+  // ─ Face Shift (Parallax) ─
+  // Face moves up when happy, down when sad
+  const faceY = lerp(4, -3, curMood / 100);
+  sa(f.faceInner, 'transform', `translate(0, ${faceY.toFixed(1)})`);
+
+  // ─ Brows ─
+  const bl = weightedArr([BROW.sad.l, BROW.calm.l, BROW.happy.l, BROW.angry.l], weights);
+  const br = weightedArr([BROW.sad.r, BROW.calm.r, BROW.happy.r, BROW.angry.r], weights);
+  sa(f.browL, 'd', `M ${bl[0].toFixed(1)} ${bl[1].toFixed(1)} Q ${bl[2].toFixed(1)} ${bl[3].toFixed(1)} ${bl[4].toFixed(1)} ${bl[5].toFixed(1)}`);
+  sa(f.browR, 'd', `M ${br[0].toFixed(1)} ${br[1].toFixed(1)} Q ${br[2].toFixed(1)} ${br[3].toFixed(1)} ${br[4].toFixed(1)} ${br[5].toFixed(1)}`);
+
+  // ─ Eyes: blink (cosine) × angry squint × vitality ─
+  const blink    = blinkScale(ts);
+  const vitFactor = curVit / 100;
+  const baseRy   = lerp(1.5, 10.5, vitFactor); // sleepy when low, wide when high
+  const squintRy = lerp(baseRy, 2.5, w.angry);
+  const eyeRy    = squintRy * blink;
+
+  sa(f.eyeL, 'ry', eyeRy.toFixed(2));
+  sa(f.eyeR, 'ry', eyeRy.toFixed(2));
+
+  // ─ Mouth: single morphable arc eliminates all overlap ghosting ─
+  const ma = weightedArr(
+    [MOUTH_ARC.sad, MOUTH_ARC.calm, MOUTH_ARC.happy, MOUTH_ARC.angry],
+    weights
+  );
+  
+  // Vitality affects mouth curve depth (cy is index 3)
+  const curveDepth = ma[3] - ma[1];
+  const exaggeratedDepth = curveDepth * lerp(0.1, 1.8, vitFactor);
+  ma[3] = ma[1] + exaggeratedDepth;
+
+  sa(f.mouthArc, 'd',
+    `M ${ma[0].toFixed(1)} ${ma[1].toFixed(1)} Q ${ma[2].toFixed(1)} ${ma[3].toFixed(1)} ${ma[4].toFixed(1)} ${ma[5].toFixed(1)}`
+  );
+
+  // ─ Tears (sad only) ─
+  f.tears.style.opacity = (w.sad * lerp(0.1, 1.0, vitFactor)).toFixed(3);
+
+  // ─ Blush (fade for angry) ─
+  f.blush.style.opacity = ((0.6 - w.angry * 0.5) * lerp(0.1, 1.2, vitFactor)).toFixed(3);
+
+  // ─ Body tint ─
+  let tr=0, tg=0, tb=0, to=0;
+  states.forEach((s,i) => {
+    const c = TINT[s];
+    tr += c[0]*weights[i]; tg += c[1]*weights[i]; tb += c[2]*weights[i]; to += c[3]*weights[i];
+  });
+  sa(f.bodyTint, 'fill', `rgb(${~~tr},${~~tg},${~~tb})`);
+  sa(f.bodyTint, 'opacity', to.toFixed(3));
+
+  // ─ Body gradient color (warm/cool tint) ─
+  let gr=0, gg=0, gb=0;
+  states.forEach((s,i) => {
+    const c = GRAD_COLOR[s];
+    gr += c[0]*weights[i]; gg += c[1]*weights[i]; gb += c[2]*weights[i];
+  });
+  const gradHex = `rgb(${~~gr},${~~gg},${~~gb})`;
+  f.gradStop1.setAttribute('stop-color', gradHex);
+  f.gradStop2.setAttribute('stop-color', gradHex);
+
+  // ─ Modal gradient ─
+  let mgr=0, mgg=0, mgb=0;
+  states.forEach((s,i) => {
+    const c = MODAL_GRAD[s];
+    mgr += c[0]*weights[i]; mgg += c[1]*weights[i]; mgb += c[2]*weights[i];
+  });
+  gradientEl.style.background = `linear-gradient(180deg,rgba(${~~mgr},${~~mgg},${~~mgb},0.74) 0%,rgba(${~~mgr},${~~mgg},${~~mgb},0.18) 58%,transparent 100%)`;
+
+  // ─ Mood text ─
+  // Removed mood text element update as it was deleted from DOM
+
+  // ─ Slider thumbs ─
+  emotionThumb.style.left = `calc(${curMood.toFixed(2)}% - 14.5px)`;
+  vitalityThumb.style.left = `calc(${curVit.toFixed(2)}% - 14.5px)`;
+  // Thumb color for emotion (lerp across 3 states)
+  let h, s, l;
+  if (curMood < 50) {
+    const t = curMood / 50;
+    h = lerp(232, 200, t);
+    s = lerp(60, 80, t);
+    l = lerp(70, 65, t);
+  } else {
+    const t = (curMood - 50) / 50;
+    h = lerp(200, 40, t);
+    s = lerp(80, 88, t);
+    l = lerp(65, 60, t);
+  }
+  emotionThumb.style.background = `hsl(${h},${s}%,${l}%)`;
+  const vGray = Math.round(210 - curVit * 0.7);
+  vitalityThumb.style.background = `rgb(${vGray},${vGray},${vGray})`;
+
+  // ─ Vitality: body bob + scale + spark opacity ─
+  const e = curVit / 100;
+  const amp   = 0.5 + e * 12;
+  const speed = 0.001 + e * 0.006;
+  const bob   = Math.sin(ts * speed) * amp;
+  const tilt  = Math.sin(ts * speed * 0.63) * (0.2 + e * 2.5); // gentler tilt
+  const scale = 0.95 + e * 0.12;
+  mascotWrap.style.transform = `translateY(${bob.toFixed(2)}px) rotate(${tilt.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
+  const sparkOp = (0.4 + e * 0.6).toFixed(2);
+  f.sparkL.style.opacity = sparkOp;
+  f.sparkR.style.opacity = sparkOp;
+  // Backdrop darkens when less vitality — deep purple, not pure black
+  backdrop.style.background = `rgba(14,11,34,${(0.72 - e * 0.12).toFixed(3)})`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  Animation loop
+// ═══════════════════════════════════════════════════════
+function tick(ts) {
+  const dt = Math.min(40, ts - (lastTs || ts));
+  lastTs = ts;
+
+  // Slower time constants = more silky chase
+  const tM = 1 - Math.pow(0.000005, dt / 1000);
+  const tV = 1 - Math.pow(0.00001, dt / 1000);
+  curMood = lerp(curMood, targetMood, tM);
+  curVit  = lerp(curVit,  targetVit,  tV);
+
+  render(ts);
+  rafId = requestAnimationFrame(tick);
+}
+
+// ═══════════════════════════════════════════════════════
+//  Controls
+// ═══════════════════════════════════════════════════════
+emotionSlider.addEventListener('input',   e => { targetMood = +e.target.value; });
+vitalitySlider.addEventListener('input',  e => { targetVit  = +e.target.value; });
+
+function openModal() {
+  modal.classList.remove('modal-hidden');
+  if (!rafId) rafId = requestAnimationFrame(tick);
+}
+function closeModal() {
+  modal.classList.add('modal-hidden');
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+}
+
+openBtn.addEventListener('click', openModal);
+closeBtn.addEventListener('click', closeModal);
+backdrop.addEventListener('click', closeModal);
+
+// Open immediately so user can see it
+openModal();
+</script>
+</body>
+</html>

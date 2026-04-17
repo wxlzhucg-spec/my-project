@@ -1,0 +1,16 @@
+{
+  "name": "xinyu",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "postinstall": "weapp-tw patch"
+  },
+  "devDependencies": {
+    "autoprefixer": "^9.8.8",
+    "postcss": "^8.5.6",
+    "postcss-comment": "^2.0.0",
+    "postcss-import": "^16.1.1",
+    "tailwindcss": "^3.4.17",
+    "weapp-tailwindcss": "^4.1.16"
+  }
+}

@@ -1,0 +1,27 @@
+# 影子 AI 后端依赖
+# 安装: pip install -r requirements.txt
+
+# Web 框架
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+
+# LLM
+langchain-core>=0.3.0
+langchain-openai>=0.2.0
+langgraph>=0.2.0
+
+# 占星计算
+flatlib>=0.2.0
+
+# 地理编码
+geopy>=2.4.0
+
+# 环境变量（可选，不装则用内置简易解析）
+python-dotenv>=1.0.0
+
+# Pydantic（fastapi 依赖，显式声明版本）
+pydantic>=2.0.0
+
+# 数据库
+aiomysql>=0.2.0
+sqlalchemy>=2.0.0

@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>影子 AI — 测试面板</title>
+<style>
+  :root {
+    --bg: #0d0f1a;
+    --surface: #161829;
+    --surface2: #1c1f35;
+    --border: #2a2d45;
+    --text: #e0e0ec;
+    --text-dim: #8888a8;
+    --accent: #7c6ef0;
+    --accent2: #a78bfa;
+    --green: #34d399;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --blue: #60a5fa;
+    --orange: #fb923c;
+    --pink: #f472b6;
+    --cyan: #22d3ee;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+
+  /* ── Header ─────────────────── */
+  .header {
+    background: linear-gradient(135deg, #1a1035 0%, #0d0f1a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+  }
+
+  .header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    background: linear-gradient(90deg, var(--accent2), var(--pink));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--red);
+    display: inline-block;
+    margin-right: 5px;
+    transition: background 0.3s;
+  }
+  .status-dot.ok { background: var(--green); }
+
+  /* ── Buttons ────────────────── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface2);
+    color: var(--text);
+    font-family: inherit;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent2); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
+  .btn-accent2 { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+  .btn-accent2:hover { opacity: 0.9; }
+  .btn-danger { background: rgba(248,113,113,0.15); border-color: var(--red); color: var(--red); }
+
+  /* ── Pipeline bar ───────────── */
+  .pipeline-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 28px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+  }
+
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-dim);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .step.running { border-color: var(--yellow); color: var(--yellow); animation: stepPulse 1.5s infinite; }
+  .step.done { border-color: var(--green); color: var(--green); background: rgba(52,211,153,0.08); }
+  .step.error { border-color: var(--red); color: var(--red); background: rgba(248,113,113,0.08); }
+  .step.active { border-color: var(--accent); color: var(--accent2); box-shadow: 0 0 8px rgba(124,110,240,0.2); }
+
+  .step-icon { font-size: 13px; }
+
+  .step-arrow { color: var(--border); font-size: 12px; flex-shrink: 0; }
+
+  .step-tag {
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(124,110,240,0.1);
+    color: var(--accent2);
+  }
+  .step-tag.local { background: rgba(52,211,153,0.1); color: var(--green); }
+
+  @keyframes stepPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(251,191,36,0.2); }
+    50% { box-shadow: 0 0 8px 2px rgba(251,191,36,0.1); }
+  }
+
+  /* ── Main layout ────────────── */
+  .main {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    min-height: calc(100vh - 90px);
+  }
+
+  /* ── Left panel ─────────────── */
+  .left-panel {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    overflow-y: auto;
+    max-height: calc(100vh - 90px);
+    position: sticky;
+    top: 90px;
+  }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    margin-top: 16px;
+  }
+  .section-title:first-child { margin-top: 0; }
+
+  .field { margin-bottom: 10px; }
+  .field label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 3px;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: inherit;
+  }
+  .field textarea { min-height: 60px; resize: vertical; }
+  .field select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' stroke='%238888a8' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+  .tag-required { background: rgba(124,110,240,0.12); color: var(--accent2); }
+  .tag-optional { background: rgba(96,165,250,0.12); color: var(--blue); }
+  .tag-clarify { background: rgba(167,139,250,0.12); color: var(--accent2); }
+
+  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+  .btn-group { display: flex; gap: 6px; margin-top: 12px; }
+  .btn-group .btn { flex: 1; }
+
+  .preset-row { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+
+  /* ── Right panel ────────────── */
+  .right-panel {
+    padding: 20px 24px;
+    overflow-y: auto;
+    max-height: calc(100vh - 90px);
+  }
+
+  /* ── Clarify dialog ─────────── */
+  .clarify-box {
+    background: linear-gradient(135deg, rgba(167,139,250,0.08), rgba(244,114,182,0.04));
+    border: 1px solid var(--accent2);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .clarify-box.visible { display: block; }
+
+  .clarify-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent2);
+    margin-bottom: 10px;
+  }
+  .clarify-bubble {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 13px;
+    line-height: 1.7;
+    margin-bottom: 10px;
+    border-left: 3px solid var(--accent2);
+  }
+  .clarify-input textarea {
+    width: 100%;
+    min-height: 50px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: var(--text);
+    resize: vertical;
+    font-family: inherit;
+  }
+  .clarify-input textarea:focus { outline: none; border-color: var(--accent2); }
+
+  /* ── Result grid ────────────── */
+  .result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+  .result-card.active { border-color: var(--accent); }
+  .result-card.full-width { grid-column: 1 / -1; }
+
+  .result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  .result-title {
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .result-badge {
+    font-size: 9px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+  .badge-local { background: rgba(52,211,153,0.12); color: var(--green); }
+  .badge-llm { background: rgba(167,139,250,0.12); color: var(--accent2); }
+  .badge-parallel { background: rgba(251,146,60,0.12); color: var(--orange); }
+  .badge-combine { background: rgba(244,114,182,0.12); color: var(--pink); }
+
+  .result-time {
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  .result-body {
+    padding: 12px 14px;
+    font-size: 12px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    min-height: 40px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .result-body.placeholder {
+    color: var(--text-dim);
+    font-style: italic;
+    font-size: 11px;
+  }
+
+  .result-actions {
+    padding: 6px 14px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 4px;
+    justify-content: flex-end;
+  }
+
+  /* ── Final output ───────────── */
+  .final-card {
+    background: linear-gradient(135deg, rgba(124,110,240,0.06), rgba(244,114,182,0.04));
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .final-header {
+    padding: 12px 16px;
+    background: rgba(124,110,240,0.08);
+    border-bottom: 1px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .final-header-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent2);
+  }
+  .final-body {
+    padding: 20px;
+    font-size: 14px;
+    line-height: 2;
+    white-space: pre-wrap;
+    min-height: 80px;
+  }
+  .final-body.placeholder {
+    color: var(--text-dim);
+    font-style: italic;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  /* ── Raw JSON ───────────────── */
+  .raw-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .raw-header {
+    padding: 10px 14px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .raw-body {
+    padding: 12px;
+    font-size: 10px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 240px;
+    overflow-y: auto;
+    font-family: "SF Mono", "Fira Code", monospace;
+    color: var(--text-dim);
+  }
+
+  /* ── Phase indicator ────────── */
+  .phase-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .phase-indicator.phase-idle { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
+  .phase-indicator.phase-clarifying { background: rgba(167,139,250,0.1); color: var(--accent2); border: 1px solid var(--accent2); }
+  .phase-indicator.phase-complete { background: rgba(52,211,153,0.1); color: var(--green); border: 1px solid var(--green); }
+  .phase-indicator.phase-error { background: rgba(248,113,113,0.1); color: var(--red); border: 1px solid var(--red); }
+
+  .phase-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* ── Toast ──────────────────── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 12px;
+    z-index: 999;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.error { border-color: var(--red); color: var(--red); }
+  .toast.success { border-color: var(--green); color: var(--green); }
+  .toast.info { border-color: var(--accent2); color: var(--accent2); }
+
+  /* ── Loading spinner ────────── */
+  .spinner {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Responsive ─────────────── */
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; }
+    .left-panel {
+      position: static;
+      max-height: none;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+    .right-panel { max-height: none; }
+    .result-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <h1>影子 AI — 测试面板</h1>
+  <div class="header-right">
+    <span id="statusText" style="font-size:12px;color:var(--text-dim);"><span class="status-dot" id="statusDot"></span>未连接</span>
+    <button class="btn btn-sm" onclick="checkHealth()">检查连接</button>
+  </div>
+</div>
+
+<!-- Pipeline bar -->
+<div class="pipeline-bar">
+  <div class="step" id="step-clarify" onclick="scrollToCard('clarify')">
+    <span class="step-icon">&#x1F4AC;</span>追问<span class="step-tag">LLM</span>
+  </div>
+  <span class="step-arrow">&#8594;</span>
+  <div class="step" id="step-astro" onclick="scrollToCard('astro')">
+    <span class="step-icon">&#x2609;</span>本命盘<span class="step-tag local">本地</span>
+  </div>
+  <span class="step-arrow">&#8594;</span>
+  <div class="step" id="step-ephemeris" onclick="scrollToCard('ephemeris')">
+    <span class="step-icon">&#x1F319;</span>星历<span class="step-tag local">本地</span>
+  </div>
+  <span class="step-arrow">&#8594;</span>
+  <div class="step" id="step-astro_insight" onclick="scrollToCard('astro_insight')">
+    <span class="step-icon">&#x1F31F;</span>占星素材<span class="step-tag">LLM</span>
+  </div>
+  <span class="step-arrow" style="color:var(--orange);font-size:10px;">|</span>
+  <div class="step" id="step-search" onclick="scrollToCard('search')">
+    <span class="step-icon">&#x1F50D;</span>问题语境<span class="step-tag">LLM</span>
+  </div>
+  <span class="step-arrow">&#8594;</span>
+  <div class="step" id="step-analyze" onclick="scrollToCard('analyze')">
+    <span class="step-icon">&#x1F52C;</span>底层逻辑<span class="step-tag">LLM</span>
+  </div>
+  <span class="step-arrow">&#8594;</span>
+  <div class="step" id="step-combine" onclick="scrollToCard('combine')">
+    <span class="step-icon">&#x1F3A8;</span>综合输出<span class="step-tag">LLM</span>
+  </div>
+  <span style="flex:1"></span>
+  <span style="font-size:10px;color:var(--text-dim);">API:</span>
+  <input type="text" id="apiBase" value="http://127.0.0.1:8000"
+    style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:11px;width:160px;" />
+</div>
+
+<!-- Main -->
+<div class="main">
+  <!-- Left: input form -->
+  <div class="left-panel">
+    <div class="section-title">用户信息</div>
+
+    <div class="field">
+      <label>出生时间 <span class="tag tag-required">必填</span></label>
+      <input type="text" id="birthTime" value="1995-06-15 14:30" placeholder="1995-06-15 14:30" />
+    </div>
+
+    <div class="field">
+      <label>出生地点 <span class="tag tag-required">必填</span></label>
+      <input type="text" id="birthPlace" value="甘肃省天水市武山县" placeholder="如：甘肃省天水市武山县" />
+    </div>
+
+    <div class="field">
+      <label>MBTI <span class="tag tag-required">必填</span></label>
+      <select id="mbti">
+        <option>INTJ</option><option>INTP</option><option>ENTJ</option><option>ENTP</option>
+        <option>INFJ</option><option selected>INFP</option><option>ENFJ</option><option>ENFP</option>
+        <option>ISTJ</option><option>ISFJ</option><option>ESTJ</option><option>ESFJ</option>
+        <option>ISTP</option><option>ISFP</option><option>ESTP</option><option>ESFP</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>血型</label>
+      <select id="bloodType">
+        <option selected>A</option><option>B</option><option>AB</option><option>O</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>核心情绪 <span class="tag tag-required">必填</span></label>
+      <input type="text" id="emotion" value="焦虑迷茫" placeholder="如：焦虑迷茫" />
+    </div>
+
+    <div class="section-title">问题与补充</div>
+
+    <div class="field">
+      <label>问题/倾诉 <span class="tag tag-required">必填</span></label>
+      <textarea id="question">工作三年了还是感觉自己很迷茫，不知道自己适合做什么，每天都很焦虑，感觉同龄人都比我优秀。</textarea>
+    </div>
+
+    <div class="field" id="supplementsField" style="display:none;">
+      <label>补充回答 <span class="tag tag-clarify">追问后填写</span></label>
+      <textarea id="supplements" placeholder="根据 AI 追问，补充你的具体情况..."></textarea>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-primary" id="btnRunAll" onclick="runFullPipeline()">
+        运行全链路
+      </button>
+      <button class="btn btn-accent2" id="btnClarify" onclick="runClarifyOnly()">
+        仅追问
+      </button>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-sm btn-danger" onclick="resetAll()">重置</button>
+    </div>
+
+    <div class="section-title">快捷预设</div>
+    <div class="preset-row">
+      <button class="btn btn-sm" onclick="loadPreset('career')">职业迷茫</button>
+      <button class="btn btn-sm" onclick="loadPreset('love')">感情困惑</button>
+      <button class="btn btn-sm" onclick="loadPreset('self')">自我怀疑</button>
+      <button class="btn btn-sm" onclick="loadPreset('burnout')">职场倦怠</button>
+    </div>
+  </div>
+
+  <!-- Right: results -->
+  <div class="right-panel">
+
+    <!-- Phase indicator -->
+    <div class="phase-indicator phase-idle" id="phaseIndicator">
+      <span class="phase-dot"></span>
+      <span id="phaseText">等待运行</span>
+    </div>
+
+    <!-- Clarify dialog -->
+    <div class="clarify-box" id="clarifyBox">
+      <div class="clarify-title">&#x1F4AC; 影子 AI 想了解更多</div>
+      <div class="clarify-bubble" id="clarifyBubble">...</div>
+      <div class="clarify-input" style="margin-top:8px;">
+        <textarea id="clarifyAnswer" placeholder="像和朋友聊天一样回答..."></textarea>
+      </div>
+      <button class="btn btn-accent2" onclick="submitClarification()" style="width:100%;margin-top:8px;">
+        提交补充 &rarr; 运行完整分析
+      </button>
+    </div>
+
+    <!-- Result cards: row 1 - local compute -->
+    <div class="section-title">&#x1F4CA; 本地计算层</div>
+    <div class="result-grid">
+      <div class="result-card" id="card-astro">
+        <div class="result-header">
+          <div class="result-title">&#x2609; 本命盘 <span class="result-badge badge-local">本地</span></div>
+          <div style="display:flex;gap:4px;align-items:center;">
+            <span class="result-time" id="time-astro"></span>
+            <button class="btn btn-sm" onclick="testNode('astro')">测试</button>
+          </div>
+        </div>
+        <div class="result-body placeholder" id="body-astro">太阳/月亮/上升/宫位/相位/元素分布...</div>
+      </div>
+
+      <div class="result-card" id="card-ephemeris">
+        <div class="result-header">
+          <div class="result-title">&#x1F319; 近7天星历 <span class="result-badge badge-local">本地</span></div>
+          <div style="display:flex;gap:4px;align-items:center;">
+            <span class="result-time" id="time-ephemeris"></span>
+            <button class="btn btn-sm" onclick="testNode('ephemeris')">测试</button>
+          </div>
+        </div>
+        <div class="result-body placeholder" id="body-ephemeris">本周行星过境与关键相位...</div>
+      </div>
+    </div>
+
+    <!-- Result cards: row 2 - LLM analysis -->
+    <div class="section-title">&#x1F9E0; AI 分析层</div>
+    <div class="result-grid">
+      <div class="result-card" id="card-astro_insight">
+        <div class="result-header">
+          <div class="result-title">&#x1F31F; 占星素材 <span class="result-badge badge-llm">LLM</span></div>
+          <div style="display:flex;gap:4px;align-items:center;">
+            <span class="result-time" id="time-astro_insight"></span>
+            <button class="btn btn-sm" onclick="testNode('astro_insight')">测试</button>
+          </div>
+        </div>
+        <div class="result-body placeholder" id="body-astro_insight">星盘+星历对用户的影响提炼...</div>
+      </div>
+
+      <div class="result-card" id="card-search">
+        <div class="result-header">
+          <div class="result-title">&#x1F50D; 问题语境 <span class="result-badge badge-parallel">并行</span></div>
+          <div style="display:flex;gap:4px;align-items:center;">
+            <span class="result-time" id="time-search"></span>
+            <button class="btn btn-sm" onclick="testNode('search')">测试</button>
+          </div>
+        </div>
+        <div class="result-body placeholder" id="body-search">问题相关经验与核心逻辑...</div>
+      </div>
+
+      <div class="result-card full-width" id="card-analyze">
+        <div class="result-header">
+          <div class="result-title">&#x1F52C; 底层逻辑分析 <span class="result-badge badge-llm">LLM</span></div>
+          <div style="display:flex;gap:4px;align-items:center;">
+            <span class="result-time" id="time-analyze"></span>
+            <button class="btn btn-sm" onclick="testNode('analyze')">测试</button>
+          </div>
+        </div>
+        <div class="result-body placeholder" id="body-analyze">整合占星+语境+性格的底层逻辑...</div>
+      </div>
+
+      <div class="result-card full-width" id="card-clarify">
+        <div class="result-header">
+          <div class="result-title">&#x1F4AC; 追问补充 <span class="result-badge badge-llm">LLM</span></div>
+          <div style="display:flex;gap:4px;align-items:center;">
+            <span class="result-time" id="time-clarify"></span>
+            <button class="btn btn-sm" onclick="runClarifyOnly()">追问</button>
+          </div>
+        </div>
+        <div class="result-body placeholder" id="body-clarify">第一轮追问内容...</div>
+      </div>
+    </div>
+
+    <!-- Final output -->
+    <div class="section-title">&#x2728; 最终输出</div>
+    <div class="final-card">
+      <div class="final-header">
+        <div class="final-header-title">&#x2728; 影子 AI 的回复</div>
+        <button class="btn btn-sm" onclick="copyReply()">复制</button>
+      </div>
+      <div class="final-body placeholder" id="body-final">运行全链路后显示最终回复...</div>
+    </div>
+
+    <!-- Raw JSON -->
+    <div class="raw-card">
+      <div class="raw-header">
+        <span>原始 JSON</span>
+        <button class="btn btn-sm" onclick="copyRaw()">复制</button>
+      </div>
+      <div class="raw-body" id="body-raw">// 运行后显示</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Config ──────────────────────────────
+const STEPS = ['clarify', 'astro', 'ephemeris', 'astro_insight', 'search', 'analyze', 'combine'];
+const STEP_LABELS = {
+  clarify: '追问', astro: '本命盘', ephemeris: '星历',
+  astro_insight: '占星素材', search: '问题语境', analyze: '底层逻辑', combine: '综合输出'
+};
+
+function getApiBase() {
+  return document.getElementById('apiBase').value.replace(/\/+$/, '');
+}
+
+function getPayload() {
+  const p = {
+    session_id: document.getElementById('sessionId')?.value || null,
+    birth_time: document.getElementById('birthTime').value,
+    birth_place: document.getElementById('birthPlace').value,
+    mbti: document.getElementById('mbti').value,
+    blood_type: document.getElementById('bloodType').value,
+    emotion_keyword: document.getElementById('emotion').value,
+    question: document.getElementById('question').value,
+  };
+  const supp = document.getElementById('supplements').value.trim();
+  if (supp) p.supplements = supp;
+  return p;
+}
+
+// ── Presets ─────────────────────────────
+const PRESETS = {
+  career: {
+    birth_time: '1995-06-15 14:30', birth_place: '甘肃省天水市武山县',
+    mbti: 'INFP', blood_type: 'A', emotion_keyword: '焦虑迷茫',
+    question: '工作三年了还是感觉自己很迷茫，不知道自己适合做什么，每天都很焦虑，感觉同龄人都比我优秀。',
+  },
+  love: {
+    birth_time: '1998-11-20 08:15', birth_place: '浙江省杭州市西湖区',
+    mbti: 'ENFJ', blood_type: 'O', emotion_keyword: '心碎难过',
+    question: '和在一起两年的恋人分手了，感觉世界都塌了，不知道怎么走出来，每天都忍不住想他。',
+  },
+  self: {
+    birth_time: '2000-03-08 22:45', birth_place: '四川省成都市武侯区',
+    mbti: 'INFJ', blood_type: 'AB', emotion_keyword: '自我怀疑',
+    question: '总觉得自己不够好，不管做什么都拿不出手，害怕被别人评价，社交时特别紧张，甚至在人群里会手抖。',
+  },
+  burnout: {
+    birth_time: '1992-09-12 10:00', birth_place: '北京市海淀区',
+    mbti: 'INTJ', blood_type: 'B', emotion_keyword: '疲惫倦怠',
+    question: '在大厂做了五年，升到了不错的职级，但最近完全没动力了，每天像行尸走肉，开始怀疑这一切的意义。',
+  },
+};
+
+function loadPreset(key) {
+  const p = PRESETS[key]; if (!p) return;
+  document.getElementById('birthTime').value = p.birth_time;
+  document.getElementById('birthPlace').value = p.birth_place;
+  document.getElementById('mbti').value = p.mbti;
+  document.getElementById('bloodType').value = p.blood_type;
+  document.getElementById('emotion').value = p.emotion_keyword;
+  document.getElementById('question').value = p.question;
+  showToast('已加载：' + key, 'success');
+}
+
+// ── Health check ───────────────────────
+async function checkHealth() {
+  const dot = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  try {
+    const res = await fetch(getApiBase() + '/health');
+    const data = await res.json();
+    if (data.status === 'ok') {
+      dot.className = 'status-dot ok';
+      text.innerHTML = '<span class="status-dot ok"></span>已连接';
+      showToast('后端连接正常', 'success');
+    }
+  } catch (e) {
+    dot.className = 'status-dot';
+    text.innerHTML = '<span class="status-dot"></span>连接失败';
+    showToast('无法连接: ' + e.message, 'error');
+  }
+}
+
+// ── Step state ──────────────────────────
+function setStepState(step, state) {
+  const el = document.getElementById('step-' + step);
+  if (!el) return;
+  el.className = 'step ' + state;
+}
+
+function resetSteps() {
+  STEPS.forEach(s => setStepState(s, ''));
+}
+
+function setPhase(phase, text) {
+  const el = document.getElementById('phaseIndicator');
+  el.className = 'phase-indicator phase-' + phase;
+  document.getElementById('phaseText').textContent = text;
+}
+
+function setBody(id, text) {
+  const el = document.getElementById('body-' + id);
+  if (!el) return;
+  if (text) {
+    el.textContent = text;
+    el.classList.remove('placeholder');
+  } else {
+    el.textContent = id === 'final' ? '运行全链路后显示最终回复...' : '...';
+    el.classList.add('placeholder');
+  }
+}
+
+function setTime(id, ms) {
+  const el = document.getElementById('time-' + id);
+  if (el) el.textContent = ms ? ms + 'ms' : '';
+}
+
+function scrollToCard(id) {
+  const el = document.getElementById('card-' + id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function resetAll() {
+  resetSteps();
+  setPhase('idle', '等待运行');
+  STEPS.forEach(s => { setBody(s, ''); setTime(s, ''); });
+  setBody('final', '');
+  document.getElementById('body-raw').textContent = '// 运行后显示';
+  document.getElementById('clarifyBox').classList.remove('visible');
+  document.getElementById('supplementsField').style.display = 'none';
+  document.getElementById('supplements').value = '';
+  document.getElementById('clarifyAnswer').value = '';
+}
+
+// ── Toast ───────────────────────────────
+function showToast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast ' + type + ' show';
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => el.className = 'toast', 2500);
+}
+
+// ── Single node test ────────────────────
+async function testNode(node) {
+  scrollToCard(node);
+  setStepState(node, 'running');
+  setBody(node, '');
+  setTime(node, '');
+  const t0 = performance.now();
+
+  try {
+    const payload = getPayload();
+    const params = new URLSearchParams({ node });
+    const res = await fetch(getApiBase() + '/api/test/node?' + params, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      const ms = Math.round(performance.now() - t0);
+      setStepState(node, 'done');
+      const output = data.output || {};
+      const key = Object.keys(output).find(k => k !== 'request') || '';
+      setBody(node, output[key] || JSON.stringify(output, null, 2));
+      setTime(node, ms);
+      showToast(`${STEP_LABELS[node] || node} 完成 (${ms}ms)`, 'success');
+    } else {
+      setStepState(node, 'error');
+      setBody(node, '错误: ' + (data.detail || res.statusText));
+      showToast('测试失败: ' + (data.detail || res.statusText), 'error');
+    }
+  } catch (e) {
+    setStepState(node, 'error');
+    setBody(node, '网络错误: ' + e.message);
+    showToast('请求失败: ' + e.message, 'error');
+  }
+}
+
+// ── Full pipeline ───────────────────────
+async function runFullPipeline() {
+  const btn = document.getElementById('btnRunAll');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 执行中...';
+
+  resetSteps();
+  const t0 = performance.now();
+
+  try {
+    const payload = getPayload();
+    setPhase('clarifying', '正在执行...');
+
+    const res = await fetch(getApiBase() + '/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    const totalMs = Math.round(performance.now() - t0);
+
+    if (res.ok) {
+      if (data.phase === 'clarifying') {
+        // Phase 1: Show clarification
+        setStepState('clarify', 'done');
+        setBody('clarify', data.reply);
+        setTime('clarify', totalMs);
+        setPhase('clarifying', '追问阶段 — 请补充回答');
+
+        // Show clarify box
+        document.getElementById('clarifyBox').classList.add('visible');
+        document.getElementById('clarifyBubble').textContent = data.reply;
+        document.getElementById('supplementsField').style.display = 'block';
+        showToast('AI 追问完成 — 请回答补充问题', 'info');
+
+      } else {
+        // Phase 2: Complete
+        STEPS.forEach(s => setStepState(s, 'done'));
+
+        // Final reply
+        const finalEl = document.getElementById('body-final');
+        finalEl.textContent = data.reply;
+        finalEl.classList.remove('placeholder');
+
+        // Raw JSON
+        document.getElementById('body-raw').textContent = JSON.stringify(data, null, 2);
+
+        // Debug info
+        if (data.debug_info) {
+          const dbg = data.debug_info;
+          if (dbg.astro_analysis) setBody('astro', dbg.astro_analysis);
+          if (dbg.ephemeris_summary) setBody('ephemeris', dbg.ephemeris_summary);
+          if (dbg.pipeline_trace) {
+            const tr = dbg.pipeline_trace;
+            if (tr.astro_focus) setBody('astro_insight', tr.astro_focus);
+            if (tr.issue_context) setBody('search', tr.issue_context);
+            if (tr.root_logic) setBody('analyze', tr.root_logic);
+          }
+          setBody('combine', data.reply);
+        }
+
+        setTime('combine', totalMs);
+        setPhase('complete', `完成 (${totalMs}ms)`);
+        showToast(`全链路完成 (${totalMs}ms)`, 'success');
+      }
+    } else {
+      STEPS.forEach(s => setStepState(s, 'error'));
+      setPhase('error', '失败');
+      showToast('失败: ' + (data.detail || res.statusText), 'error');
+    }
+  } catch (e) {
+    STEPS.forEach(s => setStepState(s, 'error'));
+    setPhase('error', '网络错误');
+    showToast('请求失败: ' + e.message, 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '运行全链路';
+}
+
+// ── Clarify only ────────────────────────
+async function runClarifyOnly() {
+  const btn = document.getElementById('btnClarify');
+  btn.disabled = true;
+  btn.textContent = '追问中...';
+
+  resetSteps();
+  setStepState('clarify', 'running');
+  setPhase('clarifying', '正在追问...');
+  const t0 = performance.now();
+
+  try {
+    const payload = getPayload();
+    delete payload.supplements;
+    const res = await fetch(getApiBase() + '/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    const ms = Math.round(performance.now() - t0);
+
+    if (res.ok && data.phase === 'clarifying') {
+      setStepState('clarify', 'done');
+      setBody('clarify', data.reply);
+      setTime('clarify', ms);
+      setPhase('clarifying', '追问完成 — 请补充回答');
+
+      document.getElementById('clarifyBox').classList.add('visible');
+      document.getElementById('clarifyBubble').textContent = data.reply;
+      document.getElementById('supplementsField').style.display = 'block';
+      showToast('追问完成 — 请补充回答', 'info');
+    } else {
+      setStepState('clarify', 'error');
+      setPhase('error', '追问失败');
+      showToast('追问失败', 'error');
+    }
+  } catch (e) {
+    setStepState('clarify', 'error');
+    setPhase('error', '网络错误');
+    showToast('请求失败: ' + e.message, 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '仅追问';
+}
+
+// ── Submit clarification ────────────────
+async function submitClarification() {
+  const answer = document.getElementById('clarifyAnswer').value.trim();
+  if (!answer) {
+    showToast('请先填写补充回答', 'error');
+    return;
+  }
+  document.getElementById('supplements').value = answer;
+  document.getElementById('clarifyBox').classList.remove('visible');
+  await runFullPipeline();
+}
+
+// ── Copy helpers ────────────────────────
+function copyReply() {
+  const text = document.getElementById('body-final').textContent;
+  navigator.clipboard.writeText(text).then(() => showToast('已复制最终回复', 'success'));
+}
+
+function copyRaw() {
+  const text = document.getElementById('body-raw').textContent;
+  navigator.clipboard.writeText(text).then(() => showToast('已复制 JSON', 'success'));
+}
+
+// ── Init ────────────────────────────────
+checkHealth();
+</script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tailwind Overlay Preview</title>
+    <style>
+		body { margin: 0; background: #333; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+		.container {
+			width: 375px; height: 812px; position: relative; overflow: hidden;
+			background-color: #fff;
+		}
+
+		/* Remapping rpx to px (1px = 2rpx) */
+		.immersive-overlay {
+			position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+			z-index: 100; font-family: 'PingFang SC', sans-serif;
+		}
+
+		.overlay-mask {
+			position: absolute; top: 0; left: 0; width: 375px; height: 812px;
+			background-color: #000; opacity: 0.9;
+		}
+
+		.overlay-bg-glow {
+			position: absolute; top: 0; left: 0; width: 375px; height: 480px;
+			background: linear-gradient(180deg, rgba(245, 158, 11, 0.7) 0%, rgba(245, 158, 11, 0.3) 50%, transparent 100%);
+		}
+
+		.cloud-glow-body {
+			position: absolute; width: 224px; height: 176px;
+			left: 81.28px; top: 149.84px;
+			border-radius: 50%;
+			background: radial-gradient(50% 50% at 50% 50%, #FFE6A8 23%, rgba(255, 230, 168, 0.69) 100%);
+			filter: blur(20px);
+		}
+
+		.char-mouth {
+			position: absolute; width: 80px; height: 40px;
+			left: 151.3px; top: 235.48px;
+			background-color: #b45309;
+			box-shadow: inset 0px 15.78px 17.36px 0px rgba(177, 47, 0, 0.73);
+			border: 5.26px solid #b45309;
+			box-sizing: border-box;
+			border-radius: 9999px;
+		}
+		.char-eye {
+			position: absolute; width: 8px; height: 16px;
+			background-color: #b45309; border-radius: 4px;
+			box-shadow: 0px 3.5px 3.59px 0px rgba(255, 149, 63, 0.68);
+		}
+		.left-eye { left: 158.74px; top: 207.65px; }
+		.right-eye { left: 212.07px; top: 207.65px; }
+
+		.char-blush {
+			position: absolute; background-color: #fb7185; border-radius: 12px;
+			transform-origin: top left;
+		}
+		.blush-1 { width: 3.34px; height: 4.72px; left: 149.24px; top: 225.61px; transform: rotate(37.05deg); }
+		.blush-2 { width: 3.34px; height: 4.72px; left: 221.05px; top: 228.19px; transform: rotate(-37.05deg); }
+		.blush-3 { width: 3.05px; height: 6px; left: 155.17px; top: 226.61px; transform: rotate(37.05deg); }
+		.blush-4 { width: 3.05px; height: 6px; left: 226.33px; top: 226.33px; transform: rotate(-37.05deg); }
+
+		.char-sparkle {
+			position: absolute; border: 5.26px solid #fde68a; border-radius: 2px;
+			transform-origin: top left; box-sizing: border-box;
+		}
+		.sparkle-1 { width: 8px; height: 16px; left: 295.81px; top: 271.44px; transform: rotate(58.71deg); }
+		.sparkle-2 { width: 6px; height: 12px; left: 88.59px; top: 232.7px; transform: rotate(-116.95deg); }
+
+		.mood-title {
+			position: absolute; left: 0; width: 100%; top: 342px;
+			color: #fff; font-size: 24px; font-weight: bold;
+			text-align: center;
+		}
+
+		.note-bar-top {
+			position: absolute; left: 113px; top: 61px;
+			display: inline-flex; align-items: center; gap: 4px;
+		}
+		.note-icon {
+			width: 20px; height: 20px; position: relative; overflow: hidden;
+		}
+		.note-icon-inner {
+			width: 16px; height: 14px; left: 2.5px; top: 2.5px;
+			position: absolute; background-color: #fff;
+		}
+		.note-bar-top text {
+			color: #fff; font-size: 16px; line-height: 16px;
+		}
+
+		.slider-label-title {
+			position: absolute; left: 27px; color: #fff; font-size: 16px;
+		}
+		.emotion-title-pos { top: 416px; }
+		.vitality-title-pos { top: 508px; }
+
+		.slider-track {
+			position: absolute; left: 27px; width: 320px; height: 12px; border-radius: 10px;
+		}
+		.emotion-track {
+			top: 451px;
+			background: linear-gradient(90deg, rgba(129,140,248,0.5), rgba(148,163,184,0.5), rgba(248,113,113,0.5));
+		}
+		.vitality-track {
+			top: 543px;
+			background: linear-gradient(90deg, rgba(255,255,255,0.1), rgba(255,255,255,0.5));
+		}
+
+		.slider-thumb {
+			position: absolute; width: 28px; height: 16px;
+			border-radius: 10px; box-shadow: 0px 0px 9px 0px rgba(0,0,0,0.25);
+			border: 1px solid #fff; box-sizing: border-box;
+			transform: translateX(-50%);
+		}
+		.emotion-thumb {
+			left: 174px; top: 448px; background-color: #fbbf24;
+		}
+		.vitality-thumb {
+			left: 233px; top: 540px; background-color: #d4d4d4;
+		}
+
+		.label-text {
+			position: absolute; color: #fff; opacity: 0.6; font-size: 12px;
+		}
+		.label-sad { left: 27px; top: 467px; }
+		.label-happy { left: 176px; top: 467px; }
+		.label-angry { left: 326px; top: 467px; }
+
+		.ok-btn {
+			position: absolute; left: 69px; top: 623px;
+			width: 240px; height: 44px;
+			background-color: #fff; border-radius: 24px;
+			display: flex; justify-content: center; align-items: center;
+			color: #0c0a09; font-size: 20px; font-weight: bold;
+		}
+	</style>
+</head>
+<body>
+<div class="container">
+	<div class="immersive-overlay">
+		<div class="overlay-mask"></div>
+		<div class="overlay-bg-glow">
+			<div class="cloud-glow-body"></div>
+			<div class="char-mouth"></div>
+			<div class="char-eye left-eye"></div>
+			<div class="char-eye right-eye"></div>
+			<div class="char-blush blush-1"></div>
+			<div class="char-blush blush-2"></div>
+			<div class="char-blush blush-3"></div>
+			<div class="char-blush blush-4"></div>
+			<div class="char-sparkle sparkle-1"></div>
+			<div class="char-sparkle sparkle-2"></div>
+			<div class="mood-title">爆炸开心</div>
+		</div>
+
+		<div class="note-bar-top">
+			<div class="note-icon"><div class="note-icon-inner"></div></div>
+			<text>写个小纸条，记录此刻感受</text>
+		</div>
+
+		<text class="slider-label-title emotion-title-pos">情绪值</text>
+		<div class="slider-track emotion-track"></div>
+		<div class="slider-thumb emotion-thumb"></div>
+		<text class="label-text label-sad">难过</text>
+		<text class="label-text label-happy">开心</text>
+		<text class="label-text label-angry">愤怒</text>
+
+		<text class="slider-label-title vitality-title-pos">活力值</text>
+		<div class="slider-track vitality-track"></div>
+		<div class="slider-thumb vitality-thumb"></div>
+
+		<div class="ok-btn">ok</div>
+	</div>
+</div>
+</body>
+</html>

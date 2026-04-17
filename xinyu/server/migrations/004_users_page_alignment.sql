@@ -1,0 +1,10 @@
+-- 从旧版 users 迁到「注册页 + 完善资料页」对齐结构，按需逐条执行
+USE xintujie;
+
+ALTER TABLE users ADD COLUMN terms_agreed_at DATETIME DEFAULT NULL COMMENT '注册-同意协议时间' AFTER password_hash;
+
+ALTER TABLE users MODIFY COLUMN avatar_url VARCHAR(1024) NOT NULL DEFAULT '' COMMENT '资料-头像';
+ALTER TABLE users MODIFY COLUMN birth_province VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE users MODIFY COLUMN birth_city VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE users MODIFY COLUMN birth_district VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE users MODIFY COLUMN mbti VARCHAR(8) NOT NULL DEFAULT '';

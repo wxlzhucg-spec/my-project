@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Completion Record Preview</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --card-color: #efefef;
+            --btn-color: #d9d9d9;
+        }
+        body {
+            margin: 0;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'PingFang SC', sans-serif;
+        }
+        .iphone-canvas {
+            width: 375px;
+            height: 812px;
+            background-color: var(--bg-color);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .card {
+            position: absolute;
+            left: 17px;
+            width: 341px;
+            border-radius: 8px;
+            background-color: var(--card-color);
+            overflow: hidden;
+        }
+        
+        .card-1 { top: 68px; height: 128px; }
+        .card-2 { top: 204px; height: 97px; }
+        .card-3 { top: 309px; height: 196px; }
+        .card-4 { top: 513px; height: 207px; }
+        
+        .banner {
+            width: 354px;
+            height: 76px;
+            object-fit: cover;
+            position: absolute;
+            top: 222px;
+            left: 6px;
+            border-radius: 4px;
+            z-index: 2;
+        }
+        
+        /* Tarot Fan Container */
+        .tarot-stage {
+            position: absolute;
+            top: 552px;
+            left: 0;
+            width: 100%;
+            height: 160px;
+            pointer-events: none;
+        }
+        
+        .tarot-card {
+            position: absolute;
+            width: 59px;
+            height: 101px;
+            background: #fff url('./static/completion/tarot_back.png') center/cover;
+            border-radius: 4px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transform-origin: bottom center;
+        }
+        
+        /* Positions based on SVG transforms */
+        .tarot-card:nth-child(1) { left: 41.4px; top: 21px; transform: rotate(-17.9deg); }
+        .tarot-card:nth-child(2) { left: 75.1px; top: 11px; transform: rotate(-8.5deg); }
+        .tarot-card:nth-child(3) { left: 109.5px; top: 6px; transform: rotate(-3.1deg); }
+        .tarot-card:nth-child(4) { left: 141.1px; top: 3px; transform: rotate(3.4deg); }
+        .tarot-card:nth-child(5) { left: 168.4px; top: 2px; transform: rotate(5.7deg); }
+        .tarot-card:nth-child(6) { left: 194.1px; top: 1px; transform: rotate(8.4deg); }
+        .tarot-card:nth-child(7) { left: 223.3px; top: 2px; transform: rotate(10.2deg); }
+        .tarot-card:nth-child(8) { left: 249.6px; top: 2px; transform: rotate(12.6deg); }
+        .tarot-card:nth-child(9) { left: 276.0px; top: 5px; transform: rotate(15.1deg); }
+        
+        .action-btn {
+            position: absolute;
+            top: 677px;
+            left: 121px;
+            width: 128px;
+            height: 29px;
+            border-radius: 6px;
+            background-color: var(--btn-color);
+            border: none;
+            color: #000;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .action-btn:active {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="iphone-canvas">
+        <!-- Top Section -->
+        <div class="card card-1"></div>
+        
+        <!-- Image Card -->
+        <div class="card card-2"></div>
+        <img class="banner" src="./static/completion/banner.png" alt="Banner">
+        
+        <!-- Mid Section -->
+        <div class="card card-3"></div>
+        
+        <!-- Bottom Section with Tarot Fan -->
+        <div class="card card-4"></div>
+        <div class="tarot-stage">
+            <div class="tarot-card"></div>
+            <div class="tarot-card"></div>
+            <div class="tarot-card"></div>
+            <div class="tarot-card"></div>
+            <div class="tarot-card"></div>
+            <div class="tarot-card"></div>
+            <div class="tarot-card"></div>
+            <div class="tarot-card"></div>
+            <div class="tarot-card"></div>
+        </div>
+        
+        <button class="action-btn">查看记录</button>
+    </div>
+</body>
+</html>
