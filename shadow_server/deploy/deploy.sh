@@ -45,6 +45,10 @@ do_init() {
 
     # 安装系统依赖
     log_info "安装系统依赖..."
+    # CentOS 需要先装 EPEL 才有 nginx
+    if command -v yum &>/dev/null; then
+        yum install -y epel-release 2>/dev/null || true
+    fi
     pkg_install python3 python3-pip git nginx
 
     # python3-venv 在 CentOS 上可能叫 python3-virtualenv 或用 pip 装
