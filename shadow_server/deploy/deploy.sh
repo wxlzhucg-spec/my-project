@@ -43,13 +43,18 @@ pkg_install() {
 do_init() {
     log_info "===== 首次部署 ====="
 
-    # 安装系统依赖
+    # 安装系统依赖（跳过已存在的命令）
     log_info "安装系统依赖..."
-    # CentOS 需要先装 EPEL 才有 nginx
-    if command -v yum &>/dev/null; then
-        yum install -y epel-release 2>/dev/null || true
+    _pkgs=""
+    command -v python3 &>/dev/null || _pkgs="$_pkgs python3"
+    command -v pip3 &>/dev/null || _pkgs="$_pkgs python3-pip"
+    command -v git &>/dev/null || _pkgs="$_pkgs git"
+    command -v nginx &>/dev/null || true  # nginx 可能编译安装，跳过 yum 装
+    if [ -n "$_pkgs" ]; then
+        pkg_install $_pkgs
+    else
+        log_info "基础依赖已就绪"
     fi
-    pkg_install python3 python3-pip git nginx
 
     # python3-venv 在 CentOS 上可能叫 python3-virtualenv 或用 pip 装
     if python3 -m venv --help &>/dev/null; then
