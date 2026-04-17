@@ -12,16 +12,16 @@
  *   POST   /emotion         → postEmotionRecord（body: openid, emotion_type, score, note?, date?, vitality?）
  *   DELETE /emotion         → deleteEmotionRecord（query: openid, date）
  *
- * 示例：http://43.143.169.226:5001/user/register
+ * 示例：http://43.143.169.226/user/register
  *
- * 换后端地址：项目根目录建 .env 并写 VUE_APP_XINYU_API_BASE=http://你的主机:5001（勿尾斜杠），重启 dev。
+ * 换后端地址：项目根目录建 .env 并写 VUE_APP_XINYU_API_BASE=http://你的主机（勿尾斜杠），重启 dev。
  *
  * H5 本地开发：默认直连后端；仅当设置 XINYU_USE_PROXY=1 时，API_BASE 为空并走 devServer 代理。
  * 小程序：须在微信开发者工具「详情 → 本地设置」勾选「不校验合法域名」；
  * 真机体验版/正式版不能使用裸 IP + HTTP，需在公众平台配置 HTTPS 备案域名。
  */
 function _defaultRemoteApiBase() {
-	return 'http://43.143.169.226:5001'
+	return 'http://43.143.169.226'
 }
 
 function _apiBaseFromEnv() {
