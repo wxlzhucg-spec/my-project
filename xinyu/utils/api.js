@@ -395,12 +395,37 @@ export function getUser(params) {
 	return request({ path: API.USER, method: 'GET', data: q })
 }
 
-/** PUT /user/profile */
+/** PUT /user/profile — 自动带上 phone，本地 id 对不上数据库时由后端按 phone 回退 */
 export function putUserProfile(payload) {
-	return request({
-		path: API.USER_PROFILE,
-		method: 'PUT',
-		data: payload
+	var body = Object.assign({}, payload || {})
+	var phone = String(body.phone || getApiUserPhone() || '').trim()
+	if (phone) body.phone = phone
+
+	function doPut(data) {
+		return request({
+			path: API.USER_PROFILE,
+			method: 'PUT',
+			data: data
+		}).then(function(res) {
+			var newId = res && res.data && res.data.id
+			if (newId != null && newId !== '') {
+				try {
+					uni.setStorageSync('xinyu_user_id', Number(newId))
+				} catch (e) {}
+			}
+			return res
+		})
+	}
+
+	return doPut(body).catch(function(err) {
+		var msg = (err && err.message) || ''
+		// 若 id 对不上且本地有 phone，去掉 id 只按 phone 再打一次
+		if (msg.indexOf('用户不存在') >= 0 && phone && body.id) {
+			var retry = Object.assign({}, body)
+			delete retry.id
+			return doPut(retry)
+		}
+		throw err
 	})
 }
 
