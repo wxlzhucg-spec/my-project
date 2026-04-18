@@ -34,6 +34,10 @@ class UserRequest(BaseModel):
         None,
         description="会话ID，用于多轮记忆（LangGraph checkpointer 根据 thread_id 区分会话）",
     )
+    user_id: Optional[int] = Field(
+        None,
+        description="用户数据库 ID，优先级高于 open_id，直接从 users 表查用户资料",
+    )
     open_id: Optional[str] = Field(
         None,
         description="微信 open_id，传入后自动从 users 表查询 birth_time/birth_place/mbti 等信息，无需手动填写",

@@ -201,7 +201,7 @@
 
 <script>
 	import customTabbar from '@/components/custom-tabbar/custom-tabbar.vue'
-	import { postShadowChat, getApiOpenid } from '@/utils/api.js'
+	import { postShadowChat, getApiUserId } from '@/utils/api.js'
 
 	var LANDING_BROW_L = {
 		sad: [87,90.6,96,85.5,105,90.1], calm: [87,88.9,96,87.3,105,88.9],
@@ -467,8 +467,8 @@
 				this.scrollToBottom('msg-typing');
 
 				var self = this;
-				var openid = getApiOpenid();
-				if (!openid) {
+				var userId = getApiUserId();
+				if (!userId) {
 					self.isTyping = false;
 					self.messageList.push({
 						role: 'ai',

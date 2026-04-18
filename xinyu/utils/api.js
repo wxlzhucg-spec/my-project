@@ -495,24 +495,28 @@ export function deleteEmotionRecord(openid, date) {
  * POST /api/chat — 影子 AI 情感陪伴对话
  *
  * @param {Object} payload
- * @param {string} payload.open_id       - 微信 open_id（传入后自动补全用户信息）
+ * @param {string} [payload.user_id]        - 用户数据库 ID（优先，会员/手机号登录用户用此字段）
+ * @param {string} [payload.open_id]       - 微信 open_id（已绑定微信的用户用此字段）
  * @param {string} payload.emotion_keyword - 当前情绪关键词（如：焦虑/迷茫/愤怒）
- * @param {string} payload.question      - 用户倾诉的问题
- * @param {string} [payload.session_id]  - 会话ID（多轮对话保持一致）
- * @param {string} [payload.supplements] - 第二轮补充回答
+ * @param {string} payload.question        - 用户倾诉的问题
+ * @param {string} [payload.session_id]   - 会话ID（多轮对话保持一致）
+ * @param {string} [payload.supplements]   - 第二轮补充回答
  * @returns {Promise<{phase:string, reply:string, error?:string}>}
  */
 export function postShadowChat(payload) {
-	var openid = String(payload.open_id || '').trim()
-	if (!openid) return Promise.reject(new Error('缺少 open_id'))
 	var question = String(payload.question || '').trim()
 	if (!question) return Promise.reject(new Error('请输入你的问题'))
 
 	var body = {
-		open_id: openid,
 		emotion_keyword: String(payload.emotion_keyword || '迷茫').trim(),
 		question: question
 	}
+	// 优先传 user_id（手机号登录用户没有真实 open_id）
+	var userId = getApiUserId()
+	if (userId) body.user_id = userId
+	// 微信用户有真实 open_id
+	var openid = String(payload.open_id || '').trim()
+	if (openid) body.open_id = openid
 	if (payload.session_id) body.session_id = String(payload.session_id)
 	if (payload.supplements) body.supplements = String(payload.supplements)
 

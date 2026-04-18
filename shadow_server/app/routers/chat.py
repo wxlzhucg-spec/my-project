@@ -19,11 +19,42 @@ chat_router = APIRouter(prefix="/api", tags=["chat"])
 
 async def _fill_user_from_db(body: UserRequest) -> UserRequest:
     """
-    如果传了 open_id，从 users 表查询 birth_time/birth_place/mbti/blood_type 补全。
+    支持三种调用方式：
+      1. 传 user_id：直接用数据库 ID 查询（优先）
+      2. 传 open_id：从 users 表查询 birth_time/birth_place/mbti 等信息
+      3. 手动填写：直接传入 birth_time/birth_place/mbti 等字段
     已手动填写的字段不会被覆盖。
     """
-    if not body.open_id:
-        # 没有 open_id，校验必填字段（blood_type 非关键，给默认值）
+    user = None
+
+    # 优先用 user_id 查询
+    if body.user_id:
+        async with async_session_maker() as session:
+            result = await session.execute(
+                text("SELECT * FROM users WHERE id = :id LIMIT 1"),
+                {"id": body.user_id},
+            )
+            row = result.mappings().first()
+        if not row:
+            raise HTTPException(status_code=404, detail=f"未找到 user_id={body.user_id} 对应的用户")
+        user = dict(row)
+        logger.info("[_fill_user_from_db] 用 user_id 查到用户 id=%s", body.user_id)
+
+    elif body.open_id:
+        # 用 open_id 查询
+        async with async_session_maker() as session:
+            result = await session.execute(
+                text("SELECT * FROM users WHERE open_id = :open_id LIMIT 1"),
+                {"open_id": body.open_id},
+            )
+            row = result.mappings().first()
+        if not row:
+            raise HTTPException(status_code=404, detail=f"未找到 open_id={body.open_id} 对应的用户")
+        user = dict(row)
+        logger.info("[_fill_user_from_db] 用 open_id 查到用户 id=%s", user.get("id"))
+
+    else:
+        # 没有 user_id/open_id，校验必填字段（blood_type 非关键，给默认值）
         if not body.blood_type:
             body.blood_type = "unknown"
         missing = []
@@ -36,23 +67,11 @@ async def _fill_user_from_db(body: UserRequest) -> UserRequest:
         if missing:
             raise HTTPException(
                 status_code=400,
-                detail=f"缺少必填字段: {', '.join(missing)}，或传入 open_id 自动获取",
+                detail=f"缺少必填字段: {', '.join(missing)}，或传入 user_id / open_id 自动获取",
             )
         return body
 
-    # 从数据库查询用户信息
-    async with async_session_maker() as session:
-        result = await session.execute(
-            text("SELECT * FROM users WHERE open_id = :open_id LIMIT 1"),
-            {"open_id": body.open_id},
-        )
-        row = result.mappings().first()
-
-    if not row:
-        raise HTTPException(status_code=404, detail=f"未找到 open_id={body.open_id} 对应的用户")
-
-    user = dict(row)
-    logger.info("[_fill_user_from_db] 查到用户 id=%s open_id=%s", user.get("id"), body.open_id)
+    logger.info("[_fill_user_from_db] 查到用户 id=%s open_id=%s", user.get("id"), user.get("open_id"))
 
     # 补全未填写的字段（优先使用前端传入的值）
     if not body.birth_time and user.get("birth_time"):
