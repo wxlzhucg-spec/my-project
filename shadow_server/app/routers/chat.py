@@ -23,7 +23,9 @@ async def _fill_user_from_db(body: UserRequest) -> UserRequest:
     已手动填写的字段不会被覆盖。
     """
     if not body.open_id:
-        # 没有 open_id，校验必填字段
+        # 没有 open_id，校验必填字段（blood_type 非关键，给默认值）
+        if not body.blood_type:
+            body.blood_type = "unknown"
         missing = []
         if not body.birth_time:
             missing.append("birth_time")
@@ -31,8 +33,6 @@ async def _fill_user_from_db(body: UserRequest) -> UserRequest:
             missing.append("birth_place")
         if not body.mbti:
             missing.append("mbti")
-        if not body.blood_type:
-            missing.append("blood_type")
         if missing:
             raise HTTPException(
                 status_code=400,
@@ -79,8 +79,9 @@ async def _fill_user_from_db(body: UserRequest) -> UserRequest:
     if not body.mbti and user.get("mbti"):
         body.mbti = user["mbti"]
 
-    if not body.blood_type and user.get("blood_type"):
-        body.blood_type = user["blood_type"]
+    # blood_type 在 users 表中不存在，设默认值
+    if not body.blood_type:
+        body.blood_type = "unknown"
 
     # 二次校验：补全后仍然缺少的关键字段
     if not body.birth_time or not body.birth_place or not body.mbti:
