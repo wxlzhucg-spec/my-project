@@ -201,6 +201,7 @@
 
 <script>
 	import customTabbar from '@/components/custom-tabbar/custom-tabbar.vue'
+	import { postShadowChat, getApiOpenid } from '@/utils/api.js'
 
 	var LANDING_BROW_L = {
 		sad: [87,90.6,96,85.5,105,90.1], calm: [87,88.9,96,87.3,105,88.9],
@@ -234,6 +235,8 @@
 				fromTarot: false,
 				emotionSnapshot: { mood: 72, vit: 62, savedAt: 0, note: '' },
 				emotionState: 'happy',
+				shadowSessionId: '',
+				pendingClarification: false,
 				landingFaceOY: -1.8,
 				landingBaseFaceOY: -1.8,
 				landingBrowLP: [87,86.9,96,82.5,105,86.9],
@@ -450,7 +453,7 @@
 			sendMessage() {
 				if (!this.inputText.trim()) return;
 				
-				const userMsg = this.inputText.trim();
+				var userMsg = this.inputText.trim();
 				this.messageList.push({
 					role: 'user',
 					content: userMsg
@@ -462,15 +465,69 @@
 				// Show typing indicator
 				this.isTyping = true;
 				this.scrollToBottom('msg-typing');
-				
-				setTimeout(() => {
-					this.isTyping = false;
-					this.messageList.push({
+
+				var self = this;
+				var openid = getApiOpenid();
+				if (!openid) {
+					self.isTyping = false;
+					self.messageList.push({
 						role: 'ai',
-						content: '我听到你了。不用太完美，现在的你已经很棒了。随时在这里陪着你。'
+						content: '请先登录后再与影子对话。'
 					});
-					this.scrollToBottom();
-				}, 1500);
+					self.scrollToBottom();
+					return;
+				}
+
+				// 根据情绪快照推断 emotion_keyword
+				var mood = this.emotionSnapshot.mood || 72;
+				var vit = this.emotionSnapshot.vit || 62;
+				var keyword = '迷茫';
+				if (mood < 28) keyword = '失落';
+				else if (mood < 50) keyword = '焦虑';
+				else if (mood > 78 && vit > 84) keyword = '愤怒';
+				else if (mood >= 50) keyword = '困惑';
+
+				var payload = {
+					open_id: openid,
+					emotion_keyword: keyword,
+					question: userMsg
+				};
+
+				// 两轮对话：如果有 pendingClarification，把用户当前消息作为 supplements
+				if (this.pendingClarification) {
+					payload.supplements = userMsg;
+					this.pendingClarification = false;
+				}
+				if (this.shadowSessionId) {
+					payload.session_id = this.shadowSessionId;
+				}
+
+				postShadowChat(payload).then(function(res) {
+					self.isTyping = false;
+					if (!res) {
+						self.messageList.push({ role: 'ai', content: '影子暂时断开了链接，请稍后重试。' });
+						self.scrollToBottom();
+						return;
+					}
+					// 保存 session_id
+					if (res.debug_info && res.debug_info.session_id) {
+						self.shadowSessionId = res.debug_info.session_id;
+					}
+					var reply = res.reply || '影子暂时断开了链接...';
+					self.messageList.push({ role: 'ai', content: reply });
+
+					// 如果是追问阶段，标记 pending
+					if (res.phase === 'clarifying') {
+						self.pendingClarification = true;
+					}
+
+					self.scrollToBottom();
+				}).catch(function(err) {
+					self.isTyping = false;
+					var errMsg = err && err.message ? err.message : '请求失败';
+					self.messageList.push({ role: 'ai', content: '出了点问题：' + errMsg });
+					self.scrollToBottom();
+				});
 			},
 			scrollToBottom(id) {
 				this.$nextTick(() => {

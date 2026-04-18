@@ -56,7 +56,8 @@ export const API = {
 	USER: '/user',
 	USER_PROFILE: '/user/profile',
 	USER_BIND_WX: '/user/bind_wx',
-	TAROT_DRAW: '/tarot/draw'
+	TAROT_DRAW: '/tarot/draw',
+	SHADOW_CHAT: '/api/chat'
 }
 
 /** 路径常量（与 API 对象一致，便于页面展示或拼接） */
@@ -486,4 +487,64 @@ export function deleteEmotionRecord(openid, date) {
 		'&date=' +
 		encodeURIComponent(date)
 	return request({ path: API.EMOTION + '?' + qs, method: 'DELETE' })
+}
+
+// ---------- 影子 AI ----------
+
+/**
+ * POST /api/chat — 影子 AI 情感陪伴对话
+ *
+ * @param {Object} payload
+ * @param {string} payload.open_id       - 微信 open_id（传入后自动补全用户信息）
+ * @param {string} payload.emotion_keyword - 当前情绪关键词（如：焦虑/迷茫/愤怒）
+ * @param {string} payload.question      - 用户倾诉的问题
+ * @param {string} [payload.session_id]  - 会话ID（多轮对话保持一致）
+ * @param {string} [payload.supplements] - 第二轮补充回答
+ * @returns {Promise<{phase:string, reply:string, error?:string}>}
+ */
+export function postShadowChat(payload) {
+	var openid = String(payload.open_id || '').trim()
+	if (!openid) return Promise.reject(new Error('缺少 open_id'))
+	var question = String(payload.question || '').trim()
+	if (!question) return Promise.reject(new Error('请输入你的问题'))
+
+	var body = {
+		open_id: openid,
+		emotion_keyword: String(payload.emotion_keyword || '迷茫').trim(),
+		question: question
+	}
+	if (payload.session_id) body.session_id = String(payload.session_id)
+	if (payload.supplements) body.supplements = String(payload.supplements)
+
+	return new Promise(function(resolve, reject) {
+		uni.request({
+			url: API_BASE + API.SHADOW_CHAT,
+			method: 'POST',
+			header: { 'Content-Type': 'application/json' },
+			data: body,
+			timeout: 200000,
+			success: function(res) {
+				var sc = res.statusCode
+				var d = res.data
+				if (sc < 200 || sc >= 300) {
+					var msg = (d && d.detail) || (d && d.message) || ('HTTP ' + sc)
+					reject(new Error(msg))
+					return
+				}
+				if (d && d.error) {
+					reject(new Error(d.error))
+					return
+				}
+				resolve(d)
+			},
+			fail: function(err) {
+				var em = (err && err.errMsg) || (err && err.message) || ''
+				if (em.indexOf('timeout') >= 0) {
+					reject(new Error('影子思考时间较长，请稍后重试'))
+				} else {
+					reject(new Error(em || '网络请求失败'))
+				}
+			}
+		})
+	})
 }
