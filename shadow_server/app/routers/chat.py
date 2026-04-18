@@ -156,12 +156,15 @@ async def chat_endpoint(body: UserRequest, http_request: Request, graph: Any = D
             graph.ainvoke(initial_state, config=config),
             timeout=CHAT_TIMEOUT_SECONDS,
         )
-        if "clarification" in result:
+        # 用 reply 是否产出判定 phase：第二轮 analyze 分支会写 reply；
+        # 不能用 "clarification" in result，因为 MemorySaver 会保留上一轮写入的字段。
+        final_reply = result.get("reply")
+        if final_reply:
+            reply = final_reply
+            phase = "complete"
+        else:
             reply = result.get("clarification", "能多告诉我一些吗？")
             phase = "clarifying"
-        else:
-            reply = result.get("reply", "抱歉，影子暂时断开了链接...")
-            phase = "complete"
 
         debug_info = None
         if DEBUG or ENABLE_TEST_ROUTES:
