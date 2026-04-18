@@ -12,6 +12,7 @@ from .config import CORS_ORIGINS, DEBUG, ENABLE_TEST_ROUTES, HOST, PORT
 from .graph import build_graph
 from .middleware import RequestLoggingMiddleware
 from .routers.chat import chat_router
+from .routers.llm_models import llm_models_router
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,7 @@ def create_app() -> FastAPI:
     application.add_middleware(RequestLoggingMiddleware)
     application.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
     application.include_router(chat_router)
+    application.include_router(llm_models_router)
 
     if ENABLE_TEST_ROUTES:
         from .routers.pipeline_tests import register_pipeline_test_routes

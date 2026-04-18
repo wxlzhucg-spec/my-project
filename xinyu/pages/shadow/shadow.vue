@@ -508,8 +508,10 @@
 						self.scrollToBottom();
 						return;
 					}
-					// 保存 session_id
-					if (res.debug_info && res.debug_info.session_id) {
+					// 保存 session_id（正式环境也有；勿依赖 debug_info）
+					if (res.session_id) {
+						self.shadowSessionId = res.session_id;
+					} else if (res.debug_info && res.debug_info.session_id) {
 						self.shadowSessionId = res.debug_info.session_id;
 					}
 					var reply = res.reply || '影子暂时断开了链接...';

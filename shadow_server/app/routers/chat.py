@@ -41,13 +41,26 @@ async def _fill_user_from_db(body: UserRequest) -> UserRequest:
         logger.info("[_fill_user_from_db] 用 user_id 查到用户 id=%s", body.user_id)
 
     elif body.open_id:
-        # 用 open_id 查询
+        # 用 open_id 查询；若是前端注册时写入的伪值 "p_手机号"，回退到 phone 查询
         async with async_session_maker() as session:
             result = await session.execute(
                 text("SELECT * FROM users WHERE open_id = :open_id LIMIT 1"),
                 {"open_id": body.open_id},
             )
             row = result.mappings().first()
+
+            if not row and body.open_id.startswith("p_"):
+                phone_guess = body.open_id[2:]
+                logger.info(
+                    "[_fill_user_from_db] open_id=%s 查无结果，回退用 phone=%s 查询",
+                    body.open_id, phone_guess,
+                )
+                result = await session.execute(
+                    text("SELECT * FROM users WHERE phone = :phone LIMIT 1"),
+                    {"phone": phone_guess},
+                )
+                row = result.mappings().first()
+
         if not row:
             raise HTTPException(status_code=404, detail=f"未找到 open_id={body.open_id} 对应的用户")
         user = dict(row)
@@ -166,7 +179,13 @@ async def chat_endpoint(body: UserRequest, http_request: Request, graph: Any = D
                     "root_logic": result.get("root_logic", ""),
                 },
             }
-        return ChatResponse(phase=phase, reply=reply, error=None, debug_info=debug_info)
+        return ChatResponse(
+            session_id=session_id,
+            phase=phase,
+            reply=reply,
+            error=None,
+            debug_info=debug_info,
+        )
 
     except asyncio.TimeoutError:
         logger.error("chat timeout request_id=%s session=%s after %.1fs", rid, getattr(body, "session_id", None), CHAT_TIMEOUT_SECONDS)

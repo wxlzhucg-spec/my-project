@@ -15,6 +15,7 @@
  * 示例：http://43.143.169.226/user/register
  *
  * 换后端地址：项目根目录建 .env 并写 VUE_APP_XINYU_API_BASE=http://你的主机（勿尾斜杠），重启 dev。
+ * 影子 AI 若单独端口（本地 Flask 5001 + Shadow 8000）：VUE_APP_XINYU_SHADOW_API_BASE=http://127.0.0.1:8000
  *
  * H5 本地开发：默认直连后端；仅当设置 XINYU_USE_PROXY=1 时，API_BASE 为空并走 devServer 代理。
  * 小程序：须在微信开发者工具「详情 → 本地设置」勾选「不校验合法域名」；
@@ -48,6 +49,24 @@ var _apiBase =
 var _apiBase = _envApiBase != null ? _envApiBase : _defaultRemoteApiBase()
 // #endif
 export const API_BASE = _apiBase
+
+/** 影子 FastAPI 根地址；未配置时与 API_BASE 相同（依赖 Nginx 将 /api/* 转到 8000） */
+function _shadowApiBaseFromEnv() {
+	var e = ''
+	try {
+		if (typeof process !== 'undefined' && process.env) {
+			e =
+				process.env.VUE_APP_XINYU_SHADOW_API_BASE ||
+				process.env.UNI_XINYU_SHADOW_API_BASE ||
+				''
+		}
+	} catch (err) {}
+	if (!e || !String(e).trim()) return null
+	return String(e).trim().replace(/\/$/, '')
+}
+
+var _envShadowBase = _shadowApiBaseFromEnv()
+export const SHADOW_API_BASE = _envShadowBase != null ? _envShadowBase : API_BASE
 
 export const API = {
 	EMOTION: '/emotion',
@@ -491,6 +510,24 @@ export function deleteEmotionRecord(openid, date) {
 
 // ---------- 影子 AI ----------
 
+/** 将 FastAPI 等返回的 detail 转成可读字符串（detail 常为数组） */
+function formatShadowHttpDetail(d) {
+	if (!d || typeof d !== 'object') return ''
+	var det = d.detail
+	if (typeof det === 'string') return det
+	if (Array.isArray(det)) {
+		var parts = []
+		for (var i = 0; i < det.length; i++) {
+			var it = det[i]
+			if (it && typeof it.msg === 'string') parts.push(it.msg)
+			else if (typeof it === 'string') parts.push(it)
+		}
+		if (parts.length) return parts.join('；')
+	}
+	if (typeof d.message === 'string') return d.message
+	return ''
+}
+
 /**
  * POST /api/chat — 影子 AI 情感陪伴对话
  *
@@ -501,7 +538,7 @@ export function deleteEmotionRecord(openid, date) {
  * @param {string} payload.question        - 用户倾诉的问题
  * @param {string} [payload.session_id]   - 会话ID（多轮对话保持一致）
  * @param {string} [payload.supplements]   - 第二轮补充回答
- * @returns {Promise<{phase:string, reply:string, error?:string}>}
+ * @returns {Promise<{phase:string, reply:string, session_id?:string, error?:string}>}
  */
 export function postShadowChat(payload) {
 	var question = String(payload.question || '').trim()
@@ -514,24 +551,25 @@ export function postShadowChat(payload) {
 	// 优先传 user_id（手机号登录用户没有真实 open_id）
 	var userId = getApiUserId()
 	if (userId) body.user_id = userId
-	// 微信用户有真实 open_id
+	// 仅在存在真实微信 open_id 时才下发；前端注册时写入的 'p_手机号' 伪值不算
 	var openid = String(payload.open_id || '').trim()
-	if (openid) body.open_id = openid
+	if (!openid) openid = getApiOpenid()
+	if (openid && openid.indexOf('p_') !== 0 && !userId) body.open_id = openid
 	if (payload.session_id) body.session_id = String(payload.session_id)
 	if (payload.supplements) body.supplements = String(payload.supplements)
 
 	return new Promise(function(resolve, reject) {
 		uni.request({
-			url: API_BASE + API.SHADOW_CHAT,
+			url: SHADOW_API_BASE + API.SHADOW_CHAT,
 			method: 'POST',
 			header: { 'Content-Type': 'application/json' },
-			data: body,
+			data: JSON.stringify(body),
 			timeout: 200000,
 			success: function(res) {
 				var sc = res.statusCode
 				var d = res.data
 				if (sc < 200 || sc >= 300) {
-					var msg = (d && d.detail) || (d && d.message) || ('HTTP ' + sc)
+					var msg = formatShadowHttpDetail(d) || ('HTTP ' + sc)
 					reject(new Error(msg))
 					return
 				}

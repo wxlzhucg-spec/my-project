@@ -89,8 +89,14 @@ class ChatResponse(BaseModel):
     phase 字段区分两阶段：
       - "clarifying"：追问阶段，需要用户补充信息
       - "complete"：分析完成，返回最终回复
+
+    session_id 始终返回，供前端多轮对话与 LangGraph thread 对齐（不依赖 debug_info）。
     """
 
+    session_id: str = Field(
+        ...,
+        description="本轮使用的会话 ID；后续请求原样带回以延续同一线程",
+    )
     phase: str = Field(
         ...,
         description="当前阶段：clarifying=追问中，complete=分析完成",
