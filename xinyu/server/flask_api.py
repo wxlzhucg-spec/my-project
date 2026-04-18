@@ -241,9 +241,9 @@ def register():
         sql = """
             INSERT INTO users (phone, password_hash, nickname, avatar_url, gender,
                                birth_date, birth_time, birth_province, birth_city,
-                               birth_district, mbti, open_id, union_id,
+                               birth_district, mbti, blood_type, open_id, union_id,
                                terms_agreed_at, profile_completed)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s)
         """
         cursor.execute(
             sql,
@@ -259,6 +259,7 @@ def register():
                 data.get("birth_city", "").strip(),
                 data.get("birth_district", "").strip(),
                 data.get("mbti", "").strip(),
+                data.get("blood_type", "").strip(),
                 open_id,
                 data.get("union_id"),
                 profile_completed,
