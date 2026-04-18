@@ -45,6 +45,7 @@ def get_llm() -> ChatOpenAI:
             base_url=DEEPSEEK_BASE_URL,
             max_tokens=DEEPSEEK_MAX_TOKENS,
             temperature=DEEPSEEK_TEMPERATURE,
+            timeout=60,
         )
         logger.info(
             "LLM 实例已创建: model=%s, base_url=%s, max_tokens=%d, temp=%.2f",
@@ -54,3 +55,25 @@ def get_llm() -> ChatOpenAI:
             DEEPSEEK_TEMPERATURE,
         )
     return _llm_instance
+
+
+# 中间分析节点用的轻量 LLM（更少 tokens，更快响应）
+_light_llm_instance: ChatOpenAI | None = None
+
+
+def get_light_llm() -> ChatOpenAI:
+    """获取轻量 LLM 实例，用于中间分析节点（max_tokens 更小，响应更快）。"""
+    global _light_llm_instance
+    if _light_llm_instance is None:
+        if not DEEPSEEK_API_KEY:
+            raise ValueError("DEEPSEEK_API_KEY 未设置")
+        _light_llm_instance = ChatOpenAI(
+            model=DEEPSEEK_MODEL,
+            api_key=DEEPSEEK_API_KEY,
+            base_url=DEEPSEEK_BASE_URL,
+            max_tokens=256,
+            temperature=0.5,
+            timeout=45,
+        )
+        logger.info("轻量 LLM 实例已创建: model=%s, max_tokens=256", DEEPSEEK_MODEL)
+    return _light_llm_instance

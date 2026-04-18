@@ -23,7 +23,7 @@ from typing import Any
 
 from langchain_core.messages import HumanMessage
 
-from .llm import get_llm
+from .llm import get_llm, get_light_llm
 from .models import AgentState
 from .prompts import (
     get_astro_focus_prompt,
@@ -327,7 +327,7 @@ async def ephemeris_node(state: AgentState) -> dict:
 
 async def astro_insight_node(state: AgentState) -> dict:
     """
-    占星素材提炼节点（LLM 调用）。
+    占星素材提炼节点（LLM 调用，轻量）。
 
     输入：astro_analysis, ephemeris_summary, request.*, supplements
     输出：astro_focus
@@ -344,7 +344,7 @@ async def astro_insight_node(state: AgentState) -> dict:
         question=req.question,
         supplements=combined_supplements,
     )
-    response = await get_llm().ainvoke([HumanMessage(content=prompt)])
+    response = await get_light_llm().ainvoke([HumanMessage(content=prompt)])
 
     logger.info("[astro_insight_node] 占星素材提炼完成")
     return {"astro_focus": response.content}
@@ -352,7 +352,7 @@ async def astro_insight_node(state: AgentState) -> dict:
 
 async def search_node(state: AgentState) -> dict:
     """
-    问题语境检索节点（LLM 调用）。
+    问题语境检索节点（LLM 调用，轻量）。
 
     输入：request.*, supplements
     输出：issue_context
@@ -369,7 +369,7 @@ async def search_node(state: AgentState) -> dict:
         mbti=req.mbti,
         supplements=combined_supplements,
     )
-    response = await get_llm().ainvoke([HumanMessage(content=prompt)])
+    response = await get_light_llm().ainvoke([HumanMessage(content=prompt)])
 
     logger.info("[search_node] 问题语境检索完成")
     return {"issue_context": response.content}
@@ -377,7 +377,7 @@ async def search_node(state: AgentState) -> dict:
 
 async def analyze_node(state: AgentState) -> dict:
     """
-    底层逻辑综合分析节点（LLM 调用）。
+    底层逻辑综合分析节点（LLM 调用，轻量）。
 
     输入：astro_focus, issue_context, request.*, clarification_answers
     输出：root_logic
@@ -397,7 +397,7 @@ async def analyze_node(state: AgentState) -> dict:
         issue_context=state.get("issue_context", ""),
         supplements=combined_supplements,
     )
-    response = await get_llm().ainvoke([HumanMessage(content=prompt)])
+    response = await get_light_llm().ainvoke([HumanMessage(content=prompt)])
     return {"root_logic": response.content}
 
 
