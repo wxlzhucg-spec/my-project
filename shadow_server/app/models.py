@@ -21,6 +21,10 @@ class UserRequest(BaseModel):
     """
     主对话流水线的请求体。
 
+    两种使用方式：
+      1. 传 open_id：自动从 users 表查询 birth_time/birth_place/mbti 等信息
+      2. 手动填写：直接传入 birth_time/birth_place/mbti 等字段
+
     两阶段复用同一个请求体：
       第一轮（追问）：只填 question + 基础信息，不填 supplements
       第二轮（分析）：填 supplements（用户对追问的回答）
@@ -30,25 +34,28 @@ class UserRequest(BaseModel):
         None,
         description="会话ID，用于多轮记忆（LangGraph checkpointer 根据 thread_id 区分会话）",
     )
-    birth_time: str = Field(
-        ...,
-        description="出生时间，支持多种格式：'1995-06-15 14:30' 或 '1995/06/15 14:30'",
+    open_id: Optional[str] = Field(
+        None,
+        description="微信 open_id，传入后自动从 users 表查询 birth_time/birth_place/mbti 等信息，无需手动填写",
+    )
+    birth_time: Optional[str] = Field(
+        None,
+        description="出生时间，支持多种格式：'1995-06-15 14:30' 或 '1995/06/15 14:30'。传了 open_id 可不填",
         examples=["1995-06-15 14:30", "1995/06/15 08:00"],
     )
-    birth_place: str = Field(
-        ...,
-        description="出生地点，支持区县级中文地址：'甘肃省天水市武山县' 或 '上海市'",
+    birth_place: Optional[str] = Field(
+        None,
+        description="出生地点，支持区县级中文地址：'甘肃省天水市武山县' 或 '上海市'。传了 open_id 可不填",
         examples=["甘肃省天水市武山县", "浙江省杭州市西湖区", "上海市"],
     )
-    mbti: str = Field(
-        ...,
-        description="MBTI 性格类型，16种之一，影响分析和建议的语气与方向",
-        pattern=r"^[A-Z]{4}$",
+    mbti: Optional[str] = Field(
+        None,
+        description="MBTI 性格类型，16种之一，影响分析和建议的语气与方向。传了 open_id 可不填",
         examples=["INFP", "INTJ", "ENFP"],
     )
-    blood_type: str = Field(
-        ...,
-        description="血型（A/B/O/AB），未来扩展用",
+    blood_type: Optional[str] = Field(
+        None,
+        description="血型（A/B/O/AB），传了 open_id 可不填",
     )
     emotion_keyword: str = Field(
         ...,
