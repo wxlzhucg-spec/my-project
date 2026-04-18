@@ -122,6 +122,7 @@ do_update() {
     cd $APP_DIR
 
     log_info "拉取最新代码..."
+    git stash --include-untracked 2>/dev/null || true
     git fetch origin $BRANCH
     git reset --hard origin/$BRANCH
 

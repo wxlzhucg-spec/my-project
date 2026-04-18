@@ -79,7 +79,9 @@ async def _fill_user_from_db(body: UserRequest) -> UserRequest:
     if not body.mbti and user.get("mbti"):
         body.mbti = user["mbti"]
 
-    # blood_type 在 users 表中不存在，设默认值
+    if not body.blood_type and user.get("blood_type"):
+        body.blood_type = user["blood_type"]
+
     if not body.blood_type:
         body.blood_type = "unknown"
 

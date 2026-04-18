@@ -30,3 +30,11 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
+
+# 前端构建产物与依赖
+xinyu/unpackage/
+xinyu/node_modules/
+xinyu/package-lock.json
+
+# 数据库 SQL 备份
+*.sql.bak
