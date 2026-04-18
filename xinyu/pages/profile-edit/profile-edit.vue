@@ -84,6 +84,19 @@
 				</view>
 			</view>
 		</picker>
+		<view class="form-line"></view>
+
+		<!-- 血型 -->
+		<picker :range="bloodTypeList" :value="bloodTypeIdx" @change="onBloodTypeChange">
+			<view class="form-row">
+				<text class="form-label">血型</text>
+				<view class="form-val-area">
+					<text class="form-val" v-if="bloodType">{{ bloodType }}</text>
+					<text class="form-ph" v-else>请选择</text>
+					<text class="row-arrow">›</text>
+				</view>
+			</view>
+		</picker>
 
 	</view>
 
@@ -102,6 +115,7 @@ import { getApiUserId, getApiUserPhone, getUser, putUserProfile, describeRequest
 var ADJ = ['迷人的','可爱的','温柔的','帅气的','神秘的','快乐的','安静的','勇敢的','优雅的','灵动的','温暖的','梦幻的']
 var NOUN = ['四季豆','小太阳','月亮','星星','小猫咪','蒲公英','棉花糖','小确幸','萤火虫','云朵','水蜜桃','银杏叶']
 var MBTI_LIST = ['INTJ','INTP','ENTJ','ENTP','INFJ','INFP','ENFJ','ENFP','ISTJ','ISFJ','ESTJ','ESFJ','ISTP','ISFP','ESTP','ESFP']
+var BLOOD_TYPE_LIST = ['A','B','AB','O']
 
 function daysInMonth(y, m) {
 	return new Date(y, m, 0).getDate()
@@ -117,9 +131,12 @@ export default {
 			birthTime: '',
 			birthRegion: ['','',''],
 			mbti: '',
+			bloodType: '',
 			saving: false,
 			mbtiList: MBTI_LIST,
 			mbtiIdx: 0,
+			bloodTypeList: BLOOD_TYPE_LIST,
+			bloodTypeIdx: 0,
 			dtIdx: [55, 0, 0, 12, 0],
 			regionIdx: [0, 0, 0]
 		}
@@ -210,7 +227,8 @@ export default {
 							birthDate: user.birth_date || '',
 							birthTime: user.birth_time || '',
 							birthRegion: [user.birth_province || '', user.birth_city || '', user.birth_district || ''],
-							mbti: user.mbti || ''
+							mbti: user.mbti || '',
+							bloodType: user.blood_type || ''
 						})
 					} else {
 						self.loadLocalProfile()
@@ -233,7 +251,8 @@ export default {
 							birthDate: user.birth_date || '',
 							birthTime: user.birth_time || '',
 							birthRegion: [user.birth_province || '', user.birth_city || '', user.birth_district || ''],
-							mbti: user.mbti || ''
+							mbti: user.mbti || '',
+							bloodType: user.blood_type || ''
 						})
 					} else {
 						self.loadLocalProfile()
@@ -273,6 +292,12 @@ export default {
 			if (this.mbti) {
 				for (var i = 0; i < MBTI_LIST.length; i++) {
 					if (MBTI_LIST[i] === this.mbti) { this.mbtiIdx = i; break }
+				}
+			}
+			this.bloodType = p.bloodType || ''
+			if (this.bloodType) {
+				for (var bi = 0; bi < BLOOD_TYPE_LIST.length; bi++) {
+					if (BLOOD_TYPE_LIST[bi] === this.bloodType) { this.bloodTypeIdx = bi; break }
 				}
 			}
 			if (this.birthDate) {
@@ -347,6 +372,10 @@ export default {
 			this.mbtiIdx = e.detail.value
 			this.mbti = MBTI_LIST[this.mbtiIdx]
 		},
+		onBloodTypeChange: function(e) {
+			this.bloodTypeIdx = e.detail.value
+			this.bloodType = BLOOD_TYPE_LIST[this.bloodTypeIdx]
+		},
 
 		saveProfile: function() {
 			if (this.saving) return
@@ -360,7 +389,8 @@ export default {
 				birthDate: this.birthDate,
 				birthTime: this.birthTime,
 				birthRegion: this.birthRegion,
-				mbti: this.mbti
+				mbti: this.mbti,
+				bloodType: this.bloodType
 			}
 			var uid = getApiUserId()
 			var phone = getApiUserPhone()
@@ -369,16 +399,17 @@ export default {
 				uni.showToast({ title: '未登录，仅本地保存', icon: 'none' })
 				return
 			}
-			var payload = {
-				nickname: cachedProfile.nickname,
-				gender: this.gender || 'unknown',
-				birth_date: this.birthDate || null,
-				birth_time: this.birthTime || '',
-				birth_province: this.birthRegion[0] || '',
-				birth_city: this.birthRegion[1] || '',
-				birth_district: this.birthRegion[2] || '',
-				mbti: this.mbti || ''
-			}
+		var payload = {
+			nickname: cachedProfile.nickname,
+			gender: this.gender || 'unknown',
+			birth_date: this.birthDate || null,
+			birth_time: this.birthTime || '',
+			birth_province: this.birthRegion[0] || '',
+			birth_city: this.birthRegion[1] || '',
+			birth_district: this.birthRegion[2] || '',
+			mbti: this.mbti || '',
+			blood_type: this.bloodType || ''
+		}
 			if (uid) payload.id = uid
 			if (!uid && phone) payload.phone = phone
 			// 当前没有头像上传接口，只有远程 URL 才能直接入库。

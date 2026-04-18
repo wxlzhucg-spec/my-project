@@ -389,6 +389,7 @@ def update_profile():
         "birth_city",
         "birth_district",
         "mbti",
+        "blood_type",
     ]
     updates = {k: v for k, v in data.items() if k in allowed_fields and v is not None}
 
