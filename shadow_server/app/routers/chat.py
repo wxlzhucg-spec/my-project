@@ -104,19 +104,16 @@ async def _fill_user_from_db(body: UserRequest) -> UserRequest:
     if not body.blood_type:
         body.blood_type = "unknown"
 
-    # 二次校验：补全后仍然缺少的关键字段
-    if not body.birth_time or not body.birth_place or not body.mbti:
-        missing = []
-        if not body.birth_time:
-            missing.append("birth_time")
-        if not body.birth_place:
-            missing.append("birth_place")
-        if not body.mbti:
-            missing.append("mbti")
-        raise HTTPException(
-            status_code=400,
-            detail=f"用户资料不完整，缺少: {', '.join(missing)}，请先完善个人资料",
-        )
+    # 资料不完整时给默认值，让对话降级运行（星盘部分用占位文本）
+    if not body.birth_time:
+        body.birth_time = "2000-01-01 12:00"
+        logger.warning("[_fill_user_from_db] 用户缺少 birth_time，使用默认值")
+    if not body.birth_place:
+        body.birth_place = "北京"
+        logger.warning("[_fill_user_from_db] 用户缺少 birth_place，使用默认值")
+    if not body.mbti:
+        body.mbti = "INFP"
+        logger.warning("[_fill_user_from_db] 用户缺少 mbti，使用默认值")
 
     return body
 

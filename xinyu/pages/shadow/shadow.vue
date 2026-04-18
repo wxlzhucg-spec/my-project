@@ -466,19 +466,19 @@
 				this.isTyping = true;
 				this.scrollToBottom('msg-typing');
 
-				var self = this;
-				var userId = getApiUserId();
-				if (!userId) {
-					self.isTyping = false;
-					self.messageList.push({
-						role: 'ai',
-						content: '请先登录后再与影子对话。'
-					});
-					self.scrollToBottom();
-					return;
-				}
+			var self = this;
+			var userId = getApiUserId();
+			if (!userId) {
+				self.isTyping = false;
+				self.messageList.push({
+					role: 'ai',
+					content: '请先登录后再与影子对话。'
+				});
+				self.scrollToBottom();
+				return;
+			}
 
-				// 根据情绪快照推断 emotion_keyword
+			// 根据情绪快照推断 emotion_keyword
 				var mood = this.emotionSnapshot.mood || 72;
 				var vit = this.emotionSnapshot.vit || 62;
 				var keyword = '迷茫';
@@ -488,7 +488,6 @@
 				else if (mood >= 50) keyword = '困惑';
 
 				var payload = {
-					open_id: openid,
 					emotion_keyword: keyword,
 					question: userMsg
 				};
