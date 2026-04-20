@@ -223,6 +223,18 @@
 
   .preset-row { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
 
+  .session-badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    margin-top: 4px;
+    font-family: "SF Mono", "Fira Code", monospace;
+  }
+
   /* ── Right panel ────────────── */
   .right-panel {
     padding: 20px 24px;
@@ -527,6 +539,11 @@
     <div class="section-title">用户信息</div>
 
     <div class="field">
+      <label>user_id <span class="tag tag-optional">可选</span> — 传此字段可自动从 DB 获取出生信息</label>
+      <input type="number" id="userId" value="" placeholder="数据库用户 ID，留空则用手动填写" />
+    </div>
+
+    <div class="field">
       <label>出生时间 <span class="tag tag-required">必填</span></label>
       <input type="text" id="birthTime" value="1995-06-15 14:30" placeholder="1995-06-15 14:30" />
     </div>
@@ -570,6 +587,9 @@
       <textarea id="supplements" placeholder="根据 AI 追问，补充你的具体情况..."></textarea>
     </div>
 
+    <div class="section-title">会话</div>
+    <div id="sessionInfo" style="font-size:11px;color:var(--text-dim);">尚未建立会话</div>
+
     <div class="btn-group">
       <button class="btn btn-primary" id="btnRunAll" onclick="runFullPipeline()">
         运行全链路
@@ -581,6 +601,7 @@
 
     <div class="btn-row">
       <button class="btn btn-sm btn-danger" onclick="resetAll()">重置</button>
+      <button class="btn btn-sm" onclick="newSession()">新会话</button>
     </div>
 
     <div class="section-title">快捷预设</div>
@@ -720,23 +741,49 @@ const STEP_LABELS = {
   astro_insight: '占星素材', search: '问题语境', analyze: '底层逻辑', combine: '综合输出'
 };
 
+// 会话状态
+let currentSessionId = null;
+
 function getApiBase() {
   return document.getElementById('apiBase').value.replace(/\/+$/, '');
 }
 
+/**
+ * 构造与后端 UserRequest 匹配的请求体
+ * - user_id 优先级高于手动填写
+ * - session_id 由 currentSessionId 管理
+ * - supplements 在追问后自动填入
+ */
 function getPayload() {
+  const uid = document.getElementById('userId').value.trim();
   const p = {
-    session_id: document.getElementById('sessionId')?.value || null,
-    birth_time: document.getElementById('birthTime').value,
-    birth_place: document.getElementById('birthPlace').value,
-    mbti: document.getElementById('mbti').value,
-    blood_type: document.getElementById('bloodType').value,
-    emotion_keyword: document.getElementById('emotion').value,
+    emotion_keyword: document.getElementById('emotion').value || '困惑',
     question: document.getElementById('question').value,
   };
+  // user_id：有值时传，后端会自动查 DB 获取出生信息
+  if (uid && !isNaN(Number(uid))) p.user_id = Number(uid);
+  // 手动填写的出生信息（user_id 为空时后端依赖这些字段）
+  if (!uid) {
+    p.birth_time = document.getElementById('birthTime').value;
+    p.birth_place = document.getElementById('birthPlace').value;
+    p.mbti = document.getElementById('mbti').value;
+    p.blood_type = document.getElementById('bloodType').value;
+  }
+  // 会话 ID
+  if (currentSessionId) p.session_id = currentSessionId;
+  // 补充回答
   const supp = document.getElementById('supplements').value.trim();
   if (supp) p.supplements = supp;
   return p;
+}
+
+function updateSessionInfo() {
+  const el = document.getElementById('sessionInfo');
+  if (currentSessionId) {
+    el.innerHTML = '<span class="session-badge">' + currentSessionId.slice(0, 12) + '…</span>';
+  } else {
+    el.textContent = '尚未建立会话';
+  }
 }
 
 // ── Presets ─────────────────────────────
@@ -765,6 +812,7 @@ const PRESETS = {
 
 function loadPreset(key) {
   const p = PRESETS[key]; if (!p) return;
+  document.getElementById('userId').value = '';
   document.getElementById('birthTime').value = p.birth_time;
   document.getElementById('birthPlace').value = p.birth_place;
   document.getElementById('mbti').value = p.mbti;
@@ -779,7 +827,7 @@ async function checkHealth() {
   const dot = document.getElementById('statusDot');
   const text = document.getElementById('statusText');
   try {
-    const res = await fetch(getApiBase() + '/health');
+    const res = await fetch(getApiBase() + '/health', { signal: AbortSignal.timeout(5000) });
     const data = await res.json();
     if (data.status === 'ok') {
       dot.className = 'status-dot ok';
@@ -832,6 +880,15 @@ function scrollToCard(id) {
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+function newSession() {
+  currentSessionId = null;
+  updateSessionInfo();
+  document.getElementById('supplements').value = '';
+  document.getElementById('supplementsField').style.display = 'none';
+  document.getElementById('clarifyBox').classList.remove('visible');
+  showToast('已新建会话', 'info');
+}
+
 function resetAll() {
   resetSteps();
   setPhase('idle', '等待运行');
@@ -842,6 +899,8 @@ function resetAll() {
   document.getElementById('supplementsField').style.display = 'none';
   document.getElementById('supplements').value = '';
   document.getElementById('clarifyAnswer').value = '';
+  currentSessionId = null;
+  updateSessionInfo();
 }
 
 // ── Toast ───────────────────────────────
@@ -863,8 +922,7 @@ async function testNode(node) {
 
   try {
     const payload = getPayload();
-    const params = new URLSearchParams({ node });
-    const res = await fetch(getApiBase() + '/api/test/node?' + params, {
+    const res = await fetch(getApiBase() + '/api/test/node?node=' + node, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -913,39 +971,46 @@ async function runFullPipeline() {
     const data = await res.json();
     const totalMs = Math.round(performance.now() - t0);
 
+    // 保存 session_id
+    if (data.session_id) {
+      currentSessionId = data.session_id;
+      updateSessionInfo();
+    }
+
+    // 原始 JSON
+    document.getElementById('body-raw').textContent = JSON.stringify(data, null, 2);
+
     if (res.ok) {
       if (data.phase === 'clarifying') {
-        // Phase 1: Show clarification
+        // 第一轮：追问
         setStepState('clarify', 'done');
         setBody('clarify', data.reply);
         setTime('clarify', totalMs);
         setPhase('clarifying', '追问阶段 — 请补充回答');
 
-        // Show clarify box
+        // 显示追问对话框
         document.getElementById('clarifyBox').classList.add('visible');
         document.getElementById('clarifyBubble').textContent = data.reply;
         document.getElementById('supplementsField').style.display = 'block';
         showToast('AI 追问完成 — 请回答补充问题', 'info');
 
       } else {
-        // Phase 2: Complete
+        // 第二轮：完整分析
         STEPS.forEach(s => setStepState(s, 'done'));
 
-        // Final reply
+        // 最终回复
         const finalEl = document.getElementById('body-final');
         finalEl.textContent = data.reply;
         finalEl.classList.remove('placeholder');
 
-        // Raw JSON
-        document.getElementById('body-raw').textContent = JSON.stringify(data, null, 2);
-
-        // Debug info
+        // 解析 debug_info 填充各卡片
         if (data.debug_info) {
           const dbg = data.debug_info;
           if (dbg.astro_analysis) setBody('astro', dbg.astro_analysis);
           if (dbg.ephemeris_summary) setBody('ephemeris', dbg.ephemeris_summary);
           if (dbg.pipeline_trace) {
             const tr = dbg.pipeline_trace;
+            if (tr.clarification) setBody('clarify', tr.clarification);
             if (tr.astro_focus) setBody('astro_insight', tr.astro_focus);
             if (tr.issue_context) setBody('search', tr.issue_context);
             if (tr.root_logic) setBody('analyze', tr.root_logic);
@@ -984,6 +1049,7 @@ async function runClarifyOnly() {
   const t0 = performance.now();
 
   try {
+    // 仅追问：不传 supplements
     const payload = getPayload();
     delete payload.supplements;
     const res = await fetch(getApiBase() + '/api/chat', {
@@ -993,6 +1059,15 @@ async function runClarifyOnly() {
     });
     const data = await res.json();
     const ms = Math.round(performance.now() - t0);
+
+    // 保存 session_id
+    if (data.session_id) {
+      currentSessionId = data.session_id;
+      updateSessionInfo();
+    }
+
+    // 原始 JSON
+    document.getElementById('body-raw').textContent = JSON.stringify(data, null, 2);
 
     if (res.ok && data.phase === 'clarifying') {
       setStepState('clarify', 'done');
@@ -1004,10 +1079,19 @@ async function runClarifyOnly() {
       document.getElementById('clarifyBubble').textContent = data.reply;
       document.getElementById('supplementsField').style.display = 'block';
       showToast('追问完成 — 请补充回答', 'info');
+    } else if (res.ok) {
+      // 直接返回了完整分析（可能是已有 supplements）
+      setStepState('clarify', 'done');
+      setBody('clarify', '(跳过追问，直接分析)');
+      setPhase('complete', '已完成');
+      const finalEl = document.getElementById('body-final');
+      finalEl.textContent = data.reply;
+      finalEl.classList.remove('placeholder');
+      showToast('已直接返回完整分析', 'info');
     } else {
       setStepState('clarify', 'error');
       setPhase('error', '追问失败');
-      showToast('追问失败', 'error');
+      showToast('追问失败: ' + (data.detail || res.statusText), 'error');
     }
   } catch (e) {
     setStepState('clarify', 'error');
@@ -1026,8 +1110,10 @@ async function submitClarification() {
     showToast('请先填写补充回答', 'error');
     return;
   }
+  // 将补充回答写入 supplements 字段
   document.getElementById('supplements').value = answer;
   document.getElementById('clarifyBox').classList.remove('visible');
+  // 然后运行完整链路（带 supplements）
   await runFullPipeline();
 }
 
