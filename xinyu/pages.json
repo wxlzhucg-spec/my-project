@@ -60,6 +60,55 @@
 				"navigationBarTitleText": "我的",
 				"navigationStyle": "custom"
 			}
+		},
+		{
+			"path": "pages/astro-report/astro-report",
+			"style": {
+				"navigationBarTitleText": "星盘解析",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/enneagram-test/enneagram-test",
+			"style": {
+				"navigationBarTitleText": "九型人格",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/holland-test/holland-test",
+			"style": {
+				"navigationBarTitleText": "霍兰德职业测试",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/mbti-test/mbti-test",
+			"style": {
+				"navigationBarTitleText": "MBTI性格测试",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/mh-test/mh-test",
+			"style": {
+				"navigationBarTitleText": "心理健康自测",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/depression-test/depression-test",
+			"style": {
+				"navigationBarTitleText": "抑郁风险评估",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/intimacy-test/intimacy-test",
+			"style": {
+				"navigationBarTitleText": "亲密关系测试",
+				"navigationStyle": "custom"
+			}
 		}
 	],
 	"globalStyle": {

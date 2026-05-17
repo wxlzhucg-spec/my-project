@@ -37,18 +37,7 @@ function _apiBaseFromEnv() {
 }
 
 var _envApiBase = _apiBaseFromEnv()
-// #ifdef H5
-var _apiBase =
-	_envApiBase != null
-		? _envApiBase
-		: process.env.NODE_ENV === 'development' && process.env.XINYU_USE_PROXY === '1'
-			? ''
-			: _defaultRemoteApiBase()
-// #endif
-// #ifndef H5
-var _apiBase = _envApiBase != null ? _envApiBase : _defaultRemoteApiBase()
-// #endif
-export const API_BASE = _apiBase
+export const API_BASE = _envApiBase != null ? _envApiBase : _defaultRemoteApiBase()
 
 /** 影子 FastAPI 根地址；未配置时与 API_BASE 相同（依赖 Nginx 将 /api/* 转到 8000） */
 function _shadowApiBaseFromEnv() {
@@ -76,7 +65,11 @@ export const API = {
 	USER_PROFILE: '/user/profile',
 	USER_BIND_WX: '/user/bind_wx',
 	TAROT_DRAW: '/tarot/draw',
-	SHADOW_CHAT: '/api/chat'
+	SHADOW_CHAT: '/api/chat',
+	SHADOW_STREAM: '/api/shadow/stream',
+	ASSESSMENT_SUBMIT: '/api/assessments/submit',
+	ASSESSMENT_QUERY: '/api/assessments/query',
+	ASSESSMENT_LIST: '/api/assessments/list'
 }
 
 /** 路径常量（与 API 对象一致，便于页面展示或拼接） */
@@ -533,6 +526,43 @@ export function deleteEmotionRecord(openid, date) {
 	return request({ path: API.EMOTION + '?' + qs, method: 'DELETE' })
 }
 
+// ---------- 每日运势 ----------
+
+/**
+ * GET /api/fortune — 获取今日个性化运势
+ * @param {{ user_id?: number, open_id?: string, force?: number }} params
+ */
+export function getDailyFortune(params) {
+	var p = params || {}
+	var uid = p.user_id || getApiUserId()
+	if (!uid && !p.open_id) return Promise.reject(new Error('未登录，无法获取运势'))
+
+	var baseUrl = (SHADOW_API_BASE || API_BASE).replace(/\/+$/, '')
+	var qs = []
+	if (uid) qs.push('user_id=' + uid)
+	if (p.open_id) qs.push('open_id=' + encodeURIComponent(p.open_id))
+	if (p.force) qs.push('force=1')
+	return new Promise(function(resolve, reject) {
+		uni.request({
+			url: baseUrl + '/api/fortune?' + qs.join('&'),
+			method: 'GET',
+			timeout: 90000,
+			success: function(res) {
+				var sc = res.statusCode
+				var d = res.data
+				if (sc >= 200 && sc < 300 && d && typeof d === 'object') {
+					resolve(d)
+					return
+				}
+				reject(new Error((d && d.detail) || ('HTTP ' + sc)))
+			},
+			fail: function(err) {
+				reject(new Error((err && err.errMsg) || '运势请求失败'))
+			}
+		})
+	})
+}
+
 // ---------- 影子 AI ----------
 
 /** 将 FastAPI 等返回的 detail 转成可读字符串（detail 常为数组） */
@@ -614,4 +644,188 @@ export function postShadowChat(payload) {
 			}
 		})
 	})
+}
+
+/**
+ * POST /api/shadow/stream — 影子 AI 流式对话（SSE）
+ *
+ * @param {Object} payload  同 postShadowChat 的 body
+ * @param {Object} callbacks  { onSession, onToken, onDone, onError }
+ * @returns {Function} abort 函数，调用可中断请求
+ */
+/** POST /api/tarot/session — 前端侧补充持久化专项会话（后端已自动持久化，此为补充备份） */
+export function postTarotSession(payload) {
+	var baseUrl = (SHADOW_API_BASE || API_BASE).replace(/\/+$/, '')
+	return new Promise(function(resolve, reject) {
+		uni.request({
+			url: baseUrl + '/api/tarot/session',
+			method: 'POST',
+			header: { 'Content-Type': 'application/json' },
+			data: payload,
+			timeout: 15000,
+			success: function(res) {
+				var sc = res.statusCode
+				var d = res.data
+				if (sc >= 200 && sc < 300 && d && typeof d === 'object') {
+					resolve(d)
+				} else {
+					reject(new Error((d && d.detail) || ('HTTP ' + sc)))
+				}
+			},
+			fail: function(err) {
+				reject(new Error((err && err.errMsg) || '请求失败'))
+			}
+		})
+	})
+}
+
+export function streamShadowChat(payload, callbacks) {
+	var cb = callbacks || {}
+	var question = String(payload.question || '').trim()
+	if (!question) {
+		if (cb.onError) cb.onError('请输入你的问题')
+		return function() {}
+	}
+
+	var body = {
+		emotion_keyword: String(payload.emotion_keyword || '迷茫').trim(),
+		question: question
+	}
+	var userId = getApiUserId()
+	if (userId) body.user_id = userId
+	var openid = String(payload.open_id || '').trim()
+	if (!openid) openid = getApiOpenid()
+	if (openid && openid.indexOf('p_') !== 0 && !userId) body.open_id = openid
+	if (payload.session_id) body.session_id = String(payload.session_id)
+	if (payload.supplements) body.supplements = String(payload.supplements)
+	if (payload.category) body.category = String(payload.category)
+	if (payload.zodiac_data) body.zodiac_data = payload.zodiac_data
+	if (payload.emotion_log) body.emotion_log = payload.emotion_log
+	if (payload.tarot_cards) body.tarot_cards = payload.tarot_cards
+
+	var baseUrl = (SHADOW_API_BASE || API_BASE).replace(/\/+$/, '')
+	var url = baseUrl + API.SHADOW_STREAM
+	var aborted = false
+
+	// #ifdef H5
+	try {
+		// H5 用 fetch + ReadableStream 做 SSE
+		fetch(url, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+			body: JSON.stringify(body)
+		}).then(function(response) {
+			if (!response.ok) {
+				if (cb.onError) cb.onError('HTTP ' + response.status)
+				return
+			}
+			var reader = response.body.getReader()
+			var decoder = new TextDecoder()
+			var buffer = ''
+
+			function read() {
+				if (aborted) return
+				reader.read().then(function(result) {
+					if (aborted) return
+					if (result.done) return
+					buffer += decoder.decode(result.value, { stream: true })
+
+					var parts = buffer.split('\n\n')
+					buffer = parts.pop()
+
+					for (var i = 0; i < parts.length; i++) {
+						var eventType = ''
+						var eventData = ''
+						var lines = parts[i].split('\n')
+						for (var l = 0; l < lines.length; l++) {
+							if (lines[l].indexOf('event:') === 0) eventType = lines[l].substring(6).trim()
+							else if (lines[l].indexOf('data:') === 0) eventData = lines[l].substring(5).trim()
+						}
+						if (!eventType || !eventData) continue
+						try {
+							var data = JSON.parse(eventData)
+							if (eventType === 'session' && cb.onSession) cb.onSession(data)
+							else if (eventType === 'token' && cb.onToken) cb.onToken(data)
+							else if (eventType === 'done' && cb.onDone) cb.onDone(data)
+							else if (eventType === 'error' && cb.onError) cb.onError(data.message || '流式错误')
+						} catch(e) {}
+					}
+					read()
+				}).catch(function(err) {
+					if (!aborted && cb.onError) cb.onError(err.message || '读取失败')
+				})
+			}
+			read()
+		}).catch(function(err) {
+			if (!aborted && cb.onError) cb.onError(err.message || '连接失败')
+		})
+	} catch(e) {
+		if (cb.onError) cb.onError(e.message || 'SSE 初始化失败')
+	}
+	// #endif
+
+	// #ifndef H5
+	// 小程序端：用 uni.request + enableChunked
+	var requestTask = uni.request({
+		url: url,
+		method: 'POST',
+		header: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+		data: body,
+		enableChunked: true,
+		timeout: 300000,
+		success: function(res) {
+			if (aborted) return
+			var sc = res.statusCode
+			if (sc < 200 || sc >= 300) {
+				if (cb.onError) cb.onError('HTTP ' + sc)
+			}
+		},
+		fail: function(err) {
+			if (aborted) return
+			var em = (err && err.errMsg) || ''
+			if (cb.onError) cb.onError(em || '网络请求失败')
+		}
+	})
+
+	if (requestTask && requestTask.onChunkData) {
+		var buffer = ''
+		requestTask.onChunkData(function(chunk) {
+			if (aborted) return
+			var str = ''
+			if (typeof chunk === 'object' && chunk.data) {
+				var arr = chunk.data
+				for (var i = 0; i < arr.length; i++) str += String.fromCharCode(arr[i])
+			} else if (typeof chunk === 'string') {
+				str = chunk
+			}
+			buffer += str
+
+			var parts = buffer.split('\n\n')
+			buffer = parts.pop()
+
+			for (var p = 0; p < parts.length; p++) {
+				var eventType = ''
+				var eventData = ''
+				var lines = parts[p].split('\n')
+				for (var l = 0; l < lines.length; l++) {
+					if (lines[l].indexOf('event:') === 0) eventType = lines[l].substring(6).trim()
+					else if (lines[l].indexOf('data:') === 0) eventData = lines[l].substring(5).trim()
+				}
+				if (!eventType || !eventData) continue
+				try {
+					var data = JSON.parse(eventData)
+					if (eventType === 'session' && cb.onSession) cb.onSession(data)
+					else if (eventType === 'token' && cb.onToken) cb.onToken(data)
+					else if (eventType === 'done' && cb.onDone) cb.onDone(data)
+					else if (eventType === 'error' && cb.onError) cb.onError(data.message || '流式错误')
+				} catch(e) {}
+			}
+		})
+	}
+	// #endif
+
+	return function() {
+		aborted = true
+		if (typeof requestTask !== 'undefined' && requestTask && requestTask.abort) requestTask.abort()
+	}
 }

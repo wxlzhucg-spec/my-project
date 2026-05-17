@@ -31,7 +31,7 @@
 		</view>
 		<view class="sc-right">
 			<text class="sc-num">{{ litCount }}</text>
-			<text class="sc-label">OF NINE</text>
+			<text class="sc-label">OF EIGHT</text>
 		</view>
 	</view>
 
@@ -50,7 +50,7 @@
 				@tap="openModal(i)">
 				<!-- 光晕 -->
 				<view class="aura" v-if="nd.lit || !nd.isFinal"
-					:style="{ background: nd.lit ? ('radial-gradient(circle,' + nd.glow + ',transparent 65%)') : 'radial-gradient(circle,rgba(140,100,240,0.3),transparent 65%)' }"></view>
+					:style="{ background: nd.lit ? ('radial-gradient(circle,' + nd.glow + ',transparent 65%)') : 'radial-gradient(circle,rgba(150,133,238,0.22),transparent 65%)' }"></view>
 				<!-- 菱形 -->
 				<view class="diamond" :class="{ 'diamond-circle': nd.isFinal }">
 					<view class="diamond-inner" :style="nd.lit ? { borderColor: nd.color, boxShadow: '0 0 28rpx ' + nd.glow } : {}"></view>
@@ -58,11 +58,11 @@
 				</view>
 				<!-- 文字 -->
 				<view class="node-text">
-					<text class="node-title" :style="nd.lit ? {} : { color: 'rgba(210,195,240,0.6)' }">
+					<text class="node-title" :style="nd.lit ? {} : { color: 'rgba(115,108,148,0.40)' }">
 						{{ nd.lit ? nd.name : (nd.isFinal ? '— 终极 —' : '待点亮') }}
 					</text>
-					<view class="title-line" :style="{ background: nd.lit ? nd.color : 'rgba(160,130,230,0.35)' }"></view>
-					<text class="node-tag" :style="{ color: nd.lit ? nd.color : 'rgba(160,130,230,0.4)' }">{{ nd.en }}</text>
+					<view class="title-line" :style="{ background: nd.lit ? nd.color : 'rgba(150,133,238,0.25)' }"></view>
+					<text class="node-tag" :style="{ color: nd.lit ? nd.color : 'rgba(150,133,238,0.32)' }">{{ nd.en }}</text>
 				</view>
 			</view>
 		</view>
@@ -95,18 +95,17 @@
 import customTabbar from '@/components/custom-tabbar/custom-tabbar.vue'
 
 var NODES = [
-	{ id:0, name:'称骨算命', en:'Bone Fortune',  icon:'⚖️', color:'#dda03f', glow:'rgba(221,160,63,0.4)',  lit:true,  x:50, y:280, quote:'命运的重量，早已在出生那刻镌刻于骨。', desc:'古法流变，称量灵魂的厚度与命格的轻重。' },
-	{ id:1, name:'星盘解析', en:'Astro Chart',    icon:'🌌', color:'#3ec9c1', glow:'rgba(62,201,193,0.4)',  lit:true,  x:74, y:445, quote:'宇宙在你降生时，拍下了一张快照。', desc:'日月星辰的落位，是解读你性格底色的密码。' },
-	{ id:2, name:'塔罗边界', en:'Tarot Realm',    icon:'🃏', color:'#9d72ff', glow:'rgba(157,114,255,0.4)', lit:false, x:26, y:425, quote:'牌面翻转间，是潜意识在向你低语。', desc:'78张牌，映射无尽的内心可能与命运镜像。' },
-	{ id:3, name:'人格解码', en:'MBTI Matrix',    icon:'🧩', color:'#3ec9c1', glow:'rgba(62,201,193,0.4)',  lit:false, x:22, y:630, quote:'你感知世界的方式，构成了世界的样貌。', desc:'16个维度的心智模型，找到真实的自我坐标。' },
-	{ id:4, name:'性格色彩', en:'Soul Colors',    icon:'🎨', color:'#d4607a', glow:'rgba(212,96,122,0.35)', lit:false, x:58, y:600, quote:'人的灵魂并非单一，而是斑斓的交响。', desc:'探索你的主导色彩与深层隐藏性格。' },
-	{ id:5, name:'情绪深渊', en:'Inner Focus',    icon:'🌿', color:'#9d72ff', glow:'rgba(157,114,255,0.4)', lit:false, x:80, y:750, quote:'不要畏惧深渊，那是光照不进的真实。', desc:'一次温和而深刻的心理健康自我觉察。' },
-	{ id:6, name:'依恋羁绊', en:'Attachment',     icon:'💞', color:'#d4607a', glow:'rgba(212,96,122,0.35)', lit:false, x:30, y:850, quote:'爱是一场映射，照见最初的恐惧与渴望。', desc:'剖析你在亲密关系中的模式与内在需求。' },
-	{ id:7, name:'职业星轨', en:'Talent Path',    icon:'🔭', color:'#dda03f', glow:'rgba(221,160,63,0.4)',  lit:false, x:70, y:910, quote:'天赋不是学会的技能，而是本能的喜悦。', desc:'辨清核心才干，定位你在世间最耀眼的坐标。' },
-	{ id:8, name:'本我觉醒', en:'The Awakening',  icon:'👁️', color:'#dda03f', glow:'rgba(221,160,63,0.4)',  lit:false, x:50, y:1120, quote:'万物皆有裂痕，那是光照进来的地方。', desc:'点亮所有前置星辰后方可开启。', isFinal:true }
+	{ id:0, name:'星盘解析', en:'Astro Chart',     icon:'🔮', color:'#3ec9c1', glow:'rgba(62,201,193,0.4)',  lit:true,  x:50, y:180, quote:'宇宙在你降生时，拍下了一张快照。', desc:'日月星辰的落位，是解读你性格底色的密码。' },
+	{ id:1, name:'人格解码', en:'MBTI Matrix',     icon:'🧠', color:'#3ec9c1', glow:'rgba(62,201,193,0.4)',  lit:true,  x:26, y:360, quote:'你感知世界的方式，构成了世界的样貌。', desc:'16型人格维度，找到真实的自我坐标。' },
+	{ id:2, name:'九型人格', en:'Enneagram',       icon:'💎', color:'#9d72ff', glow:'rgba(157,114,255,0.4)', lit:false, x:74, y:360, quote:'九种核心动机，驱动你一切行为的选择。', desc:'深入发现你的核心驱动力与深层恐惧。' },
+	{ id:3, name:'亲密关系', en:'Intimacy',         icon:'🪢', color:'#d4607a', glow:'rgba(212,96,122,0.35)', lit:false, x:22, y:560, quote:'爱是一场映射，照见最初的恐惧与渴望。', desc:'剖析你在亲密关系中的模式与内在需求。' },
+	{ id:4, name:'心理健康', en:'Mental Health',    icon:'🪷', color:'#9d72ff', glow:'rgba(157,114,255,0.4)', lit:false, x:58, y:540, quote:'不要畏惧深渊，那是光照不进的真实。', desc:'一次温和而深刻的心理健康自我觉察。' },
+	{ id:5, name:'抑郁评估', en:'Depression Risk',  icon:'🌘', color:'#d4607a', glow:'rgba(212,96,122,0.35)', lit:false, x:80, y:720, quote:'倾听内心深处的回响，温柔面对每一处暗影。', desc:'科学评估抑郁风险等级，为你提供守护建议。' },
+	{ id:6, name:'职业发展', en:'Career Path',      icon:'🧭', color:'#dda03f', glow:'rgba(221,160,63,0.4)',  lit:false, x:38, y:760, quote:'天赋不是学会的技能，而是本能的喜悦。', desc:'辨清核心才干，定位你在世间最耀眼的坐标。' },
+	{ id:7, name:'本我觉醒', en:'The Awakening',    icon:'✨', color:'#dda03f', glow:'rgba(221,160,63,0.4)',  lit:false, x:50, y:950, quote:'万物皆有裂痕，那是光照进来的地方。', desc:'点亮所有前置星辰后方可开启。', isFinal:true }
 ]
 
-var EDGES = [[0,1],[0,2],[1,4],[2,3],[2,4],[3,6],[4,5],[4,7],[5,7],[6,8],[7,8]]
+var EDGES = [[0,1],[0,2],[1,3],[1,4],[2,4],[2,5],[3,6],[4,5],[4,6],[5,7],[6,7]]
 var MAP_H = 1300, MAP_RPX = 2500
 
 function scaleY(y) { return Math.round(y / MAP_H * MAP_RPX) }
@@ -151,6 +150,13 @@ export default {
 		curNode: function() { return this.curIdx >= 0 ? this.nodes[this.curIdx] : {} },
 		btnLabel: function() {
 			if (!this.curNode.name) return ''
+			if (this.curNode.id === 0) return '开始星盘解析 ✦'
+			if (this.curNode.id === 1) return '开始MBTI测试 ✦'
+			if (this.curNode.id === 2) return '开始人格测试 ✦'
+			if (this.curNode.id === 3) return '开始亲密关系测试 ✦'
+			if (this.curNode.id === 4) return '开始心理自测 ✦'
+			if (this.curNode.id === 5) return '开始抑郁评估 ✦'
+			if (this.curNode.id === 6) return '开始职业测试 ✦'
 			if (this.curNode.lit) return '查看灵魂报告 ✦'
 			if (this.curNode.isFinal && !this.allLit) return '锁定中 (需点亮前置星辰)'
 			return '点亮此星辰 ✦'
@@ -221,6 +227,104 @@ export default {
 		onAction: function() {
 			var nd = this.nodes[this.curIdx]
 			if (!nd) return
+			// 星盘解析：已点亮则跳转报告页，未点亮则先点亮再跳转
+			if (nd.id === 0) {
+				if (!nd.lit) {
+					var updated = Object.assign({}, nd, { lit: true })
+					this.$set(this.nodes, this.curIdx, updated)
+					this.computeLines()
+				}
+				this.closeModal()
+				var self = this
+				setTimeout(function() {
+					uni.navigateTo({ url: '/pages/astro-report/astro-report' })
+				}, 380)
+				return
+			}
+			// 九型人格：跳转测试页
+			if (nd.id === 2) {
+				if (!nd.lit) {
+					var updated = Object.assign({}, nd, { lit: true })
+					this.$set(this.nodes, this.curIdx, updated)
+					this.computeLines()
+				}
+				this.closeModal()
+				var self = this
+				setTimeout(function() {
+					uni.navigateTo({ url: '/pages/enneagram-test/enneagram-test' })
+				}, 380)
+				return
+			}
+			// 亲密关系：跳转亲密关系测试页
+			if (nd.id === 3) {
+				if (!nd.lit) {
+					var updated = Object.assign({}, nd, { lit: true })
+					this.$set(this.nodes, this.curIdx, updated)
+					this.computeLines()
+				}
+				this.closeModal()
+				var self = this
+				setTimeout(function() {
+					uni.navigateTo({ url: '/pages/intimacy-test/intimacy-test' })
+				}, 380)
+				return
+			}
+			// 人格解码：跳转MBTI测试页
+			if (nd.id === 1) {
+				if (!nd.lit) {
+					var updated = Object.assign({}, nd, { lit: true })
+					this.$set(this.nodes, this.curIdx, updated)
+					this.computeLines()
+				}
+				this.closeModal()
+				var self = this
+				setTimeout(function() {
+					uni.navigateTo({ url: '/pages/mbti-test/mbti-test' })
+				}, 380)
+				return
+			}
+			// 职业发展：跳转霍兰德测试页
+			if (nd.id === 6) {
+				if (!nd.lit) {
+					var updated = Object.assign({}, nd, { lit: true })
+					this.$set(this.nodes, this.curIdx, updated)
+					this.computeLines()
+				}
+				this.closeModal()
+				var self = this
+				setTimeout(function() {
+					uni.navigateTo({ url: '/pages/holland-test/holland-test' })
+				}, 380)
+				return
+			}
+			// 心理健康：跳转心理健康测试页
+			if (nd.id === 4) {
+				if (!nd.lit) {
+					var updated = Object.assign({}, nd, { lit: true })
+					this.$set(this.nodes, this.curIdx, updated)
+					this.computeLines()
+				}
+				this.closeModal()
+				var self = this
+				setTimeout(function() {
+					uni.navigateTo({ url: '/pages/mh-test/mh-test' })
+				}, 380)
+				return
+			}
+			// 抑郁评估：跳转抑郁测试页
+			if (nd.id === 5) {
+				if (!nd.lit) {
+					var updated = Object.assign({}, nd, { lit: true })
+					this.$set(this.nodes, this.curIdx, updated)
+					this.computeLines()
+				}
+				this.closeModal()
+				var self = this
+				setTimeout(function() {
+					uni.navigateTo({ url: '/pages/depression-test/depression-test' })
+				}, 380)
+				return
+			}
 			if (nd.lit) { this.closeModal(); return }
 			if (nd.isFinal && !this.allLit) return
 			var updated = Object.assign({}, nd, { lit: true })
@@ -236,7 +340,9 @@ export default {
 .page {
 	position: relative;
 	min-height: 100vh;
-	background: linear-gradient(180deg, #231a3c 0%, #1a1430 45%, #130d26 100%);
+	background:
+		radial-gradient(ellipse 100% 50% at 50% 0%, rgba(200,188,255,0.32) 0%, rgba(200,188,255,0.08) 40%, transparent 65%),
+		linear-gradient(180deg, #faf8ff 0%, #f5f1fc 30%, #efeaf9 60%, #e8e2f5 100%);
 	overflow: hidden;
 }
 
@@ -245,10 +351,10 @@ export default {
 .star {
 	position: absolute;
 	border-radius: 50%;
-	background: rgba(230,235,255,0.85);
+	background: rgba(175,160,225,0.50);
 	animation: twinkle ease-in-out infinite alternate;
 }
-@keyframes twinkle { 0%{opacity:0.1;transform:scale(0.8)} 100%{opacity:0.9;transform:scale(1.2)} }
+@keyframes twinkle { 0%{opacity:0.15;transform:scale(0.8)} 100%{opacity:0.65;transform:scale(1.2)} }
 .orb {
 	position: absolute; border-radius: 50%;
 	filter: blur(80px); pointer-events: none; z-index: 1;
@@ -256,16 +362,16 @@ export default {
 .orb-a {
 	width: 500rpx; height: 500rpx;
 	right: -160rpx; top: 60rpx;
-	background: radial-gradient(circle, rgba(130,90,210,0.35), transparent 70%);
+	background: radial-gradient(circle, rgba(200,180,255,0.40), transparent 70%);
 	animation: drift 18s ease-in-out infinite;
 }
 .orb-b {
 	width: 600rpx; height: 600rpx;
 	left: -200rpx; bottom: -80rpx;
-	background: radial-gradient(circle, rgba(100,70,190,0.18), transparent 70%);
+	background: radial-gradient(circle, rgba(210,195,255,0.28), transparent 70%);
 	animation: drift 24s ease-in-out infinite reverse;
 }
-@keyframes drift { 0%,100%{transform:translate(0,0) scale(1);opacity:0.4} 50%{transform:translate(-30rpx,30rpx) scale(1.1);opacity:0.7} }
+@keyframes drift { 0%,100%{transform:translate(0,0) scale(1);opacity:0.45} 50%{transform:translate(-30rpx,30rpx) scale(1.1);opacity:0.72} }
 
 /* Header */
 .hdr {
@@ -276,57 +382,58 @@ export default {
 .logo-col { display: flex; flex-direction: column; }
 .logo {
 	font-size: 38rpx; font-weight: 700;
-	letter-spacing: 10rpx; color: rgba(255,255,255,0.92);
+	letter-spacing: 10rpx; color: #322c52;
 }
 .logo-en {
 	font-size: 18rpx; font-weight: 300;
-	letter-spacing: 6rpx; color: rgba(255,255,255,0.25);
+	letter-spacing: 6rpx; color: rgba(115,108,148,0.48);
 	font-style: italic; margin-top: 4rpx;
 }
 .hdr-pill {
 	height: 52rpx; padding: 0 22rpx;
 	border-radius: 30rpx;
-	background: rgba(255,255,255,0.05);
-	border: 1rpx solid rgba(255,255,255,0.08);
+	background: rgba(255,255,255,0.72);
+	border: 1rpx solid rgba(210,200,235,0.50);
 	display: flex; align-items: center;
+	box-shadow: 0 4rpx 16rpx rgba(140,125,200,0.08);
 }
 .hdr-dot {
 	width: 8rpx; height: 8rpx; border-radius: 50%;
-	background: #9a8fcb; box-shadow: 0 0 12rpx rgba(154,143,203,0.55);
+	background: #9685ee; box-shadow: 0 0 12rpx rgba(150,133,238,0.55);
 	margin-right: 12rpx;
 	animation: dotPulse 3s ease-in-out infinite;
 }
-@keyframes dotPulse { 0%,100%{opacity:0.4;transform:scale(0.8)} 50%{opacity:1;transform:scale(1.4)} }
-.hdr-frac { font-size: 22rpx; color: rgba(255,255,255,0.5); letter-spacing: 3rpx; font-style: italic; }
+@keyframes dotPulse { 0%,100%{opacity:0.5;transform:scale(0.8)} 50%{opacity:1;transform:scale(1.4)} }
+.hdr-frac { font-size: 22rpx; color: rgba(105,98,138,0.58); letter-spacing: 3rpx; font-style: italic; }
 
 /* Status card */
 .status-card {
 	position: relative; z-index: 35;
 	margin: 12rpx 28rpx 0;
-	background: rgba(30,22,50,0.65);
-	border: 1rpx solid rgba(255,255,255,0.05);
+	background: rgba(255,255,255,0.88);
+	border: 1rpx solid rgba(210,200,235,0.50);
 	border-radius: 28rpx;
 	padding: 28rpx 32rpx;
 	display: flex; align-items: center; justify-content: space-between;
-	box-shadow: 0 20rpx 50rpx rgba(0,0,0,0.45), inset 0 1rpx 1rpx rgba(255,255,255,0.12);
+	box-shadow: 0 16rpx 40rpx rgba(145,140,190,0.10), 0 4rpx 10rpx rgba(145,140,190,0.05), inset 0 1rpx 0 rgba(255,255,255,0.92);
 }
 .sc-left { flex: 1; }
-.sc-title { font-size: 26rpx; color: rgba(255,255,255,0.88); letter-spacing: 4rpx; font-weight: 600; }
+.sc-title { font-size: 26rpx; color: #322c52; letter-spacing: 4rpx; font-weight: 600; }
 .sc-bar-wrap {
 	height: 4rpx; border-radius: 4rpx;
-	background: rgba(255,255,255,0.08);
+	background: rgba(210,200,235,0.30);
 	margin: 14rpx 0 12rpx;
 }
 .sc-bar {
 	height: 100%; border-radius: 4rpx;
-	background: linear-gradient(90deg, rgba(130,105,196,0.9), rgba(190,158,228,0.95));
-	box-shadow: 0 0 14rpx rgba(150,120,220,0.35);
+	background: linear-gradient(90deg, #9685ee, #7d6bd6);
+	box-shadow: 0 0 14rpx rgba(130,115,220,0.25);
 	transition: width 0.8s ease;
 }
-.sc-sub { font-size: 20rpx; color: rgba(255,255,255,0.3); letter-spacing: 2rpx; font-style: italic; }
+.sc-sub { font-size: 20rpx; color: rgba(115,108,148,0.50); letter-spacing: 2rpx; font-style: italic; }
 .sc-right { display: flex; flex-direction: column; align-items: center; margin-left: 24rpx; }
-.sc-num { font-size: 56rpx; font-weight: 300; font-style: italic; color: rgba(190,168,240,0.95); text-shadow: 0 0 20rpx rgba(150,120,220,0.42); line-height: 1; }
-.sc-label { font-size: 16rpx; color: rgba(255,255,255,0.25); letter-spacing: 3rpx; margin-top: 8rpx; }
+.sc-num { font-size: 56rpx; font-weight: 300; font-style: italic; color: #7d6bd6; text-shadow: 0 0 20rpx rgba(130,115,220,0.18); line-height: 1; }
+.sc-label { font-size: 16rpx; color: rgba(115,108,148,0.42); letter-spacing: 3rpx; margin-top: 8rpx; }
 
 /* Map */
 .map-scroll {
@@ -344,14 +451,14 @@ export default {
 .conn-line {
 	position: absolute;
 	height: 1rpx;
-	background: rgba(255,255,255,0.05);
+	background: rgba(210,200,235,0.30);
 	transform-origin: 0 50%;
 	z-index: 1;
 }
 .conn-line.line-lit {
 	height: 2rpx;
-	background: linear-gradient(90deg, rgba(140,110,210,0.5), rgba(190,158,240,0.78));
-	box-shadow: 0 0 10rpx rgba(150,120,220,0.28);
+	background: linear-gradient(90deg, rgba(150,133,238,0.45), rgba(125,107,214,0.65));
+	box-shadow: 0 0 10rpx rgba(130,115,220,0.18);
 }
 
 /* Node */
@@ -369,8 +476,8 @@ export default {
 }
 .node-lit .aura { animation: aura 4.5s ease-in-out infinite; }
 .node-dim .aura { animation: dimAura 3s ease-in-out infinite; }
-@keyframes aura { 0%,100%{opacity:0.2;transform:scale(0.85)} 50%{opacity:0.55;transform:scale(1.15)} }
-@keyframes dimAura { 0%,100%{opacity:0.3;transform:scale(0.8)} 50%{opacity:0.8;transform:scale(1.3)} }
+@keyframes aura { 0%,100%{opacity:0.18;transform:scale(0.85)} 50%{opacity:0.48;transform:scale(1.15)} }
+@keyframes dimAura { 0%,100%{opacity:0.28;transform:scale(0.8)} 50%{opacity:0.62;transform:scale(1.3)} }
 .node-dim { animation: dimBreath 4s ease-in-out infinite alternate; }
 @keyframes dimBreath { 0%,100%{opacity:0.6;transform:translate(-50%,-50%) scale(0.94)} 50%{opacity:1;transform:translate(-50%,-50%) scale(1.04)} }
 
@@ -385,9 +492,9 @@ export default {
 	position: absolute; width: 100%; height: 100%;
 	transform: rotate(45deg);
 	border-radius: 20rpx;
-	background: rgba(18,14,28,0.7);
-	border: 1rpx solid rgba(255,255,255,0.08);
-	box-shadow: inset 0 1rpx 1rpx rgba(255,255,255,0.1);
+	background: rgba(255,255,255,0.88);
+	border: 1rpx solid rgba(210,200,235,0.55);
+	box-shadow: inset 0 1rpx 1rpx rgba(255,255,255,0.60), 0 6rpx 20rpx rgba(145,140,190,0.12);
 	transition: all 0.4s;
 }
 .diamond-circle .diamond-inner {
@@ -395,11 +502,11 @@ export default {
 	transform: none;
 }
 .node-icon { position: relative; z-index: 3; font-size: 40rpx; line-height: 1; }
-.node-final .node-icon { filter: blur(4rpx); opacity: 0.25; }
+.node-final .node-icon { filter: blur(4rpx); opacity: 0.30; }
 .node-dim .diamond-inner {
-	background: rgba(35,18,65,0.65);
-	border-color: rgba(150,100,240,0.4);
-	box-shadow: 0 0 24rpx rgba(120,70,240,0.25), inset 0 1rpx 1rpx rgba(255,255,255,0.08);
+	background: rgba(245,244,255,0.82);
+	border-color: rgba(150,133,238,0.35);
+	box-shadow: 0 0 24rpx rgba(150,133,238,0.18), inset 0 1rpx 1rpx rgba(255,255,255,0.50);
 }
 
 /* Node text */
@@ -410,8 +517,7 @@ export default {
 }
 .node-title {
 	font-size: 22rpx; font-weight: 600;
-	letter-spacing: 4rpx; color: rgba(255,255,255,0.9);
-	text-shadow: 0 4rpx 16rpx rgba(0,0,0,1);
+	letter-spacing: 4rpx; color: #322c52;
 }
 .title-line {
 	width: 24rpx; height: 2rpx;
@@ -422,93 +528,93 @@ export default {
 	font-size: 18rpx; font-style: italic;
 	letter-spacing: 4rpx; opacity: 0.85;
 }
-.node-final .node-title { color: rgba(255,255,255,0.25); letter-spacing: 8rpx; }
+.node-final .node-title { color: rgba(115,108,148,0.30); letter-spacing: 8rpx; }
 
 /* Modal */
 .modal-bg {
 	position: fixed; inset: 0; z-index: 100;
-	background: rgba(0,0,0,0.7);
+	background: rgba(50,44,82,0.35);
 	display: flex; align-items: flex-end;
 }
 .modal-sheet {
 	width: 100%;
-	background: linear-gradient(165deg, rgba(25,18,40,0.96), rgba(12,8,20,0.98));
-	border-top: 1rpx solid rgba(255,255,255,0.1);
+	background: linear-gradient(165deg, rgba(252,250,255,0.98), rgba(245,241,252,0.98));
+	border-top: 1rpx solid rgba(210,200,235,0.50);
 	border-radius: 48rpx 48rpx 0 0;
 	padding: 0 40rpx 60rpx;
 	transform: translateY(100%);
 	transition: transform 0.45s cubic-bezier(0.22,1,0.36,1);
 	position: relative; overflow: hidden;
-	box-shadow: 0 -24rpx 60rpx rgba(0,0,0,0.8), inset 0 1rpx 1rpx rgba(255,255,255,0.12);
+	box-shadow: 0 -24rpx 60rpx rgba(145,140,190,0.18), inset 0 1rpx 0 rgba(255,255,255,0.92);
 }
 .modal-sheet.open { transform: translateY(0); }
 .m-handle {
 	width: 60rpx; height: 6rpx; border-radius: 6rpx;
-	background: rgba(255,255,255,0.15);
+	background: rgba(210,200,235,0.40);
 	margin: 24rpx auto 40rpx;
 }
 .m-glow {
 	position: absolute; top: -120rpx; left: 50%; transform: translateX(-50%);
 	width: 400rpx; height: 280rpx; border-radius: 50%;
-	background: radial-gradient(circle, rgba(140,90,240,0.1), transparent 70%);
+	background: radial-gradient(circle, rgba(200,180,255,0.18), transparent 70%);
 	pointer-events: none;
 }
 .m-icon-big { display: block; text-align: center; font-size: 64rpx; margin-bottom: 24rpx; }
 .m-title {
 	display: block; text-align: center;
 	font-size: 42rpx; font-weight: 700; letter-spacing: 8rpx;
-	color: #fff; text-shadow: 0 2rpx 12rpx rgba(0,0,0,0.6);
+	color: #322c52;
 	margin-bottom: 10rpx;
 }
 .m-en {
 	display: block; text-align: center;
 	font-size: 22rpx; font-style: italic; font-weight: 300;
-	letter-spacing: 6rpx; color: rgba(190,168,240,0.82);
+	letter-spacing: 6rpx; color: rgba(150,133,238,0.72);
 	margin-bottom: 32rpx;
 }
 .m-rule {
 	width: 60rpx; height: 1.5rpx; margin: 0 auto 30rpx;
-	background: linear-gradient(90deg, transparent, rgba(160,130,220,0.7), transparent);
+	background: linear-gradient(90deg, transparent, rgba(150,133,238,0.45), transparent);
 	opacity: 0.85;
 }
 .m-quote {
 	display: block; text-align: center;
 	font-size: 26rpx; font-weight: 300;
-	color: rgba(255,255,255,0.85);
+	color: rgba(50,44,82,0.78);
 	line-height: 2; letter-spacing: 2rpx;
 	margin-bottom: 20rpx; padding: 0 16rpx;
 }
 .m-desc {
 	display: block; text-align: center;
-	font-size: 24rpx; color: rgba(255,255,255,0.38);
+	font-size: 24rpx; color: rgba(115,108,148,0.55);
 	line-height: 1.8; letter-spacing: 2rpx;
 	margin-bottom: 40rpx; padding: 0 20rpx;
 }
 .m-btn {
 	height: 96rpx; border-radius: 24rpx;
-	background: linear-gradient(148deg, #9a8fcb 0%, #8276ba 52%, #7264af 100%);
+	background: linear-gradient(145deg, #9685ee, #7d6bd6);
 	display: flex; align-items: center; justify-content: center;
-	box-shadow: 0 10rpx 32rpx rgba(100,88,170,0.42), inset 0 1rpx 0 rgba(255,255,255,0.16);
+	box-shadow: 0 10rpx 32rpx rgba(130,115,220,0.28);
 }
 .m-btn-lit {
-	background: linear-gradient(110deg, #1e3a52, #2a5070) !important;
-	box-shadow: 0 10rpx 32rpx rgba(80,150,200,0.22) !important;
+	background: linear-gradient(145deg, #9685ee, #7d6bd6) !important;
+	box-shadow: 0 10rpx 32rpx rgba(130,115,220,0.28) !important;
 }
 .m-btn-lock {
-	background: rgba(255,255,255,0.05) !important;
+	background: rgba(210,200,235,0.22) !important;
 	box-shadow: none !important;
 }
-.m-btn-lock .m-btn-text { color: rgba(255,255,255,0.2) !important; }
-.m-btn-lit .m-btn-text { color: rgba(180,240,235,0.95) !important; }
+.m-btn-lock .m-btn-text { color: rgba(115,108,148,0.30) !important; }
+.m-btn-lit .m-btn-text { color: rgba(255,255,255,0.97) !important; }
 .m-btn-hover { opacity: 0.88; transform: scale(0.98); }
 .m-btn-text {
 	font-size: 28rpx; font-weight: 700;
-	letter-spacing: 5rpx; color: rgba(255,255,255,0.96);
+	letter-spacing: 5rpx; color: rgba(255,255,255,0.97);
 }
 .m-skip {
 	display: block; text-align: center;
 	margin-top: 24rpx;
-	font-size: 22rpx; color: rgba(255,255,255,0.25);
+	font-size: 22rpx; color: rgba(115,108,148,0.38);
 	letter-spacing: 4rpx; font-style: italic;
 }
 </style>

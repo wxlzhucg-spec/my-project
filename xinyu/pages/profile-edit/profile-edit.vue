@@ -326,7 +326,25 @@ export default {
 			uni.chooseImage({
 				count: 1, sizeType: ['compressed'], sourceType: ['album','camera'],
 				success: function(res) {
-					if (res.tempFilePaths && res.tempFilePaths[0]) self.avatar = res.tempFilePaths[0]
+					if (!res.tempFilePaths || !res.tempFilePaths[0]) return
+					var url = res.tempFilePaths[0]
+					// H5 下 blob URL 不跨页面持久，转为 base64 存储
+					// #ifdef H5
+					var xhr = new XMLHttpRequest()
+					xhr.open('GET', url, true)
+					xhr.responseType = 'blob'
+					xhr.onload = function() {
+						var reader = new FileReader()
+						reader.onloadend = function() {
+							self.avatar = reader.result  // data:image/...;base64,...
+						}
+						reader.readAsDataURL(xhr.response)
+					}
+					xhr.send()
+					// #endif
+					// #ifndef H5
+					self.avatar = url
+					// #endif
 				}
 			})
 		},
@@ -382,70 +400,63 @@ export default {
 			if (!this.nickname.trim()) {
 				uni.showToast({ title: '请输入昵称', icon: 'none' }); return
 			}
+			var self = this
+			var avatarToSave = this.avatar || ''
+
 			var cachedProfile = {
-				avatar: this.avatar,
-				nickname: this.nickname.trim(),
-				gender: this.gender,
-				birthDate: this.birthDate,
-				birthTime: this.birthTime,
-				birthRegion: this.birthRegion,
-				mbti: this.mbti,
-				bloodType: this.bloodType
+				avatar: avatarToSave,
+				nickname: self.nickname.trim(),
+				gender: self.gender,
+				birthDate: self.birthDate,
+				birthTime: self.birthTime,
+				birthRegion: self.birthRegion,
+				mbti: self.mbti,
+				bloodType: self.bloodType
 			}
 			var uid = getApiUserId()
 			var phone = getApiUserPhone()
 			if (!uid && !phone) {
 				uni.setStorageSync('userProfile', JSON.stringify(cachedProfile))
+				if (avatarToSave) { try { uni.setStorageSync('xinyu_user_avatar', avatarToSave) } catch(e) {} }
 				uni.showToast({ title: '未登录，仅本地保存', icon: 'none' })
 				return
 			}
-		var payload = {
-			nickname: cachedProfile.nickname,
-			gender: this.gender || 'unknown',
-			birth_date: this.birthDate || null,
-			birth_time: this.birthTime || '',
-			birth_province: this.birthRegion[0] || '',
-			birth_city: this.birthRegion[1] || '',
-			birth_district: this.birthRegion[2] || '',
-			mbti: this.mbti || '',
-			blood_type: this.bloodType || ''
-		}
+			var payload = {
+				nickname: cachedProfile.nickname,
+				gender: self.gender || 'unknown',
+				birth_date: self.birthDate || null,
+				birth_time: self.birthTime || '',
+				birth_province: self.birthRegion[0] || '',
+				birth_city: self.birthRegion[1] || '',
+				birth_district: self.birthRegion[2] || '',
+				mbti: self.mbti || '',
+				blood_type: self.bloodType || ''
+			}
 			if (uid) payload.id = uid
 			if (!uid && phone) payload.phone = phone
-			// 当前没有头像上传接口，只有远程 URL 才能直接入库。
-			if (this.avatar && /^https?:\/\//.test(this.avatar)) {
-				payload.avatar_url = this.avatar
+			if (avatarToSave && /^https?:\/\//.test(avatarToSave)) {
+				payload.avatar_url = avatarToSave
 			}
-			var self = this
-			this.saving = true
+			self.saving = true
 			uni.showLoading({ title: '保存中', mask: true })
 			putUserProfile(payload)
 				.then(function(res) {
 					if (res && res.data && res.data.id != null && res.data.id !== '') {
-						try {
-							uni.setStorageSync('xinyu_user_id', Number(res.data.id))
-						} catch (e0) {}
+						try { uni.setStorageSync('xinyu_user_id', Number(res.data.id)) } catch (e0) {}
 					}
 					uni.setStorageSync('userProfile', JSON.stringify(cachedProfile))
+					if (avatarToSave) { try { uni.setStorageSync('xinyu_user_avatar', avatarToSave) } catch(e) {} }
 					uni.hideLoading()
 					uni.showToast({ title: '已保存到数据库', icon: 'success' })
 					setTimeout(function() { uni.navigateBack() }, 800)
 				})
 				.catch(function(err) {
 					uni.hideLoading()
-					try {
-						uni.setStorageSync('userProfile', JSON.stringify(cachedProfile))
-					} catch (e1) {}
-					var tip = describeRequestError(err)
-					uni.showModal({
-						title: '同步服务器失败',
-						content: tip + '\n\n资料已保存在本机，服务器恢复后请再点保存。',
-						showCancel: false
-					})
+					try { uni.setStorageSync('userProfile', JSON.stringify(cachedProfile)) } catch (e1) {}
+					if (avatarToSave) { try { uni.setStorageSync('xinyu_user_avatar', avatarToSave) } catch(e) {} }
+					uni.showModal({ title: '同步服务器失败', content: describeRequestError(err) + '\n\n资料已保存在本机。', showCancel: false })
 				})
-				.then(function() {
-					self.saving = false
-				})
+				.then(function() { self.saving = false })
 		}
 	}
 }

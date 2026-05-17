@@ -6,483 +6,209 @@
 <title>影子 AI — 测试面板</title>
 <style>
   :root {
-    --bg: #0d0f1a;
-    --surface: #161829;
-    --surface2: #1c1f35;
-    --border: #2a2d45;
-    --text: #e0e0ec;
-    --text-dim: #8888a8;
-    --accent: #7c6ef0;
-    --accent2: #a78bfa;
-    --green: #34d399;
-    --yellow: #fbbf24;
-    --red: #f87171;
-    --blue: #60a5fa;
-    --orange: #fb923c;
-    --pink: #f472b6;
-    --cyan: #22d3ee;
+    --bg: #0d0f1a; --surface: #161829; --surface2: #1c1f35; --surface3: #232640;
+    --border: #2a2d45; --text: #e0e0ec; --text-dim: #8888a8;
+    --accent: #7c6ef0; --accent2: #a78bfa;
+    --green: #34d399; --yellow: #fbbf24; --red: #f87171;
+    --blue: #60a5fa; --orange: #fb923c; --pink: #f472b6; --cyan: #22d3ee;
   }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--text); min-height:100vh; line-height:1.5; }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  /* ── Header ── */
+  .header { background:linear-gradient(135deg,#1a1035,#0d0f1a); border-bottom:1px solid var(--border); padding:12px 24px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; backdrop-filter:blur(10px); }
+  .header h1 { font-size:17px; font-weight:600; background:linear-gradient(90deg,var(--accent2),var(--pink)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .header-right { display:flex; align-items:center; gap:12px; font-size:12px; }
+  .status-dot { width:7px;height:7px;border-radius:50%;background:var(--red);display:inline-block;margin-right:4px;transition:background .3s; }
+  .status-dot.ok { background:var(--green); }
 
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    line-height: 1.5;
-  }
+  /* ── Tabs ── */
+  .tabs { background:var(--surface); border-bottom:1px solid var(--border); display:flex; padding:0 24px; gap:0; }
+  .tab { padding:10px 18px; font-size:13px; font-weight:500; color:var(--text-dim); cursor:pointer; border-bottom:2px solid transparent; transition:all .2s; user-select:none; }
+  .tab:hover { color:var(--text); }
+  .tab.active { color:var(--accent2); border-bottom-color:var(--accent2); }
 
-  /* ── Header ─────────────────── */
-  .header {
-    background: linear-gradient(135deg, #1a1035 0%, #0d0f1a 100%);
-    border-bottom: 1px solid var(--border);
-    padding: 14px 28px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    backdrop-filter: blur(10px);
-  }
+  /* ── Buttons ── */
+  .btn { display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:7px 14px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;background:var(--surface2);color:var(--text);font-family:inherit; }
+  .btn:hover { border-color:var(--accent);color:var(--accent2); }
+  .btn:disabled { opacity:.4;cursor:not-allowed; }
+  .btn-primary { background:var(--accent);border-color:var(--accent);color:#fff; }
+  .btn-primary:hover { background:var(--accent2);border-color:var(--accent2);color:#fff; }
+  .btn-sm { padding:4px 10px;font-size:11px; }
+  .btn-accent2 { background:var(--accent2);border-color:var(--accent2);color:#fff; }
+  .btn-danger { background:rgba(248,113,113,.15);border-color:var(--red);color:var(--red); }
+  .btn-green { background:rgba(52,211,153,.12);border-color:var(--green);color:var(--green); }
+  .btn-blue { background:rgba(96,165,250,.12);border-color:var(--blue);color:var(--blue); }
+  .btn-orange { background:rgba(251,146,60,.12);border-color:var(--orange);color:var(--orange); }
+  .btn-pink { background:rgba(244,114,182,.12);border-color:var(--pink);color:var(--pink); }
 
-  .header h1 {
-    font-size: 18px;
-    font-weight: 600;
-    background: linear-gradient(90deg, var(--accent2), var(--pink));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
+  /* ── Layout ── */
+  .main { display:grid; grid-template-columns:320px 1fr; min-height:calc(100vh - 90px); }
+  .left-panel { background:var(--surface); border-right:1px solid var(--border); padding:16px; overflow-y:auto; max-height:calc(100vh - 90px); position:sticky; top:90px; }
+  .right-panel { padding:16px 20px; overflow-y:auto; max-height:calc(100vh - 90px); }
 
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
+  .section-title { font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);margin:14px 0 8px; }
+  .section-title:first-child { margin-top:0; }
 
-  .status-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--red);
-    display: inline-block;
-    margin-right: 5px;
-    transition: background 0.3s;
-  }
-  .status-dot.ok { background: var(--green); }
+  .field { margin-bottom:8px; }
+  .field label { display:block;font-size:11px;color:var(--text-dim);margin-bottom:2px; }
+  .field input,.field select,.field textarea { width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:12px;font-family:inherit; }
+  .field textarea { min-height:56px;resize:vertical; }
+  .field select { cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' stroke='%238888a8' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px; }
+  .field input:focus,.field textarea:focus,.field select:focus { outline:none;border-color:var(--accent); }
 
-  /* ── Buttons ────────────────── */
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    padding: 7px 14px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    background: var(--surface2);
-    color: var(--text);
-    font-family: inherit;
-  }
-  .btn:hover { border-color: var(--accent); color: var(--accent2); }
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .btn-primary:hover { background: var(--accent2); border-color: var(--accent2); color: #fff; }
-  .btn-sm { padding: 4px 10px; font-size: 11px; }
-  .btn-accent2 { background: var(--accent2); border-color: var(--accent2); color: #fff; }
-  .btn-accent2:hover { opacity: 0.9; }
-  .btn-danger { background: rgba(248,113,113,0.15); border-color: var(--red); color: var(--red); }
+  .tag { display:inline-block;font-size:9px;padding:1px 5px;border-radius:3px;font-weight:500; }
+  .tag-required { background:rgba(124,110,240,.12);color:var(--accent2); }
+  .tag-optional { background:rgba(96,165,250,.12);color:var(--blue); }
 
-  /* ── Pipeline bar ───────────── */
-  .pipeline-bar {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 10px 28px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    overflow-x: auto;
-  }
+  .btn-row { display:flex;gap:6px;flex-wrap:wrap;margin-top:10px; }
+  .btn-group { display:flex;gap:6px;margin-top:10px; }
+  .btn-group .btn { flex:1; }
 
-  .step {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 500;
-    border: 1px solid var(--border);
-    background: var(--surface2);
-    color: var(--text-dim);
-    white-space: nowrap;
-    cursor: pointer;
-    transition: all 0.3s;
-  }
-  .step.running { border-color: var(--yellow); color: var(--yellow); animation: stepPulse 1.5s infinite; }
-  .step.done { border-color: var(--green); color: var(--green); background: rgba(52,211,153,0.08); }
-  .step.error { border-color: var(--red); color: var(--red); background: rgba(248,113,113,0.08); }
-  .step.active { border-color: var(--accent); color: var(--accent2); box-shadow: 0 0 8px rgba(124,110,240,0.2); }
+  /* ── Quick presets ── */
+  .quick-bar { display:flex;flex-wrap:wrap;gap:4px;margin-top:6px; }
+  .quick-btn { background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:3px 10px;font-size:11px;cursor:pointer;transition:all .2s;font-family:inherit; }
+  .quick-btn:hover { border-color:var(--accent);color:var(--accent2); }
+  .quick-btn .qt { display:inline-block;font-size:9px;padding:1px 4px;border-radius:2px;margin-left:3px;font-weight:600; }
+  .qt-g { background:#34d39925;color:var(--green); }
+  .qt-w { background:#60a5fa25;color:var(--blue); }
+  .qt-e { background:#f472b625;color:var(--pink); }
+  .qt-s { background:#fbbf2425;color:var(--yellow); }
 
-  .step-icon { font-size: 13px; }
+  /* ── Pipeline bar ── */
+  .pipeline-bar { background:var(--surface);border-bottom:1px solid var(--border);padding:8px 24px;display:flex;align-items:center;gap:5px;overflow-x:auto;flex-wrap:wrap; }
+  .step { display:flex;align-items:center;gap:4px;padding:4px 9px;border-radius:16px;font-size:10px;font-weight:500;border:1px solid var(--border);background:var(--surface2);color:var(--text-dim);white-space:nowrap;cursor:pointer;transition:all .3s; }
+  .step.running { border-color:var(--yellow);color:var(--yellow);animation:stepPulse 1.5s infinite; }
+  .step.done { border-color:var(--green);color:var(--green);background:rgba(52,211,153,.06); }
+  .step.error { border-color:var(--red);color:var(--red);background:rgba(248,113,113,.06); }
+  .step.skipped { border-color:var(--border);color:var(--text-dim);opacity:.4;text-decoration:line-through; }
+  .step-tag { font-size:8px;padding:1px 4px;border-radius:2px;background:rgba(124,110,240,.1);color:var(--accent2); }
+  .step-tag.local { background:rgba(52,211,153,.1);color:var(--green); }
+  .step-arrow { color:var(--border);font-size:11px;flex-shrink:0; }
+  @keyframes stepPulse { 0%,100%{box-shadow:0 0 0 0 rgba(251,191,36,.2)} 50%{box-shadow:0 0 6px 2px rgba(251,191,36,.1)} }
 
-  .step-arrow { color: var(--border); font-size: 12px; flex-shrink: 0; }
+  /* ── Result cards ── */
+  .result-grid { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px; }
+  .result-card { background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .3s; }
+  .result-card.active { border-color:var(--accent); }
+  .result-card.full-width { grid-column:1/-1; }
+  .result-header { display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-bottom:1px solid var(--border); }
+  .result-title { font-size:11px;font-weight:600;display:flex;align-items:center;gap:5px; }
+  .result-badge { font-size:8px;padding:1px 5px;border-radius:3px;font-weight:500; }
+  .badge-local { background:rgba(52,211,153,.1);color:var(--green); }
+  .badge-llm { background:rgba(167,139,250,.1);color:var(--accent2); }
+  .badge-parallel { background:rgba(251,146,60,.1);color:var(--orange); }
+  .badge-api { background:rgba(96,165,250,.1);color:var(--blue); }
+  .result-time { font-size:9px;color:var(--text-dim); }
+  .result-body { padding:10px 12px;font-size:11px;line-height:1.6;white-space:pre-wrap;min-height:30px;max-height:220px;overflow-y:auto; }
+  .result-body.placeholder { color:var(--text-dim);font-style:italic;font-size:10px; }
 
-  .step-tag {
-    font-size: 9px;
-    padding: 1px 5px;
-    border-radius: 3px;
-    background: rgba(124,110,240,0.1);
-    color: var(--accent2);
-  }
-  .step-tag.local { background: rgba(52,211,153,0.1); color: var(--green); }
+  /* ── Step visualization ── */
+  .step-flow { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+  .step-flow-row { display:flex; align-items:stretch; gap:8px; }
+  .step-flow-connector { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:4px 0; }
+  .step-flow-arrow { color:var(--accent2); font-size:16px; }
+  .step-flow-line { width:2px; flex:1; background:var(--border); }
+  .step-card { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .step-card-header { display:flex; align-items:center; justify-content:space-between; padding:6px 10px; background:var(--surface2); border-bottom:1px solid var(--border); font-size:11px; font-weight:600; }
+  .step-card-body { padding:8px 10px; font-size:10px; line-height:1.6; white-space:pre-wrap; max-height:200px; overflow-y:auto; }
+  .step-card-body.empty { color:var(--text-dim); font-style:italic; }
+  .step-card.input-card { border-left:3px solid var(--blue); }
+  .step-card.prompt-card { border-left:3px solid var(--accent2); }
+  .step-card.output-card { border-left:3px solid var(--green); }
 
-  @keyframes stepPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(251,191,36,0.2); }
-    50% { box-shadow: 0 0 8px 2px rgba(251,191,36,0.1); }
-  }
+  .step-card-tabs { display:flex; gap:0; }
+  .step-card-tab { padding:3px 8px; font-size:9px; cursor:pointer; color:var(--text-dim); border-bottom:1px solid transparent; transition:all .2s; }
+  .step-card-tab:hover { color:var(--text); }
+  .step-card-tab.active { color:var(--accent2); border-bottom-color:var(--accent2); }
 
-  /* ── Main layout ────────────── */
-  .main {
-    display: grid;
-    grid-template-columns: 320px 1fr;
-    min-height: calc(100vh - 90px);
-  }
+  /* ── Phase indicator ── */
+  .phase-indicator { display:flex;align-items:center;gap:7px;margin-bottom:12px;padding:7px 12px;border-radius:6px;font-size:11px;font-weight:500; }
+  .phase-idle { background:var(--surface2);color:var(--text-dim);border:1px solid var(--border); }
+  .phase-running { background:rgba(251,191,36,.08);color:var(--yellow);border:1px solid var(--yellow); }
+  .phase-clarifying { background:rgba(167,139,250,.08);color:var(--accent2);border:1px solid var(--accent2); }
+  .phase-complete { background:rgba(52,211,153,.08);color:var(--green);border:1px solid var(--green); }
+  .phase-error { background:rgba(248,113,113,.08);color:var(--red);border:1px solid var(--red); }
+  .phase-dot { width:7px;height:7px;border-radius:50%;background:currentColor; }
 
-  /* ── Left panel ─────────────── */
-  .left-panel {
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    padding: 20px;
-    overflow-y: auto;
-    max-height: calc(100vh - 90px);
-    position: sticky;
-    top: 90px;
-  }
+  /* ── Final output ── */
+  .final-card { background:linear-gradient(135deg,rgba(124,110,240,.05),rgba(244,114,182,.03));border:1px solid var(--accent);border-radius:10px;overflow:hidden;margin-bottom:12px; }
+  .final-header { padding:10px 14px;background:rgba(124,110,240,.06);border-bottom:1px solid rgba(124,110,240,.2);display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;color:var(--accent2); }
+  .final-body { padding:16px;font-size:13px;line-height:1.9;white-space:pre-wrap;min-height:60px; }
+  .final-body.placeholder { color:var(--text-dim);font-style:italic;font-size:11px;line-height:1.6; }
 
-  .section-title {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-dim);
-    margin-bottom: 10px;
-    margin-top: 16px;
-  }
-  .section-title:first-child { margin-top: 0; }
+  /* ── Raw JSON ── */
+  .raw-card { background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden; }
+  .raw-header { padding:8px 12px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:600; }
+  .raw-body { padding:10px;font-size:9px;line-height:1.5;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto;font-family:"SF Mono","Fira Code",monospace;color:var(--text-dim); }
 
-  .field { margin-bottom: 10px; }
-  .field label {
-    display: block;
-    font-size: 11px;
-    color: var(--text-dim);
-    margin-bottom: 3px;
-  }
-  .field input, .field select, .field textarea {
-    width: 100%;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 7px 10px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-family: inherit;
-  }
-  .field textarea { min-height: 60px; resize: vertical; }
-  .field select {
-    cursor: pointer;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' stroke='%238888a8' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    padding-right: 28px;
-  }
-  .field input:focus, .field textarea:focus, .field select:focus {
-    outline: none;
-    border-color: var(--accent);
-  }
+  /* ── Clarify dialog ── */
+  .clarify-box { background:linear-gradient(135deg,rgba(167,139,250,.06),rgba(244,114,182,.03));border:1px solid var(--accent2);border-radius:10px;padding:14px;margin-bottom:12px;display:none; }
+  .clarify-box.visible { display:block; }
+  .clarify-title { font-size:12px;font-weight:600;color:var(--accent2);margin-bottom:8px; }
+  .clarify-bubble { background:var(--surface2);border-radius:8px;padding:10px;font-size:12px;line-height:1.7;margin-bottom:8px;border-left:3px solid var(--accent2); }
+  .clarify-input textarea { width:100%;min-height:40px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:11px;color:var(--text);resize:vertical;font-family:inherit; }
+  .clarify-input textarea:focus { outline:none;border-color:var(--accent2); }
 
-  .tag {
-    display: inline-block;
-    font-size: 9px;
-    padding: 1px 5px;
-    border-radius: 3px;
-    font-weight: 500;
-  }
-  .tag-required { background: rgba(124,110,240,0.12); color: var(--accent2); }
-  .tag-optional { background: rgba(96,165,250,0.12); color: var(--blue); }
-  .tag-clarify { background: rgba(167,139,250,0.12); color: var(--accent2); }
+  /* ── Router result ── */
+  .router-result { background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;display:none; }
+  .router-result.show { display:block; }
+  .router-badge { font-size:18px;font-weight:800;padding:6px 16px;border-radius:6px;letter-spacing:1px; }
+  .rb-GENERAL { background:#34d39915;color:var(--green);border:1px solid #34d39930; }
+  .rb-WEB { background:#60a5fa15;color:var(--blue);border:1px solid #60a5fa30; }
+  .rb-EMOTION_DEEP { background:#f472b615;color:var(--pink);border:1px solid #f472b630; }
+  .rb-TAROT,.rb-ZODIAC,.rb-EMOTION_LOG { background:#fbbf2415;color:var(--yellow);border:1px solid #fbbf2430; }
 
-  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
-  .btn-group { display: flex; gap: 6px; margin-top: 12px; }
-  .btn-group .btn { flex: 1; }
+  .router-detail { display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px; }
+  .router-detail .di { background:var(--surface2);border-radius:6px;padding:8px 10px; }
+  .router-detail .dk { font-size:10px;color:var(--text-dim);margin-bottom:1px; }
+  .router-detail .dv { font-size:12px;word-break:break-all; }
 
-  .preset-row { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+  /* ── History ── */
+  .history-item { display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:5px;padding:5px 10px;font-size:11px;margin-bottom:4px; }
+  .hi-cat { font-weight:700;font-size:10px;padding:1px 7px;border-radius:3px;white-space:nowrap; }
+  .hi-q { flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+  .hi-time { color:var(--text-dim);font-size:10px;white-space:nowrap; }
 
-  .session-badge {
-    display: inline-block;
-    font-size: 10px;
-    padding: 2px 8px;
-    border-radius: 4px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    margin-top: 4px;
-    font-family: "SF Mono", "Fira Code", monospace;
-  }
+  .stats-bar { display:flex;gap:12px;margin-bottom:8px;font-size:11px;color:var(--text-dim); }
+  .stats-bar span { font-weight:700; }
 
-  /* ── Right panel ────────────── */
-  .right-panel {
-    padding: 20px 24px;
-    overflow-y: auto;
-    max-height: calc(100vh - 90px);
-  }
+  /* ── Spinner ── */
+  .spinner { display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite; }
+  @keyframes spin { to{transform:rotate(360deg)} }
 
-  /* ── Clarify dialog ─────────── */
-  .clarify-box {
-    background: linear-gradient(135deg, rgba(167,139,250,0.08), rgba(244,114,182,0.04));
-    border: 1px solid var(--accent2);
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 16px;
-    display: none;
-  }
-  .clarify-box.visible { display: block; }
+  /* ── Toast ── */
+  .toast { position:fixed;bottom:20px;right:20px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 16px;font-size:11px;z-index:999;opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none; }
+  .toast.show { opacity:1;transform:translateY(0); }
+  .toast.error { border-color:var(--red);color:var(--red); }
+  .toast.success { border-color:var(--green);color:var(--green); }
+  .toast.info { border-color:var(--accent2);color:var(--accent2); }
 
-  .clarify-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--accent2);
-    margin-bottom: 10px;
-  }
-  .clarify-bubble {
-    background: var(--surface2);
-    border-radius: 10px;
-    padding: 12px;
-    font-size: 13px;
-    line-height: 1.7;
-    margin-bottom: 10px;
-    border-left: 3px solid var(--accent2);
-  }
-  .clarify-input textarea {
-    width: 100%;
-    min-height: 50px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 10px;
-    font-size: 12px;
-    color: var(--text);
-    resize: vertical;
-    font-family: inherit;
-  }
-  .clarify-input textarea:focus { outline: none; border-color: var(--accent2); }
+  .session-badge { display:inline-block;font-size:10px;padding:2px 7px;border-radius:4px;background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);font-family:"SF Mono","Fira Code",monospace; }
 
-  /* ── Result grid ────────────── */
-  .result-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
+  /* ── Tab panels ── */
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
 
-  .result-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-    transition: border-color 0.3s;
-  }
-  .result-card.active { border-color: var(--accent); }
-  .result-card.full-width { grid-column: 1 / -1; }
+  /* ── Module test cards ── */
+  .module-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+  .module-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .module-card.full-width { grid-column:1/-1; }
+  .module-header { display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:12px;font-weight:600; }
+  .module-body { padding:10px 12px; font-size:11px; line-height:1.6; white-space:pre-wrap; min-height:30px; max-height:200px; overflow-y:auto; }
+  .module-body.placeholder { color:var(--text-dim); font-style:italic; font-size:10px; }
+  .module-input { padding:10px 12px; background:var(--surface3); border-bottom:1px solid var(--border); }
+  .module-input .field { margin-bottom:6px; }
+  .module-input .field:last-child { margin-bottom:0; }
+  .module-input input { font-size:11px; padding:5px 8px; }
+  .module-timing { font-size:9px; color:var(--text-dim); padding:2px 0; }
 
-  .result-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 14px;
-    background: var(--surface2);
-    border-bottom: 1px solid var(--border);
-  }
-  .result-title {
-    font-size: 12px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .result-badge {
-    font-size: 9px;
-    padding: 1px 6px;
-    border-radius: 3px;
-    font-weight: 500;
-  }
-  .badge-local { background: rgba(52,211,153,0.12); color: var(--green); }
-  .badge-llm { background: rgba(167,139,250,0.12); color: var(--accent2); }
-  .badge-parallel { background: rgba(251,146,60,0.12); color: var(--orange); }
-  .badge-combine { background: rgba(244,114,182,0.12); color: var(--pink); }
-
-  .result-time {
-    font-size: 10px;
-    color: var(--text-dim);
-  }
-
-  .result-body {
-    padding: 12px 14px;
-    font-size: 12px;
-    line-height: 1.7;
-    white-space: pre-wrap;
-    min-height: 40px;
-    max-height: 200px;
-    overflow-y: auto;
-  }
-  .result-body.placeholder {
-    color: var(--text-dim);
-    font-style: italic;
-    font-size: 11px;
-  }
-
-  .result-actions {
-    padding: 6px 14px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    gap: 4px;
-    justify-content: flex-end;
-  }
-
-  /* ── Final output ───────────── */
-  .final-card {
-    background: linear-gradient(135deg, rgba(124,110,240,0.06), rgba(244,114,182,0.04));
-    border: 1px solid var(--accent);
-    border-radius: 12px;
-    overflow: hidden;
-    margin-bottom: 16px;
-  }
-  .final-header {
-    padding: 12px 16px;
-    background: rgba(124,110,240,0.08);
-    border-bottom: 1px solid var(--accent);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .final-header-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--accent2);
-  }
-  .final-body {
-    padding: 20px;
-    font-size: 14px;
-    line-height: 2;
-    white-space: pre-wrap;
-    min-height: 80px;
-  }
-  .final-body.placeholder {
-    color: var(--text-dim);
-    font-style: italic;
-    font-size: 12px;
-    line-height: 1.6;
-  }
-
-  /* ── Raw JSON ───────────────── */
-  .raw-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-  }
-  .raw-header {
-    padding: 10px 14px;
-    background: var(--surface2);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 12px;
-    font-weight: 600;
-  }
-  .raw-body {
-    padding: 12px;
-    font-size: 10px;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-all;
-    max-height: 240px;
-    overflow-y: auto;
-    font-family: "SF Mono", "Fira Code", monospace;
-    color: var(--text-dim);
-  }
-
-  /* ── Phase indicator ────────── */
-  .phase-indicator {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 16px;
-    padding: 8px 14px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 500;
-  }
-  .phase-indicator.phase-idle { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
-  .phase-indicator.phase-clarifying { background: rgba(167,139,250,0.1); color: var(--accent2); border: 1px solid var(--accent2); }
-  .phase-indicator.phase-complete { background: rgba(52,211,153,0.1); color: var(--green); border: 1px solid var(--green); }
-  .phase-indicator.phase-error { background: rgba(248,113,113,0.1); color: var(--red); border: 1px solid var(--red); }
-
-  .phase-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: currentColor;
-  }
-
-  /* ── Toast ──────────────────── */
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 18px;
-    font-size: 12px;
-    z-index: 999;
-    opacity: 0;
-    transform: translateY(10px);
-    transition: all 0.3s;
-    pointer-events: none;
-  }
-  .toast.show { opacity: 1; transform: translateY(0); }
-  .toast.error { border-color: var(--red); color: var(--red); }
-  .toast.success { border-color: var(--green); color: var(--green); }
-  .toast.info { border-color: var(--accent2); color: var(--accent2); }
-
-  /* ── Loading spinner ────────── */
-  .spinner {
-    display: inline-block;
-    width: 12px; height: 12px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* ── Responsive ─────────────── */
-  @media (max-width: 900px) {
-    .main { grid-template-columns: 1fr; }
-    .left-panel {
-      position: static;
-      max-height: none;
-      border-right: none;
-      border-bottom: 1px solid var(--border);
-    }
-    .right-panel { max-height: none; }
-    .result-grid { grid-template-columns: 1fr; }
+  /* ── Responsive ── */
+  @media(max-width:900px) {
+    .main { grid-template-columns:1fr; }
+    .left-panel { position:static;max-height:none;border-right:none;border-bottom:1px solid var(--border); }
+    .right-panel { max-height:none; }
+    .result-grid,.module-grid { grid-template-columns:1fr; }
   }
 </style>
 </head>
@@ -492,69 +218,45 @@
 <div class="header">
   <h1>影子 AI — 测试面板</h1>
   <div class="header-right">
-    <span id="statusText" style="font-size:12px;color:var(--text-dim);"><span class="status-dot" id="statusDot"></span>未连接</span>
+    <span id="statusText"><span class="status-dot" id="statusDot"></span>未连接</span>
     <button class="btn btn-sm" onclick="checkHealth()">检查连接</button>
+    <span style="font-size:10px;color:var(--text-dim)">API:</span>
+    <input type="text" id="apiBase" value="http://127.0.0.1:8000" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:4px;font-size:10px;width:140px;" />
   </div>
 </div>
 
-<!-- Pipeline bar -->
-<div class="pipeline-bar">
-  <div class="step" id="step-clarify" onclick="scrollToCard('clarify')">
-    <span class="step-icon">&#x1F4AC;</span>追问<span class="step-tag">LLM</span>
-  </div>
-  <span class="step-arrow">&#8594;</span>
-  <div class="step" id="step-astro" onclick="scrollToCard('astro')">
-    <span class="step-icon">&#x2609;</span>本命盘<span class="step-tag local">本地</span>
-  </div>
-  <span class="step-arrow">&#8594;</span>
-  <div class="step" id="step-ephemeris" onclick="scrollToCard('ephemeris')">
-    <span class="step-icon">&#x1F319;</span>星历<span class="step-tag local">本地</span>
-  </div>
-  <span class="step-arrow">&#8594;</span>
-  <div class="step" id="step-astro_insight" onclick="scrollToCard('astro_insight')">
-    <span class="step-icon">&#x1F31F;</span>占星素材<span class="step-tag">LLM</span>
-  </div>
-  <span class="step-arrow" style="color:var(--orange);font-size:10px;">|</span>
-  <div class="step" id="step-search" onclick="scrollToCard('search')">
-    <span class="step-icon">&#x1F50D;</span>问题语境<span class="step-tag">LLM</span>
-  </div>
-  <span class="step-arrow">&#8594;</span>
-  <div class="step" id="step-analyze" onclick="scrollToCard('analyze')">
-    <span class="step-icon">&#x1F52C;</span>底层逻辑<span class="step-tag">LLM</span>
-  </div>
-  <span class="step-arrow">&#8594;</span>
-  <div class="step" id="step-combine" onclick="scrollToCard('combine')">
-    <span class="step-icon">&#x1F3A8;</span>综合输出<span class="step-tag">LLM</span>
-  </div>
-  <span style="flex:1"></span>
-  <span style="font-size:10px;color:var(--text-dim);">API:</span>
-  <input type="text" id="apiBase" value="http://127.0.0.1:8000"
-    style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:11px;width:160px;" />
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" data-tab="router" onclick="switchTab('router')">&#x1F500; 分类测试</div>
+  <div class="tab" data-tab="single" onclick="switchTab('single')">&#x1F50D; 单节点测试</div>
+  <div class="tab" data-tab="modules" onclick="switchTab('modules')">&#x1F9E9; 功能模块</div>
+  <div class="tab" data-tab="pipeline" onclick="switchTab('pipeline')">&#x1F680; 综合流程</div>
 </div>
 
 <!-- Main -->
 <div class="main">
-  <!-- Left: input form -->
+  <!-- Left panel -->
   <div class="left-panel">
+
+    <!-- ── Common fields ── -->
     <div class="section-title">用户信息</div>
-
     <div class="field">
-      <label>user_id <span class="tag tag-optional">可选</span> — 传此字段可自动从 DB 获取出生信息</label>
-      <input type="number" id="userId" value="" placeholder="数据库用户 ID，留空则用手动填写" />
+      <label>user_id <span class="tag tag-optional">可选</span></label>
+      <div style="display:flex;gap:4px">
+        <input type="number" id="userId" placeholder="传此可自动从 DB 获取出生信息" style="flex:1" />
+        <button class="btn btn-sm" onclick="fillUserIdFromUrl()" title="从URL参数 ?user_id= 填入">URL填入</button>
+      </div>
     </div>
-
     <div class="field">
       <label>出生时间 <span class="tag tag-required">必填</span></label>
-      <input type="text" id="birthTime" value="1995-06-15 14:30" placeholder="1995-06-15 14:30" />
+      <input type="text" id="birthTime" value="1995-06-15 14:30" />
     </div>
-
     <div class="field">
       <label>出生地点 <span class="tag tag-required">必填</span></label>
-      <input type="text" id="birthPlace" value="甘肃省天水市武山县" placeholder="如：甘肃省天水市武山县" />
+      <input type="text" id="birthPlace" value="甘肃省天水市武山县" />
     </div>
-
     <div class="field">
-      <label>MBTI <span class="tag tag-required">必填</span></label>
+      <label>MBTI</label>
       <select id="mbti">
         <option>INTJ</option><option>INTP</option><option>ENTJ</option><option>ENTP</option>
         <option>INFJ</option><option selected>INFP</option><option>ENFJ</option><option>ENFP</option>
@@ -562,171 +264,461 @@
         <option>ISTP</option><option>ISFP</option><option>ESTP</option><option>ESFP</option>
       </select>
     </div>
-
     <div class="field">
       <label>血型</label>
-      <select id="bloodType">
-        <option selected>A</option><option>B</option><option>AB</option><option>O</option>
-      </select>
+      <select id="bloodType"><option>A</option><option>B</option><option>AB</option><option>O</option></select>
     </div>
-
     <div class="field">
       <label>核心情绪 <span class="tag tag-required">必填</span></label>
-      <input type="text" id="emotion" value="焦虑迷茫" placeholder="如：焦虑迷茫" />
+      <input type="text" id="emotion" value="焦虑" />
     </div>
 
     <div class="section-title">问题与补充</div>
-
     <div class="field">
       <label>问题/倾诉 <span class="tag tag-required">必填</span></label>
-      <textarea id="question">工作三年了还是感觉自己很迷茫，不知道自己适合做什么，每天都很焦虑，感觉同龄人都比我优秀。</textarea>
+      <textarea id="question">工作三年了还是感觉自己很迷茫，不知道自己适合做什么，每天都很焦虑</textarea>
     </div>
-
-    <div class="field" id="supplementsField" style="display:none;">
-      <label>补充回答 <span class="tag tag-clarify">追问后填写</span></label>
+    <div class="field" id="supplementsField" style="display:none">
+      <label>补充回答 <span class="tag tag-optional">追问后填写</span></label>
       <textarea id="supplements" placeholder="根据 AI 追问，补充你的具体情况..."></textarea>
     </div>
 
-    <div class="section-title">会话</div>
-    <div id="sessionInfo" style="font-size:11px;color:var(--text-dim);">尚未建立会话</div>
+    <!-- ── Tab-specific controls ── -->
 
-    <div class="btn-group">
-      <button class="btn btn-primary" id="btnRunAll" onclick="runFullPipeline()">
-        运行全链路
-      </button>
-      <button class="btn btn-accent2" id="btnClarify" onclick="runClarifyOnly()">
-        仅追问
-      </button>
+    <!-- Router tab controls -->
+    <div id="ctrl-router">
+      <div class="section-title">快捷用例</div>
+      <div class="quick-bar">
+        <button class="quick-btn" onclick="fillAndRoute('今天天气真好啊','平静','INFP')">天气聊天<span class="qt qt-g">G</span></button>
+        <button class="quick-btn" onclick="fillAndRoute('给我讲个笑话','开心','ENFP')">讲笑话<span class="qt qt-g">G</span></button>
+        <button class="quick-btn" onclick="fillAndRoute('推荐一部电影','无聊','INFP')">推荐电影<span class="qt qt-g">G</span></button>
+        <button class="quick-btn" onclick="fillAndRoute('最近有什么新闻','好奇','INTJ')">最近新闻<span class="qt qt-w">W</span></button>
+        <button class="quick-btn" onclick="fillAndRoute('A股大盘多少点','焦虑','ISTJ')">A股大盘<span class="qt qt-w">W</span></button>
+        <button class="quick-btn" onclick="fillAndRoute('iPhone 16价格多少','好奇','ENTP')">手机价格<span class="qt qt-w">W</span></button>
+        <button class="quick-btn" onclick="fillAndRoute('工作压力太大了，每天加班到很晚，快撑不住了','焦虑','INFP')">工作压力<span class="qt qt-e">E</span></button>
+        <button class="quick-btn" onclick="fillAndRoute('和男朋友吵架了，不知道感情还能不能继续','失落','ISFJ')">感情困扰<span class="qt qt-e">E</span></button>
+        <button class="quick-btn" onclick="fillAndRoute('觉得自己什么都做不好','自卑','INFJ')">自卑感<span class="qt qt-e">E</span></button>
+        <button class="quick-btn" onclick="fillAndRoute('帮我看看最近的新闻，感觉世界好乱','焦虑','ENFP')">新闻+情绪<span class="qt qt-w">W</span></button>
+        <button class="quick-btn" onclick="fillAndRoute('我总是拖延，怎么办','焦虑','INFP')">拖延症<span class="qt qt-e">E</span></button>
+        <button class="quick-btn" onclick="fillAndRoute('我最近心情不太好','低落','INTP')">心情不好<span class="qt qt-e">E</span></button>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" id="btnRouterTest" onclick="testRouter()">&#x1F500; 分类测试</button>
+        <button class="btn btn-accent2" onclick="batchRouterTest()">&#x1F4CA; 批量测试</button>
+      </div>
     </div>
 
-    <div class="btn-row">
-      <button class="btn btn-sm btn-danger" onclick="resetAll()">重置</button>
-      <button class="btn btn-sm" onclick="newSession()">新会话</button>
+    <!-- Single node tab controls -->
+    <div id="ctrl-single" style="display:none">
+      <div class="section-title">选择节点</div>
+      <div class="field">
+        <label>目标节点</label>
+        <select id="singleNode">
+          <optgroup label="分类路由">
+            <option value="router">router (分类)</option>
+          </optgroup>
+          <optgroup label="普通聊天分支">
+            <option value="generate">generate (生成)</option>
+          </optgroup>
+          <optgroup label="联网问答分支">
+            <option value="web_search">web_search (联网搜索)</option>
+          </optgroup>
+          <optgroup label="专项分析分支">
+            <option value="specialist">specialist (塔罗/星座/情绪记录)</option>
+          </optgroup>
+          <optgroup label="情绪深度分支">
+            <option value="prepare">prepare (准备)</option>
+            <option value="clarify">clarify (追问)</option>
+            <option value="astro">astro (本命盘)</option>
+            <option value="ephemeris">ephemeris (星历)</option>
+            <option value="astro_insight">astro_insight (占星素材)</option>
+            <option value="search">search (问题语境)</option>
+            <option value="analyze">analyze (底层逻辑)</option>
+            <option value="draft">draft (草稿)</option>
+            <option value="refine">refine (打磨)</option>
+            <option value="combine">combine (合成)</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="field" id="categoryField">
+        <label>category <span class="tag tag-optional">部分节点需要</span></label>
+        <select id="category">
+          <option value="">自动分类</option>
+          <option value="GENERAL">GENERAL</option>
+          <option value="WEB">WEB</option>
+          <option value="EMOTION_DEEP">EMOTION_DEEP</option>
+          <option value="TAROT">TAROT</option>
+          <option value="ZODIAC">ZODIAC</option>
+          <option value="EMOTION_LOG">EMOTION_LOG</option>
+        </select>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" id="btnSingleNode" onclick="testSingleNodeStep()">&#x1F50D; 分步测试</button>
+        <button class="btn" onclick="testSingleNode()">&#x26A1; 快速测试</button>
+      </div>
+      <div class="btn-row" style="margin-top:6px">
+        <button class="btn btn-sm" onclick="testNodePrompt()">&#x1F4DD; 查看 Prompt</button>
+        <button class="btn btn-sm btn-danger" onclick="clearSingleResult()">清空结果</button>
+      </div>
     </div>
 
-    <div class="section-title">快捷预设</div>
-    <div class="preset-row">
-      <button class="btn btn-sm" onclick="loadPreset('career')">职业迷茫</button>
-      <button class="btn btn-sm" onclick="loadPreset('love')">感情困惑</button>
-      <button class="btn btn-sm" onclick="loadPreset('self')">自我怀疑</button>
-      <button class="btn btn-sm" onclick="loadPreset('burnout')">职场倦怠</button>
+    <!-- Modules tab controls -->
+    <div id="ctrl-modules" style="display:none">
+      <div class="section-title">功能模块独立测试</div>
+      <div class="btn-row" style="flex-direction:column;gap:6px">
+        <button class="btn btn-green" style="width:100%;justify-content:flex-start" onclick="testGeocode()">&#x1F4CD; 地理编码 Geocode</button>
+        <button class="btn btn-blue" style="width:100%;justify-content:flex-start" onclick="testAstro()">&#x2609; 本命盘 Astro (本地)</button>
+        <button class="btn btn-orange" style="width:100%;justify-content:flex-start" onclick="testEphemeris()">&#x1F319; 星历 Ephemeris (本地)</button>
+        <button class="btn" style="width:100%;justify-content:flex-start" onclick="testWebSearch()">&#x1F310; 联网搜索 WebSearch (API)</button>
+        <button class="btn btn-pink" style="width:100%;justify-content:flex-start" onclick="testIssueSearch()">&#x1F50D; 问题语境搜索 (API+LLM)</button>
+        <button class="btn btn-accent2" style="width:100%;justify-content:flex-start" onclick="testRouterModule()">&#x1F500; 分类路由 Router (LLM)</button>
+        <button class="btn btn-sm btn-danger" style="width:100%" onclick="clearModuleResults()">清空所有结果</button>
+      </div>
+    </div>
+
+    <!-- Pipeline tab controls -->
+    <div id="ctrl-pipeline" style="display:none">
+      <div class="section-title">快捷预设</div>
+      <div class="quick-bar">
+        <button class="quick-btn" onclick="loadPreset('career')">职业迷茫</button>
+        <button class="quick-btn" onclick="loadPreset('love')">感情困惑</button>
+        <button class="quick-btn" onclick="loadPreset('self')">自我怀疑</button>
+        <button class="quick-btn" onclick="loadPreset('burnout')">职场倦怠</button>
+        <button class="quick-btn" onclick="loadPreset('chat')">普通聊天<span class="qt qt-g">G</span></button>
+        <button class="quick-btn" onclick="loadPreset('webq')">联网问答<span class="qt qt-w">W</span></button>
+        <button class="quick-btn" onclick="loadPreset('tarot')">塔罗测试<span class="qt qt-s">S</span></button>
+        <button class="quick-btn" onclick="loadPreset('emotion_deep')">情绪深度<span class="qt qt-e">E</span></button>
+      </div>
+      <div class="section-title">会话</div>
+      <div id="sessionInfo" style="font-size:10px;color:var(--text-dim)">尚未建立会话</div>
+      <div class="btn-group">
+        <button class="btn btn-primary" id="btnRunAll" onclick="runFullPipeline()">&#x1F680; 运行全链路</button>
+        <button class="btn btn-accent2" id="btnStream" onclick="runStreamTest()">&#x1F4E1; 流式测试</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-sm btn-danger" onclick="resetAll()">重置</button>
+        <button class="btn btn-sm" onclick="newSession()">新会话</button>
+      </div>
     </div>
   </div>
 
-  <!-- Right: results -->
+  <!-- Right panel -->
   <div class="right-panel">
 
-    <!-- Phase indicator -->
-    <div class="phase-indicator phase-idle" id="phaseIndicator">
-      <span class="phase-dot"></span>
-      <span id="phaseText">等待运行</span>
+    <!-- ═══ Router tab ═══ -->
+    <div class="tab-panel active" id="panel-router">
+      <div class="phase-indicator phase-idle" id="routerPhase">
+        <span class="phase-dot"></span>
+        <span id="routerPhaseText">等待分类测试</span>
+      </div>
+
+      <div class="router-result" id="routerResultCard">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:4px">
+          <span class="router-badge" id="routerBadge">—</span>
+          <span style="font-size:12px;color:var(--text-dim)" id="routerDesc"></span>
+        </div>
+        <div class="router-detail">
+          <div class="di"><div class="dk">用户问题</div><div class="dv" id="rd-question">—</div></div>
+          <div class="di"><div class="dk">情绪关键词</div><div class="dv" id="rd-emotion">—</div></div>
+          <div class="di"><div class="dk">是否联网</div><div class="dv" id="rd-web">—</div></div>
+          <div class="di"><div class="dk">耗时</div><div class="dv" id="rd-time">—</div></div>
+        </div>
+      </div>
+
+      <!-- Batch result -->
+      <div id="batchResult" style="display:none">
+        <div class="section-title">&#x1F4CA; 批量测试结果</div>
+        <div id="batchTable" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:11px;max-height:400px;overflow-y:auto;white-space:pre-wrap;font-family:'SF Mono','Fira Code',monospace"></div>
+        <div id="batchStats" class="stats-bar" style="margin-top:8px"></div>
+      </div>
+
+      <div class="section-title">&#x1F4CB; 测试历史</div>
+      <div class="stats-bar" id="routerStats" style="display:none">
+        <div>GENERAL: <span class="qt-g" id="rStatG">0</span></div>
+        <div>WEB: <span class="qt-w" id="rStatW">0</span></div>
+        <div>EMOTION_DEEP: <span class="qt-e" id="rStatE">0</span></div>
+        <div>专项: <span style="color:var(--yellow)" id="rStatS">0</span></div>
+        <div>总计: <span id="rStatT">0</span></div>
+      </div>
+      <div id="routerHistory"></div>
     </div>
 
-    <!-- Clarify dialog -->
-    <div class="clarify-box" id="clarifyBox">
-      <div class="clarify-title">&#x1F4AC; 影子 AI 想了解更多</div>
-      <div class="clarify-bubble" id="clarifyBubble">...</div>
-      <div class="clarify-input" style="margin-top:8px;">
-        <textarea id="clarifyAnswer" placeholder="像和朋友聊天一样回答..."></textarea>
-      </div>
-      <button class="btn btn-accent2" onclick="submitClarification()" style="width:100%;margin-top:8px;">
-        提交补充 &rarr; 运行完整分析
-      </button>
-    </div>
-
-    <!-- Result cards: row 1 - local compute -->
-    <div class="section-title">&#x1F4CA; 本地计算层</div>
-    <div class="result-grid">
-      <div class="result-card" id="card-astro">
-        <div class="result-header">
-          <div class="result-title">&#x2609; 本命盘 <span class="result-badge badge-local">本地</span></div>
-          <div style="display:flex;gap:4px;align-items:center;">
-            <span class="result-time" id="time-astro"></span>
-            <button class="btn btn-sm" onclick="testNode('astro')">测试</button>
-          </div>
-        </div>
-        <div class="result-body placeholder" id="body-astro">太阳/月亮/上升/宫位/相位/元素分布...</div>
+    <!-- ═══ Single node tab ═══ -->
+    <div class="tab-panel" id="panel-single">
+      <div class="phase-indicator phase-idle" id="singlePhase">
+        <span class="phase-dot"></span>
+        <span id="singlePhaseText">选择节点并测试</span>
       </div>
 
-      <div class="result-card" id="card-ephemeris">
-        <div class="result-header">
-          <div class="result-title">&#x1F319; 近7天星历 <span class="result-badge badge-local">本地</span></div>
-          <div style="display:flex;gap:4px;align-items:center;">
-            <span class="result-time" id="time-ephemeris"></span>
-            <button class="btn btn-sm" onclick="testNode('ephemeris')">测试</button>
+      <!-- Step-by-step visualization -->
+      <div class="step-flow" id="stepFlow" style="display:none">
+        <div class="section-title">&#x1F3AF; 节点: <span id="stepNodeName">—</span> <span id="stepNodeTiming" style="color:var(--green)"></span></div>
+        
+        <!-- Input -->
+        <div class="step-card input-card" id="stepInputCard">
+          <div class="step-card-header">
+            <span>&#x1F4E5; 输入状态 (Input State)</span>
+            <button class="btn btn-sm" onclick="toggleCardBody('stepInputBody')">展开/收起</button>
           </div>
+          <div class="step-card-body" id="stepInputBody" style="max-height:150px">—</div>
         </div>
-        <div class="result-body placeholder" id="body-ephemeris">本周行星过境与关键相位...</div>
-      </div>
-    </div>
 
-    <!-- Result cards: row 2 - LLM analysis -->
-    <div class="section-title">&#x1F9E0; AI 分析层</div>
-    <div class="result-grid">
-      <div class="result-card" id="card-astro_insight">
-        <div class="result-header">
-          <div class="result-title">&#x1F31F; 占星素材 <span class="result-badge badge-llm">LLM</span></div>
-          <div style="display:flex;gap:4px;align-items:center;">
-            <span class="result-time" id="time-astro_insight"></span>
-            <button class="btn btn-sm" onclick="testNode('astro_insight')">测试</button>
-          </div>
+        <div class="step-flow-connector">
+          <span class="step-flow-arrow">&#x2B07;</span>
         </div>
-        <div class="result-body placeholder" id="body-astro_insight">星盘+星历对用户的影响提炼...</div>
-      </div>
 
-      <div class="result-card" id="card-search">
-        <div class="result-header">
-          <div class="result-title">&#x1F50D; 问题语境 <span class="result-badge badge-parallel">并行</span></div>
-          <div style="display:flex;gap:4px;align-items:center;">
-            <span class="result-time" id="time-search"></span>
-            <button class="btn btn-sm" onclick="testNode('search')">测试</button>
+        <!-- Prompt -->
+        <div class="step-card prompt-card" id="stepPromptCard">
+          <div class="step-card-header">
+            <span>&#x1F4DD; Prompt (发送给 LLM 的内容)</span>
+            <div style="display:flex;gap:4px">
+              <span id="stepPromptBadge"></span>
+              <button class="btn btn-sm" onclick="copyText('stepPromptBody')">复制</button>
+            </div>
           </div>
+          <div class="step-card-body" id="stepPromptBody">—</div>
         </div>
-        <div class="result-body placeholder" id="body-search">问题相关经验与核心逻辑...</div>
-      </div>
 
-      <div class="result-card full-width" id="card-analyze">
-        <div class="result-header">
-          <div class="result-title">&#x1F52C; 底层逻辑分析 <span class="result-badge badge-llm">LLM</span></div>
-          <div style="display:flex;gap:4px;align-items:center;">
-            <span class="result-time" id="time-analyze"></span>
-            <button class="btn btn-sm" onclick="testNode('analyze')">测试</button>
-          </div>
+        <div class="step-flow-connector">
+          <span class="step-flow-arrow">&#x2B07;</span>
         </div>
-        <div class="result-body placeholder" id="body-analyze">整合占星+语境+性格的底层逻辑...</div>
+
+        <!-- Output -->
+        <div class="step-card output-card" id="stepOutputCard">
+          <div class="step-card-header">
+            <span>&#x1F4E4; 输出状态 (Output State)</span>
+            <div style="display:flex;gap:4px">
+              <span id="stepOutputTiming" style="font-size:9px;color:var(--green)"></span>
+              <button class="btn btn-sm" onclick="toggleCardBody('stepOutputBody')">展开/收起</button>
+            </div>
+          </div>
+          <div class="step-card-body" id="stepOutputBody">—</div>
+        </div>
       </div>
 
-      <div class="result-card full-width" id="card-clarify">
+      <!-- Quick test output (non-step) -->
+      <div class="result-card full-width" id="card-single-output" style="margin-top:10px;display:none">
         <div class="result-header">
-          <div class="result-title">&#x1F4AC; 追问补充 <span class="result-badge badge-llm">LLM</span></div>
-          <div style="display:flex;gap:4px;align-items:center;">
-            <span class="result-time" id="time-clarify"></span>
-            <button class="btn btn-sm" onclick="runClarifyOnly()">追问</button>
+          <div class="result-title" id="singleNodeTitle">节点输出</div>
+          <div style="display:flex;gap:4px;align-items:center">
+            <span class="result-time" id="singleTime"></span>
+            <button class="btn btn-sm" onclick="copyText('body-single-output')">复制</button>
           </div>
         </div>
-        <div class="result-body placeholder" id="body-clarify">第一轮追问内容...</div>
+        <div class="result-body" id="body-single-output">—</div>
+      </div>
+
+      <!-- Prompt only view -->
+      <div class="result-card full-width" id="card-prompt" style="margin-top:10px;display:none">
+        <div class="result-header">
+          <div class="result-title">&#x1F4DD; Prompt 内容</div>
+          <button class="btn btn-sm" onclick="copyText('body-prompt')">复制</button>
+        </div>
+        <div class="result-body" id="body-prompt"></div>
+      </div>
+
+      <!-- Raw JSON -->
+      <div class="raw-card" style="margin-top:10px">
+        <div class="raw-header"><span>原始 JSON</span><button class="btn btn-sm" onclick="copyText('body-single-raw')">复制</button></div>
+        <div class="raw-body" id="body-single-raw">// 运行后显示</div>
       </div>
     </div>
 
-    <!-- Final output -->
-    <div class="section-title">&#x2728; 最终输出</div>
-    <div class="final-card">
-      <div class="final-header">
-        <div class="final-header-title">&#x2728; 影子 AI 的回复</div>
-        <button class="btn btn-sm" onclick="copyReply()">复制</button>
+    <!-- ═══ Modules tab ═══ -->
+    <div class="tab-panel" id="panel-modules">
+      <div class="phase-indicator phase-idle" id="modulesPhase">
+        <span class="phase-dot"></span>
+        <span id="modulesPhaseText">选择功能模块测试</span>
       </div>
-      <div class="final-body placeholder" id="body-final">运行全链路后显示最终回复...</div>
+
+      <div class="module-grid">
+        <!-- Geocode -->
+        <div class="module-card" id="mod-geocode">
+          <div class="module-header">
+            <span>&#x1F4CD; 地理编码 Geocode</span>
+            <span class="result-badge badge-api">API</span>
+          </div>
+          <div class="module-input">
+            <div class="field">
+              <label>地址</label>
+              <input type="text" id="geocodeAddr" value="甘肃省天水市武山县" placeholder="中文地址" />
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-sm btn-green" onclick="testGeocode()">编码</button>
+              <button class="btn btn-sm" onclick="document.getElementById('geocodeAddr').value='上海市';testGeocode()">上海</button>
+              <button class="btn btn-sm" onclick="document.getElementById('geocodeAddr').value='北京市海淀区';testGeocode()">北京</button>
+            </div>
+          </div>
+          <div class="module-body placeholder" id="mod-geocode-body">输入地址后点击编码…</div>
+        </div>
+
+        <!-- Astro -->
+        <div class="module-card" id="mod-astro">
+          <div class="module-header">
+            <span>&#x2609; 本命盘 Astro</span>
+            <span class="result-badge badge-local">本地</span>
+          </div>
+          <div class="module-body placeholder" id="mod-astro-body">点击左侧按钮计算…</div>
+        </div>
+
+        <!-- Ephemeris -->
+        <div class="module-card" id="mod-ephemeris">
+          <div class="module-header">
+            <span>&#x1F319; 星历 Ephemeris</span>
+            <span class="result-badge badge-local">本地</span>
+          </div>
+          <div class="module-body placeholder" id="mod-ephemeris-body">点击左侧按钮计算…</div>
+        </div>
+
+        <!-- Web Search -->
+        <div class="module-card" id="mod-websearch">
+          <div class="module-header">
+            <span>&#x1F310; 联网搜索 WebSearch</span>
+            <span class="result-badge badge-api">API</span>
+          </div>
+          <div class="module-body placeholder" id="mod-websearch-body">点击左侧按钮测试…</div>
+        </div>
+
+        <!-- Issue Search (EMOTION_DEEP) -->
+        <div class="module-card" id="mod-issue-search">
+          <div class="module-header">
+            <span>&#x1F50D; 问题语境搜索 (EMOTION_DEEP)</span>
+            <span class="result-badge badge-api">API</span>+<span class="result-badge badge-llm">LLM</span>
+          </div>
+          <div class="module-body placeholder" id="mod-issue-search-body">点击左侧按钮测试…</div>
+        </div>
+
+        <!-- Router -->
+        <div class="module-card full-width" id="mod-router">
+          <div class="module-header">
+            <span>&#x1F500; 分类路由 Router</span>
+            <span class="result-badge badge-llm">LLM</span>
+          </div>
+          <div class="module-body placeholder" id="mod-router-body">点击左侧按钮测试…</div>
+        </div>
+      </div>
     </div>
 
-    <!-- Raw JSON -->
-    <div class="raw-card">
-      <div class="raw-header">
-        <span>原始 JSON</span>
-        <button class="btn btn-sm" onclick="copyRaw()">复制</button>
+    <!-- ═══ Pipeline tab ═══ -->
+    <div class="tab-panel" id="panel-pipeline">
+      <!-- Pipeline bar -->
+      <div class="pipeline-bar" id="pipelineBar" style="flex-wrap:wrap;gap:4px 5px">
+        <!-- 统一入口 -->
+        <div class="step" id="pstep-router">&#x1F500;路由<span class="step-tag">LLM</span></div>
+        <span class="step-arrow">&#8594;</span>
+        <!-- 四条分支：specialist / web / general / emotion_deep -->
+        <div class="step" id="pstep-specialist">&#x1F52E;专项<span class="step-tag">LLM</span></div>
+        <span class="step-arrow" style="font-size:9px;color:var(--text-dim)">/</span>
+        <div class="step" id="pstep-web_search">&#x1F310;联网<span class="step-tag local">API</span></div>
+        <span class="step-arrow">&#8594;</span>
+        <div class="step" id="pstep-generate">&#x1F4AC;生成<span class="step-tag">LLM</span></div>
+        <span class="step-arrow" style="font-size:9px;color:var(--text-dim)">/</span>
+        <div class="step" id="pstep-prepare">&#x1F3AF;准备</div>
+        <span class="step-arrow">&#8594;</span>
+        <!-- EMOTION_DEEP 深度分支 -->
+        <div class="step" id="pstep-clarify">&#x1F4AC;追问<span class="step-tag">LLM</span></div>
+        <span class="step-arrow" style="font-size:9px;color:var(--text-dim)">|</span>
+        <div class="step" id="pstep-astro">&#x2609;本命盘<span class="step-tag local">本地</span></div>
+        <span class="step-arrow">&#8594;</span>
+        <div class="step" id="pstep-ephemeris">&#x1F319;星历<span class="step-tag local">本地</span></div>
+        <span class="step-arrow">&#8594;</span>
+        <div class="step" id="pstep-astro_insight">&#x1F31F;占星素材<span class="step-tag">LLM</span></div>
+        <span class="step-arrow" style="color:var(--orange);font-size:9px">+</span>
+        <div class="step" id="pstep-search">&#x1F50D;语境搜索<span class="step-tag local">API</span>+<span class="step-tag">LLM</span></div>
+        <span class="step-arrow">&#8594;</span>
+        <div class="step" id="pstep-analyze">&#x1F52C;底层逻辑<span class="step-tag">LLM</span></div>
+        <span class="step-arrow">&#8594;</span>
+        <div class="step" id="pstep-draft">&#x270D;草稿<span class="step-tag">LLM</span></div>
+        <span class="step-arrow">&#8594;</span>
+        <div class="step" id="pstep-refine">&#x2728;打磨<span class="step-tag">LLM</span></div>
+        <span class="step-arrow">&#8594;</span>
+        <div class="step" id="pstep-combine">&#x1F3A8;合成<span class="step-tag">LLM</span></div>
       </div>
-      <div class="raw-body" id="body-raw">// 运行后显示</div>
-    </div>
 
+      <div class="phase-indicator phase-idle" id="pipelinePhase">
+        <span class="phase-dot"></span>
+        <span id="pipelinePhaseText">等待运行</span>
+      </div>
+
+      <!-- Clarify dialog -->
+      <div class="clarify-box" id="clarifyBox">
+        <div class="clarify-title">&#x1F4AC; 影子 AI 想了解更多</div>
+        <div class="clarify-bubble" id="clarifyBubble">...</div>
+        <div class="clarify-input" style="margin-top:6px">
+          <textarea id="clarifyAnswer" placeholder="像和朋友聊天一样回答..."></textarea>
+        </div>
+        <button class="btn btn-accent2" onclick="submitClarification()" style="width:100%;margin-top:6px">提交补充 &rarr; 运行完整分析</button>
+      </div>
+
+      <!-- 分类结果 -->
+      <div class="router-result" id="pipelineRouterResult">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:4px">
+          <span class="router-badge" id="pipelineRouterBadge">—</span>
+          <span style="font-size:12px;color:var(--text-dim)" id="pipelineRouterDesc"></span>
+        </div>
+      </div>
+
+      <!-- Result grid: local compute -->
+      <div class="section-title">&#x1F4CA; 本地计算层</div>
+      <div class="result-grid">
+        <div class="result-card" id="card-p-astro">
+          <div class="result-header"><div class="result-title">&#x2609; 本命盘 <span class="result-badge badge-local">本地</span></div><span class="result-time" id="ptime-astro"></span></div>
+          <div class="result-body placeholder" id="pbody-astro">太阳/月亮/上升/宫位...</div>
+        </div>
+        <div class="result-card" id="card-p-ephemeris">
+          <div class="result-header"><div class="result-title">&#x1F319; 近7天星历 <span class="result-badge badge-local">本地</span></div><span class="result-time" id="ptime-ephemeris"></span></div>
+          <div class="result-body placeholder" id="pbody-ephemeris">行星过境与关键相位...</div>
+        </div>
+      </div>
+
+      <!-- Result grid: LLM -->
+      <div class="section-title">&#x1F9E0; AI 分析层</div>
+      <!-- WEB 联网上下文（仅 WEB 分支显示） -->
+      <div class="result-card full-width" id="card-p-webcontext" style="display:none;margin-bottom:10px">
+        <div class="result-header"><div class="result-title">&#x1F310; 联网搜索上下文 <span class="result-badge badge-api">API</span></div><span class="result-time" id="ptime-webcontext"></span></div>
+        <div class="result-body placeholder" id="pbody-webcontext">联网搜索结果...</div>
+      </div>
+      <div class="result-grid">
+        <div class="result-card" id="card-p-astro_insight">
+          <div class="result-header"><div class="result-title">&#x1F31F; 占星素材 <span class="result-badge badge-llm">LLM</span></div><span class="result-time" id="ptime-astro_insight"></span></div>
+          <div class="result-body placeholder" id="pbody-astro_insight">星盘+星历对用户的影响提炼...</div>
+        </div>
+        <div class="result-card" id="card-p-search">
+          <div class="result-header"><div class="result-title">&#x1F50D; 问题语境搜索 <span class="result-badge badge-api">API</span>+<span class="result-badge badge-llm">LLM</span></div><span class="result-time" id="ptime-search"></span></div>
+          <div style="padding:4px 12px 0;font-size:9px;color:var(--text-dim);display:none" id="psearch-query-row"><b>搜索 Query:</b> <span id="psearch-query"></span></div>
+          <div class="result-body placeholder" id="pbody-search">联网搜索问题相关案例 + LLM 整理语料...</div>
+          <div style="padding:0 12px 8px;display:none" id="psearch-web-row">
+            <div style="font-size:9px;color:var(--text-dim);margin-bottom:2px"><b>联网搜索上下文:</b></div>
+            <div style="font-size:9px;line-height:1.5;white-space:pre-wrap;max-height:120px;overflow-y:auto;background:var(--surface3);border-radius:4px;padding:6px;color:var(--text-dim)" id="psearch-web-context"></div>
+          </div>
+        </div>
+        <div class="result-card full-width" id="card-p-analyze">
+          <div class="result-header"><div class="result-title">&#x1F52C; 底层逻辑分析 <span class="result-badge badge-llm">LLM</span></div><span class="result-time" id="ptime-analyze"></span></div>
+          <div class="result-body placeholder" id="pbody-analyze">整合占星+语境+性格的底层逻辑...</div>
+        </div>
+        <div class="result-card full-width" id="card-p-clarify">
+          <div class="result-header"><div class="result-title">&#x1F4AC; 追问补充 <span class="result-badge badge-llm">LLM</span></div><span class="result-time" id="ptime-clarify"></span></div>
+          <div class="result-body placeholder" id="pbody-clarify">第一轮追问内容...</div>
+        </div>
+      </div>
+
+      <!-- Final output -->
+      <div class="section-title">&#x2728; 最终输出</div>
+      <div class="final-card">
+        <div class="final-header"><div>影子 AI 的回复 <span class="result-time" id="ptime-combine"></span></div><button class="btn btn-sm" onclick="copyText('pbody-final')">复制</button></div>
+        <div class="final-body placeholder" id="pbody-final">运行全链路后显示最终回复...</div>
+      </div>
+      <div class="final-card">
+        <div class="final-header"><div>实时流式输出</div><button class="btn btn-sm" onclick="clearStreamOutput()">清空</button></div>
+        <div class="final-body placeholder" id="body-stream">点击"流式测试"后显示...</div>
+      </div>
+
+      <!-- Raw JSON -->
+      <div class="raw-card">
+        <div class="raw-header"><span>原始 JSON</span><button class="btn btn-sm" onclick="copyText('pbody-raw')">复制</button></div>
+        <div class="raw-body" id="pbody-raw">// 运行后显示</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -734,80 +726,690 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ── Config ──────────────────────────────
-const STEPS = ['clarify', 'astro', 'ephemeris', 'astro_insight', 'search', 'analyze', 'combine'];
-const STEP_LABELS = {
-  clarify: '追问', astro: '本命盘', ephemeris: '星历',
-  astro_insight: '占星素材', search: '问题语境', analyze: '底层逻辑', combine: '综合输出'
+// ══════════════════════════════════════════
+//  Config & State
+// ══════════════════════════════════════════
+const PIPELINE_STEPS = ['router','specialist','web_search','generate','prepare','clarify','astro','ephemeris','astro_insight','search','analyze','draft','refine','combine'];
+const CATEGORY_DESC = {
+  GENERAL: '普通聊天 — 情感陪伴、常识问答',
+  WEB: '联网问答 — 需要实时信息',
+  EMOTION_DEEP: '情绪深度 — 深入分析、追问和个性化建议',
+  TAROT: '塔罗选牌 — 专项解读',
+  ZODIAC: '星座运势 — 专项解读',
+  EMOTION_LOG: '情绪记录 — 专项分析',
+};
+const NODE_TYPE = {
+  router: 'LLM', specialist: 'LLM', web_search: 'API', generate: 'LLM',
+  prepare: '本地', clarify: 'LLM', astro: '本地', ephemeris: '本地',
+  astro_insight: 'LLM', search: 'API+LLM', analyze: 'LLM', draft: 'LLM',
+  refine: 'LLM', combine: 'LLM',
 };
 
-// 会话状态
 let currentSessionId = null;
+let routerHistory = [];
+let routerStats = { GENERAL:0, WEB:0, EMOTION_DEEP:0, specialist:0 };
 
-function getApiBase() {
-  return document.getElementById('apiBase').value.replace(/\/+$/, '');
+function getApiBase() { return document.getElementById('apiBase').value.replace(/\/+$/,''); }
+
+function fillUserIdFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const uid = params.get('user_id');
+  if (uid) { document.getElementById('userId').value = uid; showToast('已填入 user_id=' + uid, 'success'); }
+  else { showToast('URL 中无 user_id 参数', 'error'); }
 }
 
-/**
- * 构造与后端 UserRequest 匹配的请求体
- * - user_id 优先级高于手动填写
- * - session_id 由 currentSessionId 管理
- * - supplements 在追问后自动填入
- */
-function getPayload() {
+// 页面加载时自动从 URL 填入 user_id
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const uid = params.get('user_id');
+  if (uid) document.getElementById('userId').value = uid;
+})();
+
+function getPayload(overrides = {}) {
   const uid = document.getElementById('userId').value.trim();
   const p = {
     emotion_keyword: document.getElementById('emotion').value || '困惑',
     question: document.getElementById('question').value,
   };
-  // user_id：有值时传，后端会自动查 DB 获取出生信息
   if (uid && !isNaN(Number(uid))) p.user_id = Number(uid);
-  // 手动填写的出生信息（user_id 为空时后端依赖这些字段）
   if (!uid) {
     p.birth_time = document.getElementById('birthTime').value;
     p.birth_place = document.getElementById('birthPlace').value;
     p.mbti = document.getElementById('mbti').value;
     p.blood_type = document.getElementById('bloodType').value;
   }
-  // 会话 ID
   if (currentSessionId) p.session_id = currentSessionId;
-  // 补充回答
   const supp = document.getElementById('supplements').value.trim();
   if (supp) p.supplements = supp;
-  return p;
+  const cat = document.getElementById('category').value;
+  if (cat) p.category = cat;
+  return { ...p, ...overrides };
 }
 
-function updateSessionInfo() {
-  const el = document.getElementById('sessionInfo');
-  if (currentSessionId) {
-    el.innerHTML = '<span class="session-badge">' + currentSessionId.slice(0, 12) + '…</span>';
-  } else {
-    el.textContent = '尚未建立会话';
+// ══════════════════════════════════════════
+//  Tab switching
+// ══════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  ['router','single','modules','pipeline'].forEach(t => {
+    document.getElementById('ctrl-' + t).style.display = t === tab ? '' : 'none';
+  });
+}
+
+// ══════════════════════════════════════════
+//  Helpers
+// ══════════════════════════════════════════
+function showToast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'toast ' + type + ' show';
+  clearTimeout(el._timer); el._timer = setTimeout(() => el.className = 'toast', 2500);
+}
+function copyText(id) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(() => showToast('已复制','success'));
+}
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function setPhase(elId, textId, phase, text) {
+  const el = document.getElementById(elId);
+  el.className = 'phase-indicator phase-' + phase;
+  document.getElementById(textId).textContent = text;
+}
+
+function setPStep(step, state) {
+  const el = document.getElementById('pstep-' + step);
+  if (el) el.className = 'step ' + state;
+}
+
+function resetPSteps() { PIPELINE_STEPS.forEach(s => setPStep(s, '')); }
+
+// 根据分类标记完成的步骤，其余标记为跳过
+function markBranchSteps(category, phase) {
+  const ALL = new Set(PIPELINE_STEPS);
+  const doneSteps = new Set(['router']); // router 始终执行
+
+  if (category === 'GENERAL') {
+    doneSteps.add('generate');
+  } else if (category === 'WEB') {
+    doneSteps.add('web_search');
+    doneSteps.add('generate');
+  } else if (['TAROT','ZODIAC','EMOTION_LOG'].includes(category)) {
+    doneSteps.add('specialist');
+  } else if (category === 'EMOTION_DEEP') {
+    doneSteps.add('prepare');
+    if (phase === 'clarifying') {
+      doneSteps.add('clarify');
+    } else {
+      doneSteps.add('clarify'); // clarify 在 EMOTION_DEEP 中也可能先走
+      doneSteps.add('astro');
+      doneSteps.add('ephemeris');
+      doneSteps.add('astro_insight');
+      doneSteps.add('search');
+      doneSteps.add('analyze');
+      doneSteps.add('draft');
+      doneSteps.add('refine');
+      doneSteps.add('combine');
+    }
+  }
+
+  for (const s of ALL) {
+    if (doneSteps.has(s)) setPStep(s, 'done');
+    else setPStep(s, 'skipped');
   }
 }
 
-// ── Presets ─────────────────────────────
+function toggleCardBody(id) {
+  const el = document.getElementById(id);
+  if (el.style.maxHeight === '0px') { el.style.maxHeight = '200px'; el.style.overflow = 'auto'; }
+  else { el.style.maxHeight = '0px'; el.style.overflow = 'hidden'; }
+}
+
+function newSession() {
+  currentSessionId = null;
+  document.getElementById('sessionInfo').textContent = '尚未建立会话';
+  document.getElementById('supplements').value = '';
+  document.getElementById('supplementsField').style.display = 'none';
+  document.getElementById('clarifyBox').classList.remove('visible');
+  showToast('已新建会话','info');
+}
+
+function resetAll() {
+  resetPSteps();
+  setPhase('pipelinePhase','pipelinePhaseText','idle','等待运行');
+  ['astro','ephemeris','astro_insight','search','analyze','clarify','final'].forEach(k => {
+    const el = document.getElementById('pbody-' + k);
+    if (el) { el.textContent = '...'; el.classList.add('placeholder'); }
+    const te = document.getElementById('ptime-' + k);
+    if (te) te.textContent = '';
+  });
+  document.getElementById('psearch-query-row').style.display = 'none';
+  document.getElementById('psearch-query').textContent = '';
+  document.getElementById('psearch-web-row').style.display = 'none';
+  document.getElementById('psearch-web-context').textContent = '';
+  document.getElementById('pipelineRouterResult').classList.remove('show');
+  document.getElementById('card-p-webcontext').style.display = 'none';
+  const webBody = document.getElementById('pbody-webcontext');
+  webBody.textContent = '联网搜索结果...'; webBody.classList.add('placeholder');
+  document.getElementById('clarifyBox').classList.remove('visible');
+  document.getElementById('supplementsField').style.display = 'none';
+  document.getElementById('supplements').value = '';
+  document.getElementById('pbody-raw').textContent = '// 运行后显示';
+  clearStreamOutput();
+  currentSessionId = null;
+  document.getElementById('sessionInfo').textContent = '尚未建立会话';
+}
+
+async function checkHealth() {
+  try {
+    const res = await fetch(getApiBase() + '/health', { signal: AbortSignal.timeout(5000) });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      document.getElementById('statusDot').className = 'status-dot ok';
+      document.getElementById('statusText').innerHTML = '<span class="status-dot ok"></span>已连接';
+      showToast('后端连接正常','success');
+    }
+  } catch(e) {
+    document.getElementById('statusDot').className = 'status-dot';
+    document.getElementById('statusText').innerHTML = '<span class="status-dot"></span>连接失败';
+    showToast('无法连接: ' + e.message,'error');
+  }
+}
+
+function formatState(obj) {
+  if (!obj || typeof obj !== 'object') return String(obj);
+  const lines = [];
+  for (const [k, v] of Object.entries(obj)) {
+    if (k === 'request') { lines.push(`[request] <UserRequest>`); continue; }
+    if (typeof v === 'string') {
+      const short = v.length > 300 ? v.slice(0, 300) + '...' : v;
+      lines.push(`[${k}] ${short}`);
+    } else if (Array.isArray(v)) {
+      lines.push(`[${k}] [${v.length} items]`);
+    } else if (typeof v === 'object' && v !== null) {
+      lines.push(`[${k}] ${JSON.stringify(v).slice(0,200)}`);
+    } else {
+      lines.push(`[${k}] ${v}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+// ══════════════════════════════════════════
+//  Tab 1: Router Classification Test
+// ══════════════════════════════════════════
+function fillAndRoute(q, e, m) {
+  document.getElementById('question').value = q;
+  document.getElementById('emotion').value = e;
+  document.getElementById('mbti').value = m;
+}
+
+async function testRouter() {
+  const btn = document.getElementById('btnRouterTest');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 分类中…';
+  setPhase('routerPhase','routerPhaseText','running','正在分类…');
+
+  const t0 = performance.now();
+  try {
+    const res = await fetch(getApiBase() + '/api/test/node?node=router', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(getPayload()),
+    });
+    const data = await res.json();
+    const ms = Math.round(performance.now() - t0);
+
+    if (!res.ok) throw new Error(data.detail || res.statusText);
+
+    const output = data.output || {};
+    const cat = output.category || 'UNKNOWN';
+
+    const badge = document.getElementById('routerBadge');
+    badge.textContent = cat;
+    badge.className = 'router-badge rb-' + cat;
+    document.getElementById('routerDesc').textContent = CATEGORY_DESC[cat] || '未知分类';
+    document.getElementById('rd-question').textContent = document.getElementById('question').value;
+    document.getElementById('rd-emotion').textContent = document.getElementById('emotion').value;
+    document.getElementById('rd-web').textContent = output.web_search ? '是' : '否';
+    document.getElementById('rd-time').textContent = (ms/1000).toFixed(2) + 's';
+    document.getElementById('routerResultCard').classList.add('show');
+
+    setPhase('routerPhase','routerPhaseText','complete','分类完成');
+
+    if (routerStats[cat] !== undefined) routerStats[cat]++;
+    else if (['TAROT','ZODIAC','EMOTION_LOG'].includes(cat)) routerStats.specialist++;
+    routerHistory.unshift({
+      category: cat,
+      question: document.getElementById('question').value,
+      emotion: document.getElementById('emotion').value,
+      time: (ms/1000).toFixed(2)
+    });
+    renderRouterHistory();
+    showToast('分类结果: ' + cat + ' (' + ms + 'ms)','success');
+  } catch(e) {
+    setPhase('routerPhase','routerPhaseText','error','分类失败');
+    showToast('分类失败: ' + e.message,'error');
+  }
+
+  btn.disabled = false; btn.innerHTML = '&#x1F500; 分类测试';
+}
+
+// Batch test
+const BATCH_CASES = [
+  ['今天天气真好啊','平静','INFP','GENERAL'],
+  ['给我讲个笑话','开心','ENFP','GENERAL'],
+  ['推荐一部电影','无聊','INFP','GENERAL'],
+  ['你觉得人生的意义是什么','平静','INTJ','GENERAL'],
+  ['最近有什么新闻','好奇','INTJ','WEB'],
+  ['今天A股大盘多少点','焦虑','ISTJ','WEB'],
+  ['iPhone 16价格多少','好奇','ENTP','WEB'],
+  ['最近流行什么歌','无聊','ENFP','WEB'],
+  ['工作压力太大了，每天加班到很晚，快撑不住了','焦虑','INFP','EMOTION_DEEP'],
+  ['和男朋友吵架了，不知道感情还能不能继续','失落','ISFJ','EMOTION_DEEP'],
+  ['觉得自己什么都做不好','自卑','INFJ','EMOTION_DEEP'],
+  ['妈妈生病了，但无法回去陪她，好无助','无助','INFP','EMOTION_DEEP'],
+  ['一直在纠结要不要辞职','迷茫','INTP','EMOTION_DEEP'],
+  ['感觉自己活得好累','疲惫','ISFP','EMOTION_DEEP'],
+  ['我最近心情不太好','低落','INTP','EMOTION_DEEP'],
+  ['帮我看看最近的新闻，感觉世界好乱','焦虑','ENFP','WEB'],
+  ['我总是拖延，怎么办','焦虑','INFP','EMOTION_DEEP'],
+  ['最近房价跌了吗','好奇','ISTJ','WEB'],
+];
+
+async function batchRouterTest() {
+  const btn = document.querySelector('#ctrl-router .btn-accent2');
+  btn.disabled = true; btn.textContent = '测试中…';
+  setPhase('routerPhase','routerPhaseText','running','批量测试中…');
+
+  let lines = [];
+  lines.push('  #   期望             实际             结果   耗时   问题');
+  lines.push('  ' + '─'.repeat(68));
+
+  let correct = 0;
+  for (let i = 0; i < BATCH_CASES.length; i++) {
+    const [q, e, m, expected] = BATCH_CASES[i];
+    const t0 = performance.now();
+    try {
+      const res = await fetch(getApiBase() + '/api/test/node?node=router', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q, emotion_keyword: e, mbti: m }),
+      });
+      const data = await res.json();
+      const actual = (data.output || {}).category || 'ERROR';
+      const ms = Math.round(performance.now() - t0);
+      const ok = actual === expected;
+      if (ok) correct++;
+      const mark = ok ? '✅' : '❌';
+      const shortQ = q.length > 24 ? q.slice(0,24) + '…' : q;
+      lines.push(`  ${String(i+1).padStart(2)}   ${expected.padEnd(16)}${actual.padEnd(16)}${mark}     ${(ms/1000).toFixed(2)}s  ${shortQ}`);
+    } catch(err) {
+      lines.push(`  ${String(i+1).padStart(2)}   ${expected.padEnd(16)}ERROR           ❌     —     ${q.slice(0,24)}`);
+    }
+  }
+
+  lines.push('  ' + '─'.repeat(68));
+  const total = BATCH_CASES.length;
+  const pct = (correct/total*100).toFixed(1);
+  lines.push(`\n  准确率: ${correct}/${total} (${pct}%)`);
+
+  document.getElementById('batchResult').style.display = '';
+  document.getElementById('batchTable').textContent = lines.join('\n');
+  document.getElementById('batchStats').innerHTML = `<div>准确率: <span style="color:${pct===100?'var(--green)':'var(--red)'}">${pct}%</span></div><div>正确: ${correct}</div><div>错误: ${total-correct}</div>`;
+
+  setPhase('routerPhase','routerPhaseText','complete',`批量测试完成: ${correct}/${total}`);
+  btn.disabled = false; btn.innerHTML = '&#x1F4CA; 批量测试';
+  showToast(`批量测试完成: ${correct}/${total} (${pct}%)`, pct > 80 ? 'success' : 'error');
+}
+
+function renderRouterHistory() {
+  const bar = document.getElementById('routerStats');
+  bar.style.display = 'flex';
+  document.getElementById('rStatG').textContent = routerStats.GENERAL;
+  document.getElementById('rStatW').textContent = routerStats.WEB;
+  document.getElementById('rStatE').textContent = routerStats.EMOTION_DEEP;
+  document.getElementById('rStatS').textContent = routerStats.specialist;
+  document.getElementById('rStatT').textContent = routerHistory.length;
+
+  const list = document.getElementById('routerHistory');
+  if (!routerHistory.length) { list.innerHTML = ''; return; }
+  list.innerHTML = routerHistory.slice(0, 30).map(h => {
+    const cls = ['GENERAL'].includes(h.category) ? 'qt-g' : ['WEB'].includes(h.category) ? 'qt-w' : ['EMOTION_DEEP'].includes(h.category) ? 'qt-e' : 'qt-s';
+    return `<div class="history-item"><span class="hi-cat ${cls}">${h.category}</span><span class="hi-q">${escHtml(h.question)}</span><span class="hi-time">${h.time}s</span></div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+//  Tab 2: Single Node Test (Step-by-step)
+// ══════════════════════════════════════════
+
+function clearSingleResult() {
+  document.getElementById('stepFlow').style.display = 'none';
+  document.getElementById('card-single-output').style.display = 'none';
+  document.getElementById('card-prompt').style.display = 'none';
+  document.getElementById('body-single-raw').textContent = '// 运行后显示';
+  setPhase('singlePhase','singlePhaseText','idle','选择节点并测试');
+}
+
+async function testSingleNodeStep() {
+  const node = document.getElementById('singleNode').value;
+  const btn = document.getElementById('btnSingleNode');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 分步测试中…';
+  setPhase('singlePhase','singlePhaseText','running','分步测试 ' + node + '…');
+
+  const overrides = {};
+  const cat = document.getElementById('category').value;
+  if (cat) overrides.category = cat;
+
+  try {
+    const res = await fetch(getApiBase() + '/api/test/step?node=' + node, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(getPayload(overrides)),
+    });
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.detail || res.statusText);
+
+    // Fill step flow
+    document.getElementById('stepFlow').style.display = '';
+    document.getElementById('stepNodeName').textContent = node;
+    document.getElementById('stepNodeTiming').textContent = '(' + (NODE_TYPE[node] || '?') + ')';
+    document.getElementById('card-single-output').style.display = 'none';
+
+    // Input state
+    const inputBody = document.getElementById('stepInputBody');
+    inputBody.textContent = formatState(data.input_state || {});
+    inputBody.classList.remove('empty');
+
+    // Prompt
+    const promptBody = document.getElementById('stepPromptBody');
+    const promptBadge = document.getElementById('stepPromptBadge');
+    if (data.prompt) {
+      promptBody.textContent = data.prompt;
+      promptBody.classList.remove('empty');
+      promptBadge.innerHTML = '<span class="result-badge badge-llm">LLM</span>';
+    } else {
+      promptBody.textContent = '<该节点无 LLM Prompt，纯本地/API 计算>';
+      promptBody.classList.add('empty');
+      promptBadge.innerHTML = '<span class="result-badge badge-local">本地</span>';
+    }
+
+    // Output
+    const outputBody = document.getElementById('stepOutputBody');
+    outputBody.textContent = formatState(data.output || {});
+    outputBody.classList.remove('empty');
+    document.getElementById('stepOutputTiming').textContent = data.ms ? data.ms + 'ms' : '';
+
+    // Raw
+    document.getElementById('body-single-raw').textContent = JSON.stringify(data, null, 2);
+
+    setPhase('singlePhase','singlePhaseText','complete', node + ' 分步完成 (' + (data.ms||0) + 'ms)');
+    showToast(node + ' 分步测试完成','success');
+  } catch(e) {
+    setPhase('singlePhase','singlePhaseText','error','分步测试失败');
+    showToast('分步测试失败: ' + e.message,'error');
+  }
+
+  btn.disabled = false; btn.innerHTML = '&#x1F50D; 分步测试';
+}
+
+async function testSingleNode() {
+  const node = document.getElementById('singleNode').value;
+  const btn = document.getElementById('btnSingleNode');
+  btn.disabled = true;
+  setPhase('singlePhase','singlePhaseText','running','快速测试 ' + node + '…');
+
+  const overrides = {};
+  const cat = document.getElementById('category').value;
+  if (cat) overrides.category = cat;
+
+  const t0 = performance.now();
+  try {
+    const res = await fetch(getApiBase() + '/api/test/node?node=' + node, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(getPayload(overrides)),
+    });
+    const data = await res.json();
+    const ms = Math.round(performance.now() - t0);
+
+    if (!res.ok) throw new Error(data.detail || res.statusText);
+
+    const output = data.output || {};
+    const skip = new Set(['request','messages','user_info']);
+    const keys = Object.keys(output).filter(k => !skip.has(k) && output[k]);
+    let text = '';
+    if (output.category) text += '分类: ' + output.category + '\n';
+    if (output.web_search !== undefined) text += '联网: ' + output.web_search + '\n';
+    text += '\n';
+    for (const k of keys) {
+      const v = output[k];
+      if (typeof v === 'string' && v) text += `[${k}]\n${v}\n\n`;
+      else if (Array.isArray(v) && v.length) text += `[${k}]\n${JSON.stringify(v,null,2)}\n\n`;
+      else if (typeof v === 'object' && v) text += `[${k}]\n${JSON.stringify(v,null,2)}\n\n`;
+    }
+
+    document.getElementById('stepFlow').style.display = 'none';
+    document.getElementById('card-single-output').style.display = '';
+    document.getElementById('singleNodeTitle').textContent = node + ' 输出';
+    const bodyEl = document.getElementById('body-single-output');
+    bodyEl.textContent = text || JSON.stringify(output, null, 2);
+    document.getElementById('singleTime').textContent = ms + 'ms';
+    document.getElementById('body-single-raw').textContent = JSON.stringify(data, null, 2);
+    setPhase('singlePhase','singlePhaseText','complete', node + ' 完成 (' + ms + 'ms)');
+    showToast(node + ' 完成','success');
+  } catch(e) {
+    setPhase('singlePhase','singlePhaseText','error','测试失败');
+    document.getElementById('body-single-output').textContent = '错误: ' + e.message;
+    showToast('测试失败: ' + e.message,'error');
+  }
+
+  btn.disabled = false; btn.innerHTML = '&#x1F50D; 分步测试';
+}
+
+async function testNodePrompt() {
+  const node = document.getElementById('singleNode').value;
+  const cat = document.getElementById('category').value;
+  const overrides = {};
+  if (cat) overrides.category = cat;
+
+  try {
+    const res = await fetch(getApiBase() + '/api/test/prompt?node=' + node, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(getPayload(overrides)),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || res.statusText);
+
+    const card = document.getElementById('card-prompt');
+    card.style.display = '';
+    document.getElementById('body-prompt').textContent = data.prompt || JSON.stringify(data, null, 2);
+    showToast('Prompt 已获取','info');
+  } catch(e) {
+    showToast('获取 Prompt 失败: ' + e.message,'error');
+  }
+}
+
+// ══════════════════════════════════════════
+//  Tab 3: Module Tests
+// ══════════════════════════════════════════
+
+function setModuleBody(id, text, isPlaceholder) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  if (isPlaceholder) el.classList.add('placeholder');
+  else el.classList.remove('placeholder');
+}
+
+async function testGeocode() {
+  const addr = document.getElementById('geocodeAddr').value.trim();
+  if (!addr) { showToast('请输入地址','error'); return; }
+  setModuleBody('mod-geocode-body', '编码中…', false);
+  try {
+    const res = await fetch(getApiBase() + '/api/test/geocode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: addr }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || res.statusText);
+    const levelMap = {district:'区级精准',city:'市级匹配',province:'省级匹配',fuzzy:'模糊匹配',geopy:'geopy匹配',default:'默认(上海)'};
+    const parsed = data.parsed || {};
+    const standardAddr = data.standard_address || '';
+    const level = levelMap[data.match_level] || data.match_level;
+    const levelColor = ['district','city'].includes(data.match_level) ? 'var(--green)' : data.match_level === 'default' ? 'var(--red)' : 'var(--yellow)';
+    setModuleBody('mod-geocode-body',
+      `输入: ${data.address}\n标准地址: ${standardAddr}\n解析: ${parsed.province||'—'} / ${parsed.city||'—'} / ${parsed.area||'—'}\n纬度: ${data.latitude}\n经度: ${data.longitude}\n匹配级别: ${level}\n耗时: ${data.ms}ms`,
+      false
+    );
+    // Color the module header based on match level
+    const header = document.querySelector('#mod-geocode .module-header span:first-child');
+    if (header) header.style.color = levelColor;
+    showToast('地理编码: ' + level,'success');
+  } catch(e) {
+    setModuleBody('mod-geocode-body', '错误: ' + e.message, false);
+    showToast('地理编码失败','error');
+  }
+}
+
+async function testAstro() {
+  setModuleBody('mod-astro-body', '计算本命盘中…', false);
+  try {
+    const res = await fetch(getApiBase() + '/api/test/step?node=astro', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(getPayload()),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || res.statusText);
+    const out = data.output || {};
+    // Find astro_analysis or similar key
+    const keys = Object.keys(out).filter(k => out[k] && typeof out[k] === 'string');
+    const text = keys.map(k => `[${k}]\n${out[k]}`).join('\n\n') || JSON.stringify(out, null, 2);
+    setModuleBody('mod-astro-body', text + (data.ms ? '\n\n耗时: ' + data.ms + 'ms' : ''), false);
+    showToast('本命盘计算完成','success');
+  } catch(e) {
+    setModuleBody('mod-astro-body', '错误: ' + e.message, false);
+    showToast('本命盘计算失败','error');
+  }
+}
+
+async function testEphemeris() {
+  setModuleBody('mod-ephemeris-body', '计算星历中…', false);
+  try {
+    const res = await fetch(getApiBase() + '/api/test/step?node=ephemeris', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(getPayload()),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || res.statusText);
+    const out = data.output || {};
+    const keys = Object.keys(out).filter(k => out[k] && typeof out[k] === 'string');
+    const text = keys.map(k => `[${k}]\n${out[k]}`).join('\n\n') || JSON.stringify(out, null, 2);
+    setModuleBody('mod-ephemeris-body', text + (data.ms ? '\n\n耗时: ' + data.ms + 'ms' : ''), false);
+    showToast('星历计算完成','success');
+  } catch(e) {
+    setModuleBody('mod-ephemeris-body', '错误: ' + e.message, false);
+    showToast('星历计算失败','error');
+  }
+}
+
+async function testWebSearch() {
+  setModuleBody('mod-websearch-body', '联网搜索中…', false);
+  try {
+    const res = await fetch(getApiBase() + '/api/test/step?node=web_search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(getPayload({ category: 'WEB', web_search: true })),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || res.statusText);
+    const out = data.output || {};
+    const keys = Object.keys(out).filter(k => out[k] && typeof out[k] === 'string');
+    const text = keys.map(k => `[${k}]\n${out[k].length > 500 ? out[k].slice(0,500) + '...' : out[k]}`).join('\n\n') || JSON.stringify(out, null, 2);
+    setModuleBody('mod-websearch-body', text + (data.ms ? '\n\n耗时: ' + data.ms + 'ms' : ''), false);
+    showToast('联网搜索完成','success');
+  } catch(e) {
+    setModuleBody('mod-websearch-body', '错误: ' + e.message, false);
+    showToast('联网搜索失败','error');
+  }
+}
+
+async function testIssueSearch() {
+  setModuleBody('mod-issue-search-body', '问题语境搜索中（联网+LLM整理）…', false);
+  try {
+    const res = await fetch(getApiBase() + '/api/test/step?node=search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(getPayload({ category: 'EMOTION_DEEP' })),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || res.statusText);
+    const out = data.output || {};
+    let text = '';
+    if (out.issue_search_query) text += `搜索 Query:\n${out.issue_search_query}\n\n`;
+    if (out.web_search !== undefined) text += `联网搜索: ${out.web_search ? '已启用' : '未启用'}\n\n`;
+    if (out.issue_context) text += `── LLM 整理语料 ──\n${out.issue_context.length > 600 ? out.issue_context.slice(0,600) + '...' : out.issue_context}\n\n`;
+    if (out.issue_web_context) text += `── 原始联网上下文 ──\n${out.issue_web_context.length > 400 ? out.issue_web_context.slice(0,400) + '...' : out.issue_web_context}\n\n`;
+    if (!text) text = JSON.stringify(out, null, 2);
+    if (data.ms) text += `耗时: ${data.ms}ms`;
+    setModuleBody('mod-issue-search-body', text, false);
+    showToast('问题语境搜索完成','success');
+  } catch(e) {
+    setModuleBody('mod-issue-search-body', '错误: ' + e.message, false);
+    showToast('问题语境搜索失败','error');
+  }
+}
+
+async function testRouterModule() {
+  setModuleBody('mod-router-body', '分类路由中…', false);
+  try {
+    const res = await fetch(getApiBase() + '/api/test/step?node=router', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(getPayload()),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || res.statusText);
+    const out = data.output || {};
+    const cat = out.category || 'UNKNOWN';
+    const web = out.web_search ? '是' : '否';
+    let text = `分类: ${cat}\n联网: ${web}\n`;
+    if (CATEGORY_DESC[cat]) text += `说明: ${CATEGORY_DESC[cat]}\n`;
+    if (data.prompt) text += `\n── Prompt ──\n${data.prompt}\n`;
+    if (data.ms) text += `\n耗时: ${data.ms}ms`;
+    setModuleBody('mod-router-body', text, false);
+    showToast('分类路由完成','success');
+  } catch(e) {
+    setModuleBody('mod-router-body', '错误: ' + e.message, false);
+    showToast('分类路由失败','error');
+  }
+}
+
+function clearModuleResults() {
+  ['mod-geocode','mod-astro','mod-ephemeris','mod-websearch','mod-issue-search','mod-router'].forEach(id => {
+    setModuleBody(id + '-body', '点击左侧按钮测试…', true);
+  });
+  setPhase('modulesPhase','modulesPhaseText','idle','选择功能模块测试');
+  showToast('已清空','info');
+}
+
+// ══════════════════════════════════════════
+//  Tab 4: Pipeline Test
+// ══════════════════════════════════════════
 const PRESETS = {
-  career: {
-    birth_time: '1995-06-15 14:30', birth_place: '甘肃省天水市武山县',
-    mbti: 'INFP', blood_type: 'A', emotion_keyword: '焦虑迷茫',
-    question: '工作三年了还是感觉自己很迷茫，不知道自己适合做什么，每天都很焦虑，感觉同龄人都比我优秀。',
-  },
-  love: {
-    birth_time: '1998-11-20 08:15', birth_place: '浙江省杭州市西湖区',
-    mbti: 'ENFJ', blood_type: 'O', emotion_keyword: '心碎难过',
-    question: '和在一起两年的恋人分手了，感觉世界都塌了，不知道怎么走出来，每天都忍不住想他。',
-  },
-  self: {
-    birth_time: '2000-03-08 22:45', birth_place: '四川省成都市武侯区',
-    mbti: 'INFJ', blood_type: 'AB', emotion_keyword: '自我怀疑',
-    question: '总觉得自己不够好，不管做什么都拿不出手，害怕被别人评价，社交时特别紧张，甚至在人群里会手抖。',
-  },
-  burnout: {
-    birth_time: '1992-09-12 10:00', birth_place: '北京市海淀区',
-    mbti: 'INTJ', blood_type: 'B', emotion_keyword: '疲惫倦怠',
-    question: '在大厂做了五年，升到了不错的职级，但最近完全没动力了，每天像行尸走肉，开始怀疑这一切的意义。',
-  },
+  career: { birth_time:'1995-06-15 14:30',birth_place:'甘肃省天水市武山县',mbti:'INFP',blood_type:'A',emotion_keyword:'焦虑迷茫',question:'工作三年了还是感觉自己很迷茫，不知道自己适合做什么，每天都很焦虑，感觉同龄人都比我优秀。' },
+  love: { birth_time:'1998-11-20 08:15',birth_place:'浙江省杭州市西湖区',mbti:'ENFJ',blood_type:'O',emotion_keyword:'心碎难过',question:'和在一起两年的恋人分手了，感觉世界都塌了，不知道怎么走出来，每天都忍不住想他。' },
+  self: { birth_time:'2000-03-08 22:45',birth_place:'四川省成都市武侯区',mbti:'INFJ',blood_type:'AB',emotion_keyword:'自我怀疑',question:'总觉得自己不够好，不管做什么都拿不出手，害怕被别人评价，社交时特别紧张。' },
+  burnout: { birth_time:'1992-09-12 10:00',birth_place:'北京市海淀区',mbti:'INTJ',blood_type:'B',emotion_keyword:'疲惫倦怠',question:'在大厂做了五年，升到了不错的职级，但最近完全没动力了，每天像行尸走肉。' },
+  chat: { birth_time:'1995-06-15 14:30',birth_place:'甘肃省天水市武山县',mbti:'ENFP',blood_type:'A',emotion_keyword:'开心',question:'你好呀！今天天气真不错，给我讲个有趣的事情吧' },
+  webq: { birth_time:'1995-06-15 14:30',birth_place:'上海市',mbti:'INTJ',blood_type:'A',emotion_keyword:'好奇',question:'最近有什么重大新闻？AI行业有什么新进展？' },
+  tarot: { birth_time:'1995-06-15 14:30',birth_place:'上海市',mbti:'INFP',blood_type:'A',emotion_keyword:'迷茫',question:'帮我抽一组塔罗牌看看最近运势',category:'TAROT' },
+  emotion_deep: { birth_time:'1995-06-15 14:30',birth_place:'甘肃省天水市武山县',mbti:'INFP',blood_type:'A',emotion_keyword:'焦虑',question:'工作压力太大了，每天加班到很晚，感觉生活没有出路',category:'EMOTION_DEEP' },
 };
 
 function loadPreset(key) {
@@ -819,316 +1421,213 @@ function loadPreset(key) {
   document.getElementById('bloodType').value = p.blood_type;
   document.getElementById('emotion').value = p.emotion_keyword;
   document.getElementById('question').value = p.question;
-  showToast('已加载：' + key, 'success');
+  if (p.category) document.getElementById('category').value = p.category;
+  showToast('已加载: ' + key,'success');
 }
 
-// ── Health check ───────────────────────
-async function checkHealth() {
-  const dot = document.getElementById('statusDot');
-  const text = document.getElementById('statusText');
-  try {
-    const res = await fetch(getApiBase() + '/health', { signal: AbortSignal.timeout(5000) });
-    const data = await res.json();
-    if (data.status === 'ok') {
-      dot.className = 'status-dot ok';
-      text.innerHTML = '<span class="status-dot ok"></span>已连接';
-      showToast('后端连接正常', 'success');
-    }
-  } catch (e) {
-    dot.className = 'status-dot';
-    text.innerHTML = '<span class="status-dot"></span>连接失败';
-    showToast('无法连接: ' + e.message, 'error');
-  }
-}
-
-// ── Step state ──────────────────────────
-function setStepState(step, state) {
-  const el = document.getElementById('step-' + step);
-  if (!el) return;
-  el.className = 'step ' + state;
-}
-
-function resetSteps() {
-  STEPS.forEach(s => setStepState(s, ''));
-}
-
-function setPhase(phase, text) {
-  const el = document.getElementById('phaseIndicator');
-  el.className = 'phase-indicator phase-' + phase;
-  document.getElementById('phaseText').textContent = text;
-}
-
-function setBody(id, text) {
-  const el = document.getElementById('body-' + id);
-  if (!el) return;
-  if (text) {
-    el.textContent = text;
-    el.classList.remove('placeholder');
-  } else {
-    el.textContent = id === 'final' ? '运行全链路后显示最终回复...' : '...';
-    el.classList.add('placeholder');
-  }
-}
-
-function setTime(id, ms) {
-  const el = document.getElementById('time-' + id);
-  if (el) el.textContent = ms ? ms + 'ms' : '';
-}
-
-function scrollToCard(id) {
-  const el = document.getElementById('card-' + id);
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
-
-function newSession() {
-  currentSessionId = null;
-  updateSessionInfo();
-  document.getElementById('supplements').value = '';
-  document.getElementById('supplementsField').style.display = 'none';
-  document.getElementById('clarifyBox').classList.remove('visible');
-  showToast('已新建会话', 'info');
-}
-
-function resetAll() {
-  resetSteps();
-  setPhase('idle', '等待运行');
-  STEPS.forEach(s => { setBody(s, ''); setTime(s, ''); });
-  setBody('final', '');
-  document.getElementById('body-raw').textContent = '// 运行后显示';
-  document.getElementById('clarifyBox').classList.remove('visible');
-  document.getElementById('supplementsField').style.display = 'none';
-  document.getElementById('supplements').value = '';
-  document.getElementById('clarifyAnswer').value = '';
-  currentSessionId = null;
-  updateSessionInfo();
-}
-
-// ── Toast ───────────────────────────────
-function showToast(msg, type = '') {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = 'toast ' + type + ' show';
-  clearTimeout(el._timer);
-  el._timer = setTimeout(() => el.className = 'toast', 2500);
-}
-
-// ── Single node test ────────────────────
-async function testNode(node) {
-  scrollToCard(node);
-  setStepState(node, 'running');
-  setBody(node, '');
-  setTime(node, '');
-  const t0 = performance.now();
-
-  try {
-    const payload = getPayload();
-    const res = await fetch(getApiBase() + '/api/test/node?node=' + node, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-
-    if (res.ok) {
-      const ms = Math.round(performance.now() - t0);
-      setStepState(node, 'done');
-      const output = data.output || {};
-      const key = Object.keys(output).find(k => k !== 'request') || '';
-      setBody(node, output[key] || JSON.stringify(output, null, 2));
-      setTime(node, ms);
-      showToast(`${STEP_LABELS[node] || node} 完成 (${ms}ms)`, 'success');
-    } else {
-      setStepState(node, 'error');
-      setBody(node, '错误: ' + (data.detail || res.statusText));
-      showToast('测试失败: ' + (data.detail || res.statusText), 'error');
-    }
-  } catch (e) {
-    setStepState(node, 'error');
-    setBody(node, '网络错误: ' + e.message);
-    showToast('请求失败: ' + e.message, 'error');
-  }
-}
-
-// ── Full pipeline ───────────────────────
 async function runFullPipeline() {
   const btn = document.getElementById('btnRunAll');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> 执行中...';
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 执行中…';
+  resetPSteps();
+  setPhase('pipelinePhase','pipelinePhaseText','running','正在执行…');
 
-  resetSteps();
   const t0 = performance.now();
-
   try {
-    const payload = getPayload();
-    setPhase('clarifying', '正在执行...');
-
     const res = await fetch(getApiBase() + '/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(getPayload()),
     });
-
     const data = await res.json();
     const totalMs = Math.round(performance.now() - t0);
 
-    // 保存 session_id
-    if (data.session_id) {
-      currentSessionId = data.session_id;
-      updateSessionInfo();
-    }
-
-    // 原始 JSON
-    document.getElementById('body-raw').textContent = JSON.stringify(data, null, 2);
+    if (data.session_id) { currentSessionId = data.session_id; document.getElementById('sessionInfo').innerHTML = '<span class="session-badge">' + data.session_id.slice(0,12) + '…</span>'; }
+    document.getElementById('pbody-raw').textContent = JSON.stringify(data, null, 2);
 
     if (res.ok) {
-      if (data.phase === 'clarifying') {
-        // 第一轮：追问
-        setStepState('clarify', 'done');
-        setBody('clarify', data.reply);
-        setTime('clarify', totalMs);
-        setPhase('clarifying', '追问阶段 — 请补充回答');
+      const category = (data.debug_info && data.debug_info.category) || 'GENERAL';
+      // 显示分类结果
+      const badge = document.getElementById('pipelineRouterBadge');
+      badge.textContent = category;
+      badge.className = 'router-badge rb-' + category;
+      document.getElementById('pipelineRouterDesc').textContent = CATEGORY_DESC[category] || '未知分类';
+      document.getElementById('pipelineRouterResult').classList.add('show');
 
-        // 显示追问对话框
+      if (data.phase === 'clarifying') {
+        markBranchSteps(category, 'clarifying');
+        document.getElementById('pbody-clarify').textContent = data.reply;
+        document.getElementById('pbody-clarify').classList.remove('placeholder');
+        document.getElementById('ptime-clarify').textContent = totalMs + 'ms';
+        setPhase('pipelinePhase','pipelinePhaseText','clarifying','追问阶段 — 请补充回答 [' + category + ']');
         document.getElementById('clarifyBox').classList.add('visible');
         document.getElementById('clarifyBubble').textContent = data.reply;
-        document.getElementById('supplementsField').style.display = 'block';
-        showToast('AI 追问完成 — 请回答补充问题', 'info');
-
+        document.getElementById('supplementsField').style.display = '';
+        showToast('AI 追问完成 — 请回答 (' + category + ')','info');
       } else {
-        // 第二轮：完整分析
-        STEPS.forEach(s => setStepState(s, 'done'));
-
-        // 最终回复
-        const finalEl = document.getElementById('body-final');
-        finalEl.textContent = data.reply;
-        finalEl.classList.remove('placeholder');
-
-        // 解析 debug_info 填充各卡片
+        markBranchSteps(category, 'complete');
+        const finalEl = document.getElementById('pbody-final');
+        finalEl.textContent = data.reply; finalEl.classList.remove('placeholder');
         if (data.debug_info) {
           const dbg = data.debug_info;
-          if (dbg.astro_analysis) setBody('astro', dbg.astro_analysis);
-          if (dbg.ephemeris_summary) setBody('ephemeris', dbg.ephemeris_summary);
+          if (dbg.astro_analysis) { document.getElementById('pbody-astro').textContent = dbg.astro_analysis; document.getElementById('pbody-astro').classList.remove('placeholder'); }
+          if (dbg.ephemeris_summary) { document.getElementById('pbody-ephemeris').textContent = dbg.ephemeris_summary; document.getElementById('pbody-ephemeris').classList.remove('placeholder'); }
+          // WEB 分支显示联网上下文卡片
+          if (category === 'WEB' && dbg.web_context) {
+            const webCard = document.getElementById('card-p-webcontext');
+            webCard.style.display = '';
+            const webBody = document.getElementById('pbody-webcontext');
+            webBody.textContent = dbg.web_context; webBody.classList.remove('placeholder');
+          }
+          // EMOTION_DEEP 分支显示搜索详情
           if (dbg.pipeline_trace) {
             const tr = dbg.pipeline_trace;
-            if (tr.clarification) setBody('clarify', tr.clarification);
-            if (tr.astro_focus) setBody('astro_insight', tr.astro_focus);
-            if (tr.issue_context) setBody('search', tr.issue_context);
-            if (tr.root_logic) setBody('analyze', tr.root_logic);
+            if (tr.clarification) { document.getElementById('pbody-clarify').textContent = tr.clarification; document.getElementById('pbody-clarify').classList.remove('placeholder'); }
+            if (tr.astro_focus) { document.getElementById('pbody-astro_insight').textContent = tr.astro_focus; document.getElementById('pbody-astro_insight').classList.remove('placeholder'); }
+            if (tr.issue_context) { document.getElementById('pbody-search').textContent = tr.issue_context; document.getElementById('pbody-search').classList.remove('placeholder'); }
+            if (tr.issue_search_query) { document.getElementById('psearch-query').textContent = tr.issue_search_query; document.getElementById('psearch-query-row').style.display = ''; }
+            if (tr.issue_web_context) { document.getElementById('psearch-web-context').textContent = tr.issue_web_context.length > 800 ? tr.issue_web_context.slice(0,800) + '...' : tr.issue_web_context; document.getElementById('psearch-web-row').style.display = ''; }
+            if (tr.root_logic) { document.getElementById('pbody-analyze').textContent = tr.root_logic; document.getElementById('pbody-analyze').classList.remove('placeholder'); }
           }
-          setBody('combine', data.reply);
         }
-
-        setTime('combine', totalMs);
-        setPhase('complete', `完成 (${totalMs}ms)`);
-        showToast(`全链路完成 (${totalMs}ms)`, 'success');
+        const ptimeCombine = document.getElementById('ptime-combine');
+        if (ptimeCombine) ptimeCombine.textContent = totalMs + 'ms';
+        setPhase('pipelinePhase','pipelinePhaseText','complete','完成 [' + category + '] (' + totalMs + 'ms)');
+        showToast('全链路完成 [' + category + '] (' + totalMs + 'ms)','success');
       }
     } else {
-      STEPS.forEach(s => setStepState(s, 'error'));
-      setPhase('error', '失败');
-      showToast('失败: ' + (data.detail || res.statusText), 'error');
+      PIPELINE_STEPS.forEach(s => setPStep(s, 'error'));
+      setPhase('pipelinePhase','pipelinePhaseText','error','失败');
+      showToast('失败: ' + (data.detail || res.statusText),'error');
     }
-  } catch (e) {
-    STEPS.forEach(s => setStepState(s, 'error'));
-    setPhase('error', '网络错误');
-    showToast('请求失败: ' + e.message, 'error');
+  } catch(e) {
+    PIPELINE_STEPS.forEach(s => setPStep(s, 'error'));
+    setPhase('pipelinePhase','pipelinePhaseText','error','网络错误');
+    showToast('请求失败: ' + e.message,'error');
   }
 
-  btn.disabled = false;
-  btn.textContent = '运行全链路';
+  btn.disabled = false; btn.innerHTML = '&#x1F680; 运行全链路';
 }
 
-// ── Clarify only ────────────────────────
-async function runClarifyOnly() {
-  const btn = document.getElementById('btnClarify');
-  btn.disabled = true;
-  btn.textContent = '追问中...';
+function clearStreamOutput() {
+  const el = document.getElementById('body-stream');
+  el.textContent = '点击"流式测试"后显示...'; el.classList.add('placeholder');
+}
 
-  resetSteps();
-  setStepState('clarify', 'running');
-  setPhase('clarifying', '正在追问...');
+function appendStreamOutput(text) {
+  const el = document.getElementById('body-stream');
+  if (el.classList.contains('placeholder')) { el.textContent = ''; el.classList.remove('placeholder'); }
+  el.textContent += text; el.scrollTop = el.scrollHeight;
+}
+
+function parseSseMessage(block) {
+  const message = { event:'message', data:{} };
+  const dataLines = [];
+  block.split(/\r?\n/).forEach(line => {
+    if (line.startsWith('event:')) message.event = line.slice(6).trim();
+    if (line.startsWith('data:')) dataLines.push(line.slice(5).trimStart());
+  });
+  if (dataLines.length) { try { message.data = JSON.parse(dataLines.join('\n')); } catch(e) { message.data = { raw: dataLines.join('\n') }; } }
+  return message;
+}
+
+async function runStreamTest() {
+  const btn = document.getElementById('btnStream');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 流式中…';
+  resetPSteps(); clearStreamOutput();
+  setPhase('pipelinePhase','pipelinePhaseText','running','正在建立流式连接…');
   const t0 = performance.now();
 
   try {
-    // 仅追问：不传 supplements
-    const payload = getPayload();
-    delete payload.supplements;
-    const res = await fetch(getApiBase() + '/api/chat', {
+    const res = await fetch(getApiBase() + '/api/chat/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(getPayload()),
     });
-    const data = await res.json();
-    const ms = Math.round(performance.now() - t0);
+    if (!res.ok || !res.body) throw new Error(await res.text() || res.statusText);
 
-    // 保存 session_id
-    if (data.session_id) {
-      currentSessionId = data.session_id;
-      updateSessionInfo();
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const blocks = buffer.split(/\n\n/);
+      buffer = blocks.pop() || '';
+      for (const block of blocks) {
+        const msg = parseSseMessage(block.trim());
+        const data = msg.data || {};
+        if (msg.event === 'session' && data.session_id) {
+          currentSessionId = data.session_id;
+          document.getElementById('sessionInfo').innerHTML = '<span class="session-badge">' + data.session_id.slice(0,12) + '…</span>';
+        } else if (msg.event === 'token') {
+          appendStreamOutput(data.text || '');
+          if (data.node) setPStep(data.node.replace('_node',''), 'running');
+        } else if (msg.event === 'done') {
+          const ms = Math.round(performance.now() - t0);
+          const doneCategory = (data.debug_info && data.debug_info.category) || 'GENERAL';
+          markBranchSteps(doneCategory, data.phase || 'complete');
+          // 显示分类结果
+          const sBadge = document.getElementById('pipelineRouterBadge');
+          sBadge.textContent = doneCategory;
+          sBadge.className = 'router-badge rb-' + doneCategory;
+          document.getElementById('pipelineRouterDesc').textContent = CATEGORY_DESC[doneCategory] || '未知分类';
+          document.getElementById('pipelineRouterResult').classList.add('show');
+          if (data.session_id) { currentSessionId = data.session_id; document.getElementById('sessionInfo').innerHTML = '<span class="session-badge">' + data.session_id.slice(0,12) + '…</span>'; }
+          document.getElementById('pbody-raw').textContent = JSON.stringify(data, null, 2);
+          const finalEl = document.getElementById('pbody-final');
+          finalEl.textContent = data.reply || ''; finalEl.classList.remove('placeholder');
+          if (data.debug_info) {
+            const dbg = data.debug_info;
+            if (dbg.astro_analysis) { document.getElementById('pbody-astro').textContent = dbg.astro_analysis; document.getElementById('pbody-astro').classList.remove('placeholder'); }
+            if (dbg.ephemeris_summary) { document.getElementById('pbody-ephemeris').textContent = dbg.ephemeris_summary; document.getElementById('pbody-ephemeris').classList.remove('placeholder'); }
+            if (doneCategory === 'WEB' && dbg.web_context) {
+              const webCard = document.getElementById('card-p-webcontext');
+              webCard.style.display = '';
+              const webBody = document.getElementById('pbody-webcontext');
+              webBody.textContent = dbg.web_context; webBody.classList.remove('placeholder');
+            }
+            if (dbg.pipeline_trace) {
+              const tr = dbg.pipeline_trace;
+              if (tr.astro_focus) { document.getElementById('pbody-astro_insight').textContent = tr.astro_focus; document.getElementById('pbody-astro_insight').classList.remove('placeholder'); }
+              if (tr.issue_context) { document.getElementById('pbody-search').textContent = tr.issue_context; document.getElementById('pbody-search').classList.remove('placeholder'); }
+              if (tr.issue_search_query) { document.getElementById('psearch-query').textContent = tr.issue_search_query; document.getElementById('psearch-query-row').style.display = ''; }
+              if (tr.issue_web_context) { document.getElementById('psearch-web-context').textContent = tr.issue_web_context.length > 800 ? tr.issue_web_context.slice(0,800) + '...' : tr.issue_web_context; document.getElementById('psearch-web-row').style.display = ''; }
+              if (tr.root_logic) { document.getElementById('pbody-analyze').textContent = tr.root_logic; document.getElementById('pbody-analyze').classList.remove('placeholder'); }
+            }
+          }
+          const ptimeCombine2 = document.getElementById('ptime-combine');
+          if (ptimeCombine2) ptimeCombine2.textContent = ms + 'ms';
+          setPhase('pipelinePhase','pipelinePhaseText','complete','流式完成 [' + doneCategory + '] (' + ms + 'ms)');
+          showToast('流式请求完成','success');
+        } else if (msg.event === 'error') {
+          setPhase('pipelinePhase','pipelinePhaseText','error','流式错误');
+          appendStreamOutput('\n[错误] ' + (data.message || '流式请求失败'));
+          showToast(data.message || '流式请求失败','error');
+        }
+      }
     }
-
-    // 原始 JSON
-    document.getElementById('body-raw').textContent = JSON.stringify(data, null, 2);
-
-    if (res.ok && data.phase === 'clarifying') {
-      setStepState('clarify', 'done');
-      setBody('clarify', data.reply);
-      setTime('clarify', ms);
-      setPhase('clarifying', '追问完成 — 请补充回答');
-
-      document.getElementById('clarifyBox').classList.add('visible');
-      document.getElementById('clarifyBubble').textContent = data.reply;
-      document.getElementById('supplementsField').style.display = 'block';
-      showToast('追问完成 — 请补充回答', 'info');
-    } else if (res.ok) {
-      // 直接返回了完整分析（可能是已有 supplements）
-      setStepState('clarify', 'done');
-      setBody('clarify', '(跳过追问，直接分析)');
-      setPhase('complete', '已完成');
-      const finalEl = document.getElementById('body-final');
-      finalEl.textContent = data.reply;
-      finalEl.classList.remove('placeholder');
-      showToast('已直接返回完整分析', 'info');
-    } else {
-      setStepState('clarify', 'error');
-      setPhase('error', '追问失败');
-      showToast('追问失败: ' + (data.detail || res.statusText), 'error');
-    }
-  } catch (e) {
-    setStepState('clarify', 'error');
-    setPhase('error', '网络错误');
-    showToast('请求失败: ' + e.message, 'error');
+  } catch(e) {
+    setPhase('pipelinePhase','pipelinePhaseText','error','流式请求失败');
+    appendStreamOutput('\n[错误] ' + e.message);
+    showToast('流式请求失败: ' + e.message,'error');
   }
 
-  btn.disabled = false;
-  btn.textContent = '仅追问';
+  btn.disabled = false; btn.innerHTML = '&#x1F4E1; 流式测试';
 }
 
-// ── Submit clarification ────────────────
 async function submitClarification() {
   const answer = document.getElementById('clarifyAnswer').value.trim();
-  if (!answer) {
-    showToast('请先填写补充回答', 'error');
-    return;
-  }
-  // 将补充回答写入 supplements 字段
+  if (!answer) { showToast('请先填写补充回答','error'); return; }
   document.getElementById('supplements').value = answer;
   document.getElementById('clarifyBox').classList.remove('visible');
-  // 然后运行完整链路（带 supplements）
   await runFullPipeline();
 }
 
-// ── Copy helpers ────────────────────────
-function copyReply() {
-  const text = document.getElementById('body-final').textContent;
-  navigator.clipboard.writeText(text).then(() => showToast('已复制最终回复', 'success'));
-}
-
-function copyRaw() {
-  const text = document.getElementById('body-raw').textContent;
-  navigator.clipboard.writeText(text).then(() => showToast('已复制 JSON', 'success'));
-}
-
-// ── Init ────────────────────────────────
+// ══════════════════════════════════════════
+//  Init
+// ══════════════════════════════════════════
 checkHealth();
 </script>
 </body>

@@ -2,16 +2,18 @@
 	<view class="card">
 		<view class="card-header">
 			<text class="card-title">今日心情</text>
-			<view class="update-info" @tap="goToRecord">
+			<view class="update-info" :class="{ 'update-pending': !updatedToday }" @tap="goToRecord">
 				<view class="update-dot"></view>
-				<text class="update-text">今日更新</text>
+				<text class="update-text">{{ updatedToday ? '已更新' : '待更新' }}</text>
 			</view>
 		</view>
-		<view class="emotion-content">
+
+		<!-- 已更新：显示分数 + 圆环 -->
+		<view v-if="updatedToday" class="emotion-content">
 			<view class="score-display">
 				<view class="score-left">
 					<view class="score-num-row">
-						<text class="score-big">{{ score }}</text>
+						<text class="score-big">{{ calcScore }}</text>
 						<text class="score-unit">分</text>
 					</view>
 					<text class="score-label">{{ moodLabel }}</text>
@@ -34,6 +36,17 @@
 				</view>
 			</view>
 		</view>
+
+		<!-- 未更新：显示待更新占位 -->
+		<view v-else class="emotion-content pending-content">
+			<view class="pending-center">
+				<view class="pending-icon-wrap">
+					<text class="pending-icon">☁️</text>
+				</view>
+				<text class="pending-hint">点击记录今日心情</text>
+				<text class="pending-sub">情绪 60% + 活力 40% = 综合分</text>
+			</view>
+		</view>
 	</view>
 </template>
 
@@ -43,7 +56,8 @@
 		props: {
 			score: { type: Number, default: 89 },
 			emoVal: { type: Number, default: 76 },
-			vitVal: { type: Number, default: 92 }
+			vitVal: { type: Number, default: 92 },
+			updatedToday: { type: Boolean, default: true }
 		},
 		mounted: function() {
 			var self = this
@@ -52,8 +66,12 @@
 			})
 		},
 		computed: {
+			calcScore: function() {
+				return Math.round(this.emoVal * 0.6 + this.vitVal * 0.4)
+			},
 			moodLabel: function() {
-				var s = this.score
+				if (!this.updatedToday) return ''
+				var s = this.calcScore
 				if (s >= 90) return '元气满满 ✦'
 				if (s >= 75) return '状态良好'
 				if (s >= 60) return '还算平稳'
@@ -66,6 +84,7 @@
 				this.$emit('open-record')
 			},
 			drawRings: function() {
+				if (!this.updatedToday) return
 				var self = this
 				var q = uni.createSelectorQuery().in(this)
 				q.select('.emo-rc').boundingClientRect()
@@ -104,6 +123,16 @@
 
 				ctx.draw()
 			}
+		},
+		watch: {
+			updatedToday: function(val) {
+				if (val) {
+					var self = this
+					this.$nextTick(function() {
+						setTimeout(function() { self.drawRings() }, 150)
+					})
+				}
+			}
 		}
 	}
 </script>
@@ -136,22 +165,39 @@
 		padding: 6rpx 16rpx;
 		border-radius: 20rpx;
 	}
+	.update-info.update-pending {
+		background: rgba(220,180,80,0.12);
+	}
 	.update-dot {
 		width: 10rpx;
 		height: 10rpx;
 		border-radius: 50%;
 		background: #9088c0;
 	}
+	.update-pending .update-dot {
+		background: #d4a84a;
+		animation: dotPulse 1.5s ease-in-out infinite;
+	}
+	@keyframes dotPulse {
+		0%, 100% { opacity: 0.35; transform: scale(0.85); }
+		50% { opacity: 1; transform: scale(1); }
+	}
 	.update-text {
 		font-size: 22rpx;
 		color: #9088b8;
 		font-weight: 600;
 	}
+	.update-pending .update-text {
+		color: #c49a48;
+	}
+
 	.emotion-content {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 	}
+
+	/* ── 已更新状态 ── */
 	.score-display {
 		display: flex;
 		align-items: flex-start;
@@ -217,5 +263,36 @@
 		font-size: 16rpx;
 		color: #9088b8;
 		transform: scale(0.9);
+	}
+
+	/* ── 待更新状态 ── */
+	.pending-content {
+		min-height: 160rpx;
+	}
+	.pending-center {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 20rpx 0;
+	}
+	.pending-icon-wrap {
+		width: 72rpx; height: 72rpx;
+		border-radius: 50%;
+		background: linear-gradient(135deg, #f0edf9, #e8e3f4);
+		display: flex; align-items: center; justify-content: center;
+		margin-bottom: 14rpx;
+	}
+	.pending-icon { font-size: 32rpx; }
+	.pending-hint {
+		font-size: 26rpx;
+		color: #7d6bd6;
+		font-weight: 500;
+		margin-bottom: 6rpx;
+	}
+	.pending-sub {
+		font-size: 20rpx;
+		color: #a098bc;
 	}
 </style>

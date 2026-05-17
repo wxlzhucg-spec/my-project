@@ -1,7 +1,7 @@
 <template>
 	<view class="card">
 		<view class="card-header">
-			<text class="card-title">近15日情绪变化</text>
+			<text class="card-title">近15日心情变化</text>
 			<view class="summary-btn" @tap="onSummary">
 				<text class="summary-text">影子总结</text>
 			</view>
@@ -15,20 +15,35 @@
 <script>
 	export default {
 		name: "home-trend-chart",
+		props: {
+			trendData: {
+				type: Array,
+				default: function() { return [] }
+			}
+		},
 		data: function() {
 			return {
-				days: [
-					{ d: '3/8',  s: 65 }, { d: '3/9',  s: 58 }, { d: '3/10', s: 72 },
-					{ d: '3/11', s: 45 }, { d: '3/12', s: 38 }, { d: '3/13', s: 55 },
-					{ d: '3/14', s: 68 }, { d: '3/15', s: 75 }, { d: '3/16', s: 62 },
-					{ d: '3/17', s: 70 }, { d: '3/18', s: 82 }, { d: '3/19', s: 78 },
-					{ d: '3/20', s: 60 }, { d: '3/21', s: 73 }, { d: '3/22', s: 76 }
-				],
+				days: [],
 				activeIdx: -1,
 				pts: [],
 				cRect: null,
 				cW: 0, cH: 0,
 				padT: 30, padB: 22, padL: 12, padR: 16
+			}
+		},
+		watch: {
+			trendData: {
+				handler: function(val) {
+					if (val && val.length > 0) {
+						this.days = val
+						if (this.cW > 0) {
+							this.computePoints()
+							this.render()
+						}
+					}
+				},
+				immediate: true,
+				deep: true
 			}
 		},
 		mounted: function() {

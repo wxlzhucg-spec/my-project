@@ -1,60 +1,493 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>router_test 已迁移</title>
-  <meta http-equiv="refresh" content="0; url=/static/test_panel.html" />
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      margin: 40px;
-      color: #111827;
-      background: #f8fafc;
-    }
-    .card {
-      max-width: 720px;
-      padding: 24px;
-      background: #fff;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
-    }
-    h1 {
-      font-size: 20px;
-      margin: 0 0 12px;
-    }
-    p {
-      margin: 0 0 12px;
-      line-height: 1.6;
-    }
-    a.button {
-      display: inline-block;
-      margin-top: 8px;
-      padding: 10px 14px;
-      border-radius: 8px;
-      background: #2563eb;
-      color: #fff;
-      text-decoration: none;
-    }
-    code {
-      background: #f1f5f9;
-      padding: 2px 6px;
-      border-radius: 6px;
-    }
-  </style>
-  <script>
-    window.addEventListener("load", function () {
-      window.location.replace("/static/test_panel.html");
-    });
-  </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>影子 AI — 分类测试</title>
+<style>
+  :root {
+    --bg: #0d0f1a;
+    --surface: #161829;
+    --surface2: #1c1f35;
+    --border: #2a2d45;
+    --text: #e0e0ec;
+    --text-dim: #8888a8;
+    --accent: #7c6ef0;
+    --accent2: #a78bfa;
+    --green: #34d399;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --blue: #60a5fa;
+    --orange: #fb923c;
+    --pink: #f472b6;
+    --cyan: #22d3ee;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 32px 16px;
+  }
+  .container { max-width: 800px; margin: 0 auto; }
+
+  h1 {
+    text-align: center;
+    font-size: 22px;
+    margin-bottom: 8px;
+    color: var(--accent2);
+  }
+  .subtitle {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-bottom: 28px;
+  }
+
+  /* 表单 */
+  .form-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  .form-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 14px;
+    align-items: flex-end;
+  }
+  .form-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .form-group.narrow { flex: 0 0 120px; }
+  label {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+  input, select, textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 10px 12px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+  }
+  textarea {
+    resize: vertical;
+    min-height: 80px;
+    width: 100%;
+  }
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 28px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .2s, transform .1s;
+    white-space: nowrap;
+  }
+  button:hover { background: var(--accent2); }
+  button:active { transform: scale(.97); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* 快捷用例 */
+  .quick-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .quick-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  .quick-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .quick-btn:hover { border-color: var(--accent); color: var(--accent2); }
+  .quick-btn .tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 4px;
+    font-weight: 600;
+  }
+  .tag-general { background: #34d39930; color: var(--green); }
+  .tag-web { background: #60a5fa30; color: var(--blue); }
+  .tag-emotion { background: #f472b630; color: var(--pink); }
+
+  /* 结果 */
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    display: none;
+  }
+  .result-card.show { display: block; }
+
+  .result-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .category-badge {
+    font-size: 20px;
+    font-weight: 800;
+    padding: 8px 20px;
+    border-radius: 8px;
+    letter-spacing: 1px;
+  }
+  .badge-GENERAL { background: #34d39920; color: var(--green); border: 1px solid #34d39940; }
+  .badge-WEB { background: #60a5fa20; color: var(--blue); border: 1px solid #60a5fa40; }
+  .badge-EMOTION_DEEP { background: #f472b620; color: var(--pink); border: 1px solid #f472b640; }
+  .badge-UNKNOWN { background: #fbbf2420; color: var(--yellow); border: 1px solid #fbbf2440; }
+
+  .category-desc {
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .detail-item {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 10px 14px;
+  }
+  .detail-item .key {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 2px;
+  }
+  .detail-item .val {
+    font-size: 14px;
+    color: var(--text);
+    word-break: break-all;
+  }
+
+  /* 历史记录 */
+  .history-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .history-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent2);
+    margin-bottom: 12px;
+  }
+  .history-list { display: flex; flex-direction: column; gap: 6px; }
+  .history-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface2);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  .history-item .hi-cat {
+    font-weight: 700;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .history-item .hi-q {
+    flex: 1;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .history-item .hi-time {
+    color: var(--text-dim);
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .empty-hint {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 13px;
+    padding: 20px;
+  }
+
+  /* 统计 */
+  .stats-bar {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+  .stat-item {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .stat-item span { font-weight: 700; }
+  .stat-item .s-general { color: var(--green); }
+  .stat-item .s-web { color: var(--blue); }
+  .stat-item .s-emotion { color: var(--pink); }
+
+  .loading {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg {
+    color: var(--red);
+    font-size: 13px;
+    margin-top: 8px;
+  }
+</style>
 </head>
 <body>
-  <div class="card">
-    <h1>测试页已迁移</h1>
-    <p>正在跳转到 <code>/static/test_panel.html</code>。</p>
-    <p>如果没有自动跳转，请点下面这个按钮手动打开。</p>
-    <a class="button" href="/static/test_panel.html">打开测试页</a>
+<div class="container">
+  <h1>🔀 分类路由器测试</h1>
+  <p class="subtitle">输入用户问题，测试 LLM 分类结果是否准确</p>
+
+  <!-- 快捷用例 -->
+  <div class="quick-label">快捷用例（点击填入）：</div>
+  <div class="quick-bar">
+    <button class="quick-btn" onclick="fill('今天天气真好啊','平静','INFP')">今天天气真好<span class="tag tag-general">G</span></button>
+    <button class="quick-btn" onclick="fill('给我讲个笑话','开心','ENFP')">讲个笑话<span class="tag tag-general">G</span></button>
+    <button class="quick-btn" onclick="fill('推荐一部电影','无聊','INFP')">推荐电影<span class="tag tag-general">G</span></button>
+    <button class="quick-btn" onclick="fill('最近有什么新闻','好奇','INTJ')">最近新闻<span class="tag tag-web">W</span></button>
+    <button class="quick-btn" onclick="fill('今天A股大盘多少点','焦虑','ISTJ')">A股大盘<span class="tag tag-web">W</span></button>
+    <button class="quick-btn" onclick="fill('iPhone 16价格多少','好奇','ENTP')">手机价格<span class="tag tag-web">W</span></button>
+    <button class="quick-btn" onclick="fill('工作压力太大了，每天加班到很晚，感觉自己快撑不住了','焦虑','INFP')">工作压力<span class="tag tag-emotion">E</span></button>
+    <button class="quick-btn" onclick="fill('最近和男朋友吵架了，不知道感情还能不能继续','失落','ISFJ')">感情困扰<span class="tag tag-emotion">E</span></button>
+    <button class="quick-btn" onclick="fill('觉得自己什么都做不好，什么都比不上别人','自卑','INFJ')">自卑感<span class="tag tag-emotion">E</span></button>
+    <button class="quick-btn" onclick="fill('我最近心情不太好','低落','INTP')">心情不好<span class="tag tag-emotion">E</span></button>
+    <button class="quick-btn" onclick="fill('帮我看看最近的新闻，感觉世界好乱','焦虑','ENFP')">新闻+情绪<span class="tag tag-web">W</span></button>
+    <button class="quick-btn" onclick="fill('我总是拖延，怎么办','焦虑','INFP')">拖延症<span class="tag tag-emotion">E</span></button>
   </div>
+
+  <!-- 输入表单 -->
+  <div class="form-card">
+    <div class="form-group" style="margin-bottom:14px">
+      <label>用户问题 *</label>
+      <textarea id="question" placeholder="输入用户的问题或困扰…"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>情绪关键词 *</label>
+        <input id="emotion" type="text" placeholder="焦虑 / 迷茫 / 开心 …" value="焦虑">
+      </div>
+      <div class="form-group narrow">
+        <label>MBTI</label>
+        <select id="mbti">
+          <option>INFP</option><option>ENFP</option><option>INFJ</option><option>ENFJ</option>
+          <option>INTJ</option><option>ENTJ</option><option>INTP</option><option>ENTP</option>
+          <option>ISFJ</option><option>ESFJ</option><option>ISTJ</option><option>ESTJ</option>
+          <option>ISFP</option><option>ESFP</option><option>ISTP</option><option>ESTP</option>
+        </select>
+      </div>
+      <div class="form-group narrow">
+        <label>血型</label>
+        <select id="blood">
+          <option value="">未知</option>
+          <option>A</option><option>B</option><option>O</option><option>AB</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <button id="submitBtn" onclick="doClassify()">🔍 分类测试</button>
+      <span id="statusText"></span>
+    </div>
+    <div id="errorMsg" class="error-msg"></div>
+  </div>
+
+  <!-- 结果 -->
+  <div id="resultCard" class="result-card">
+    <div class="result-header">
+      <div id="categoryBadge" class="category-badge">—</div>
+      <div>
+        <div id="categoryDesc" class="category-desc"></div>
+      </div>
+    </div>
+    <div class="detail-grid">
+      <div class="detail-item"><div class="key">用户问题</div><div class="val" id="dQuestion">—</div></div>
+      <div class="detail-item"><div class="key">情绪关键词</div><div class="val" id="dEmotion">—</div></div>
+      <div class="detail-item"><div class="key">MBTI</div><div class="val" id="dMbti">—</div></div>
+      <div class="detail-item"><div class="key">是否联网</div><div class="val" id="dWeb">—</div></div>
+      <div class="detail-item"><div class="key">LLM 原始返回</div><div class="val" id="dRaw">—</div></div>
+      <div class="detail-item"><div class="key">耗时</div><div class="val" id="dTime">—</div></div>
+    </div>
+  </div>
+
+  <!-- 历史 + 统计 -->
+  <div class="history-card">
+    <div class="history-title">📊 测试历史</div>
+    <div id="statsBar" class="stats-bar" style="display:none">
+      <div class="stat-item">GENERAL: <span class="s-general" id="statG">0</span></div>
+      <div class="stat-item">WEB: <span class="s-web" id="statW">0</span></div>
+      <div class="stat-item">EMOTION_DEEP: <span class="s-emotion" id="statE">0</span></div>
+      <div class="stat-item">总计: <span id="statT">0</span></div>
+    </div>
+    <div id="historyList" class="history-list">
+      <div class="empty-hint">暂无测试记录</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CATEGORY_DESC = {
+  GENERAL: '普通聊天 — 情感陪伴、常识问答，不需要联网也不需要深度分析',
+  WEB: '联网问答 — 需要实时信息（新闻、价格、政策等）',
+  EMOTION_DEEP: '情绪深度 — 用户有情绪困扰，需要深入分析、追问和个性化建议',
+};
+
+let history = [];
+let stats = { GENERAL: 0, WEB: 0, EMOTION_DEEP: 0 };
+
+function fill(q, e, m) {
+  document.getElementById('question').value = q;
+  document.getElementById('emotion').value = e;
+  document.getElementById('mbti').value = m;
+}
+
+async function doClassify() {
+  const question = document.getElementById('question').value.trim();
+  const emotion_keyword = document.getElementById('emotion').value.trim();
+  const mbti = document.getElementById('mbti').value;
+  const blood_type = document.getElementById('blood').value || undefined;
+
+  if (!question) { alert('请输入用户问题'); return; }
+  if (!emotion_keyword) { alert('请输入情绪关键词'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  const status = document.getElementById('statusText');
+  const errDiv = document.getElementById('errorMsg');
+  errDiv.textContent = '';
+
+  btn.disabled = true;
+  status.innerHTML = '<span class="loading"></span>分类中…';
+
+  const body = { question, emotion_keyword, mbti };
+  if (blood_type) body.blood_type = blood_type;
+
+  const t0 = performance.now();
+  try {
+    const resp = await fetch('/api/test/node?node=router', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const elapsed = ((performance.now() - t0) / 1000).toFixed(2);
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.detail || resp.statusText);
+    }
+
+    const data = await resp.json();
+    const output = data.output || {};
+    const category = output.category || 'UNKNOWN';
+
+    // 显示结果
+    const badge = document.getElementById('categoryBadge');
+    badge.textContent = category;
+    badge.className = 'category-badge badge-' + category;
+    document.getElementById('categoryDesc').textContent = CATEGORY_DESC[category] || '未知分类';
+    document.getElementById('dQuestion').textContent = question;
+    document.getElementById('dEmotion').textContent = emotion_keyword;
+    document.getElementById('dMbti').textContent = mbti;
+    document.getElementById('dWeb').textContent = output.web_search ? '✅ 是' : '❌ 否';
+    document.getElementById('dTime').textContent = elapsed + 's';
+
+    // LLM 原始返回 — 尝试从 messages 中提取
+    const msgs = output.messages || [];
+    const rawText = msgs.length > 0 ? (msgs[0].content || msgs[0]) : '—';
+    document.getElementById('dRaw').textContent = typeof rawText === 'string' ? rawText.slice(0, 200) : JSON.stringify(rawText).slice(0, 200);
+
+    document.getElementById('resultCard').classList.add('show');
+
+    // 加入历史
+    if (stats[category] !== undefined) stats[category]++;
+    history.unshift({ category, question, emotion: emotion_keyword, time: elapsed });
+    renderHistory();
+
+    status.textContent = '✅ 完成';
+  } catch (e) {
+    errDiv.textContent = '❌ 请求失败: ' + e.message;
+    status.textContent = '';
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { status.textContent = ''; }, 2000);
+  }
+}
+
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  const bar = document.getElementById('statsBar');
+  bar.style.display = 'flex';
+  document.getElementById('statG').textContent = stats.GENERAL;
+  document.getElementById('statW').textContent = stats.WEB;
+  document.getElementById('statE').textContent = stats.EMOTION_DEEP;
+  document.getElementById('statT').textContent = history.length;
+
+  if (history.length === 0) {
+    list.innerHTML = '<div class="empty-hint">暂无测试记录</div>';
+    return;
+  }
+
+  list.innerHTML = history.map(h => {
+    const badgeClass = h.category === 'GENERAL' ? 'tag-general'
+      : h.category === 'WEB' ? 'tag-web' : 'tag-emotion';
+    return `<div class="history-item">
+      <span class="hi-cat ${badgeClass}">${h.category}</span>
+      <span class="hi-q">${escHtml(h.question)}</span>
+      <span class="hi-time">${h.time}s</span>
+    </div>`;
+  }).join('');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// 回车提交
+document.getElementById('question').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doClassify(); }
+});
+</script>
 </body>
 </html>

@@ -10,18 +10,22 @@ httpx>=0.27.0
 langchain-core>=0.3.0
 langchain-openai>=0.2.0
 langgraph>=0.2.0
+langgraph-checkpoint-sqlite>=2.0.0
 
 # 占星计算
 flatlib>=0.2.0
 
 # 地理编码
 geopy>=2.4.0
+cpca>=0.5.5
 
 # 环境变量（可选，不装则用内置简易解析）
 python-dotenv>=1.0.0
 
 # Pydantic（fastapi 依赖，显式声明版本）
 pydantic>=2.0.0
+# Python 3.9：Pydantic v2 解析 `X | None`、dict[...] 等字段注解
+eval_type_backport>=0.2.0
 
 # 数据库
 aiomysql>=0.2.0

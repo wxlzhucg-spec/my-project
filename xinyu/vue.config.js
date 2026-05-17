@@ -1,15 +1,20 @@
-/** H5 开发可选代理：设置 XINYU_USE_PROXY=1 后，与 utils/api.js 中 API_BASE='' 配合使用 */
-var API_DEV_TARGET = process.env.XINYU_API_PROXY || 'http://43.143.169.226:5001'
+/** H5 开发代理配置 */
+var EMOTION_API_TARGET = process.env.XINYU_API_PROXY || 'http://43.143.169.226:5001'
+var SHADOW_API_TARGET = process.env.XINYU_SHADOW_PROXY || 'http://43.143.169.226'
 
 module.exports = {
 	devServer: {
 		proxy: {
 			'^/user': {
-				target: API_DEV_TARGET,
+				target: EMOTION_API_TARGET,
 				changeOrigin: true
 			},
 			'^/emotion': {
-				target: API_DEV_TARGET,
+				target: EMOTION_API_TARGET,
+				changeOrigin: true
+			},
+			'^/api/': {
+				target: SHADOW_API_TARGET,
 				changeOrigin: true
 			}
 		}

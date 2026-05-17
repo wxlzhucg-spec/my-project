@@ -1,0 +1,16 @@
+# Pandas闯关模式依赖包
+# 安装命令: pip install -r requirements.txt
+
+# 数据处理核心库
+pandas>=2.0.0
+numpy>=1.24.0
+
+# 数据可视化
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# 进度显示
+tqdm>=4.65.0
+
+# 可选: 用于更快的pandas操作
+# swifter>=1.3.0

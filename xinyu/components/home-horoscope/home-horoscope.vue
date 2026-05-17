@@ -61,7 +61,7 @@
 				default: function() {
 					return {
 						name: '天蝎座',
-						status: '你今天运势开挂啦～～',
+						status: '今天慢慢来，一切刚刚好',
 						ratings: [
 							{ label: '综合', val: 4 },
 							{ label: '爱情', val: 5 },
@@ -79,19 +79,19 @@
 				tabs: [
 					{
 						label: '综合运势',
-						content: '今天要把钱包看紧一点，这是最重要的。另外，很多事可能会有所延迟，要保持一颗平常心对待，不要着急去判断它的好与坏，每件事都有它的两面性。今天的直觉非常准，在面对复杂的人际关系时，不妨多听听内心的声音。整体来看今天适合做一些长远规划，而不是追求即时的回报。'
+						content: '今天的节奏偏柔和，不用急着赶路。上午可能会有一些小琐碎找上门，不过别烦，一件件来就好。下午状态会慢慢回来，适合做一些需要耐心的事。晚上给自己留一点独处的时间，你会觉得这一天其实挺充实的。'
 					},
 					{
 						label: '感情运势',
-						content: '单身的朋友今天桃花运不错，可能在社交场合遇到让你心动的人。有伴侣的则适合来一次深度对话，聊聊彼此最近的感受。今天的沟通氛围特别好，平时不好意思说的话，现在可以自然地表达出来。不要害怕展示脆弱的一面，真实的情感交流才能拉近距离。'
+						content: '不管身边有没有人，今天都值得好好照顾自己的感受。如果心里有话想对某个人说，白天比晚上更适合开口。单身的朋友不用刻意寻找什么，做让自己舒服的事，吸引力自然会来。'
 					},
 					{
 						label: '工作运势',
-						content: '工作上可能会收到一些延迟的反馈，不要因此感到焦虑。今天适合整理手头的项目，把之前积攒的细节问题一一处理。团队协作方面会有不错的进展，同事之间的配合比较默契。如果有新的想法，可以先记录下来，等到下周再正式提出。'
+						content: '今天工作上的节奏不快不慢，正好适合查漏补缺。之前搁置的小事可以顺手处理掉，清完之后心里会踏实很多。如果遇到拿不准的决定，不用今天一定给答案，放一放反而更清晰。'
 					},
 					{
 						label: '财富运势',
-						content: '今天在财务方面需要格外谨慎，避免冲动消费和投资决策。如果有人向你推荐"稳赚不赔"的机会，务必保持警惕。日常开销方面倒是可以适当犒劳自己，但大额支出建议再考虑几天。整体财运平稳，适合做预算和理财规划。'
+						content: '今天花钱前多想一秒就够了，不需要太紧张。如果有固定的账单或转账，上午处理完会更安心。小额的消费可以随心，但大额的决定再等一天也不迟。'
 					}
 				]
 			}
@@ -109,13 +109,32 @@
 				return list
 			}
 		},
+		created: function() {
+			this.collapseTimer = null
+		},
+		beforeDestroy: function() {
+			if (this.collapseTimer) {
+				clearTimeout(this.collapseTimer)
+				this.collapseTimer = null
+			}
+		},
 		methods: {
 			switchTab: function(idx) {
 				this.activeTab = idx
-				this.expanded = false
 			},
 			toggleExpand: function() {
 				this.expanded = !this.expanded
+				if (this.collapseTimer) {
+					clearTimeout(this.collapseTimer)
+					this.collapseTimer = null
+				}
+				if (this.expanded) {
+					var self = this
+					this.collapseTimer = setTimeout(function() {
+						self.expanded = false
+						self.collapseTimer = null
+					}, 15000)
+				}
 			}
 		}
 	}
@@ -233,9 +252,13 @@
 	}
 	.content-text {
 		overflow: hidden;
+		transition: max-height 0.35s ease;
 	}
 	.content-text.collapsed {
 		max-height: 120rpx;
+	}
+	.content-text:not(.collapsed) {
+		max-height: 800rpx;
 	}
 	.body-text {
 		font-size: 26rpx;
@@ -250,6 +273,7 @@
 		height: 80rpx;
 		background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.88) 100%);
 		pointer-events: none;
+		transition: opacity 0.3s ease;
 	}
 
 	/* 展开按钮 */

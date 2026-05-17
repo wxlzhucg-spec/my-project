@@ -244,12 +244,27 @@ export default {
 				note: (self.noteText || '').trim() || null
 			}).then(function() {
 				try {
+					var now = new Date()
+					var dateKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0')
+					var score = Math.round(self.targetMood * 0.6 + self.targetVit * 0.4)
 					uni.setStorageSync('shadowEmotionSnapshot', JSON.stringify({
 						mood: Math.round(self.targetMood),
 						vit: Math.round(self.targetVit),
 						note: (self.noteText || '').trim(),
 						savedAt: Date.now()
 					}))
+					// 同时写入历史记录
+					try {
+						var histRaw = uni.getStorageSync('shadowEmotionHistory') || '{}'
+						var hist = JSON.parse(histRaw)
+						hist[dateKey] = {
+							mood: Math.round(self.targetMood),
+							vit: Math.round(self.targetVit),
+							score: score,
+							savedAt: Date.now()
+						}
+						uni.setStorageSync('shadowEmotionHistory', JSON.stringify(hist))
+					} catch (e2) {}
 				} catch (e) {}
 				uni.hideLoading()
 				uni.showToast({ title: '已记录', icon: 'success' })

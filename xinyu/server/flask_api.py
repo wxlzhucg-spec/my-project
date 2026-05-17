@@ -15,22 +15,61 @@ from __future__ import annotations
 import hashlib
 import os
 from datetime import datetime
+from pathlib import Path
 
 import pymysql
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+
+def _load_dotenv():
+    """从可能的路径加载 .env 文件"""
+    candidates = [
+        Path(".env"),
+        Path(__file__).parent / ".env",
+        Path(__file__).parent.parent / ".env",
+    ]
+    for p in candidates:
+        if p.is_file():
+            try:
+                from dotenv import load_dotenv
+                load_dotenv(p)
+                print(f"[flask_api] 加载环境变量文件: {p}")
+                break
+            except ImportError:
+                # 如果 python-dotenv 未安装，手动解析
+                with open(p, encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line or line.startswith("#"):
+                            continue
+                        if "=" in line:
+                            key, _, value = line.partition("=")
+                            os.environ.setdefault(key.strip(), value.strip())
+                print(f"[flask_api] 手动加载环境变量文件: {p}")
+                break
+
+_load_dotenv()
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 
 def _mysql_config():
+    # 优先使用 DB_* 环境变量（兼容现有 .env），回退到 MYSQL_*
+    host = os.getenv("DB_HOST") or os.getenv("MYSQL_HOST", "127.0.0.1")
+    port = int(os.getenv("DB_PORT") or os.getenv("MYSQL_PORT", "3306"))
+    user = os.getenv("DB_USER") or os.getenv("MYSQL_USER", "root")
+    password = os.getenv("DB_PASSWORD") or os.getenv("MYSQL_PASSWORD", "")
+    database = os.getenv("DB_NAME") or os.getenv("MYSQL_DATABASE", "xintujie")
+    
+    print(f"[flask_api] MySQL 连接配置: host={host} port={port} user={user} database={database}")
+    
     return {
-        "host": os.getenv("MYSQL_HOST", "127.0.0.1"),
-        "port": int(os.getenv("MYSQL_PORT", "3306")),
-        "user": os.getenv("MYSQL_USER", "root"),
-        "password": os.getenv("MYSQL_PASSWORD", ""),
-        "database": os.getenv("MYSQL_DATABASE", "xintujie"),
+        "host": host,
+        "port": port,
+        "user": user,
+        "password": password,
+        "database": database,
         "charset": "utf8mb4",
         "cursorclass": pymysql.cursors.DictCursor,
     }
@@ -584,6 +623,170 @@ def get_tarot_draws():
         return jsonify({"code": 200, "message": "success", "data": rows, "count": len(rows)})
     except Exception as e:
         print(f"Error GET /tarot/draw: {e}")
+        return _json_error_500(e)
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+# ============ 塔罗会话 API ============
+
+
+@app.route("/tarot/session", methods=["POST"])
+def save_tarot_session():
+    """保存一次塔罗/专项 AI 解读会话记录。"""
+    data = request.get_json() or {}
+    user_id = data.get("user_id")
+    if not user_id:
+        return jsonify({"code": 400, "message": "缺少 user_id"}), 400
+
+    session_id = (data.get("session_id") or "").strip()
+    category = (data.get("category") or "TAROT").strip()
+    question = (data.get("question") or "").strip()[:512]
+    ai_reply = data.get("ai_reply") or ""
+    phase = (data.get("phase") or "complete").strip()
+    draw_id = data.get("draw_id")
+    theme_tag_id = data.get("theme_tag_id")
+    theme_tag_label = data.get("theme_tag_label")
+    cards_json = data.get("cards_json")
+    chat_messages = data.get("chat_messages")
+    user_snapshot = data.get("user_snapshot")
+    message_count = data.get("message_count") or 0
+
+    import json as _json
+
+    # cards_json 支持 list（自动序列化）或 str
+    if cards_json is not None and not isinstance(cards_json, str):
+        cards_json = _json.dumps(cards_json, ensure_ascii=False)
+    # chat_messages 支持 list 或 str
+    if chat_messages is not None and not isinstance(chat_messages, str):
+        chat_messages = _json.dumps(chat_messages, ensure_ascii=False)
+    # user_snapshot 支持 dict 或 str
+    if user_snapshot is not None and not isinstance(user_snapshot, str):
+        user_snapshot = _json.dumps(user_snapshot, ensure_ascii=False, default=str)
+
+    conn = cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO tarot_sessions
+                (user_id, draw_id, session_id, category,
+                 cards_json, question, theme_tag_id, theme_tag_label,
+                 ai_reply, phase, chat_messages, user_snapshot, message_count)
+            VALUES (%s, %s, %s, %s,
+                    %s, %s, %s, %s,
+                    %s, %s, %s, %s, %s)
+            """,
+            (
+                int(user_id),
+                int(draw_id) if draw_id else None,
+                session_id,
+                category,
+                cards_json,
+                question,
+                theme_tag_id,
+                theme_tag_label,
+                ai_reply,
+                phase,
+                chat_messages,
+                user_snapshot,
+                int(message_count),
+            ),
+        )
+        conn.commit()
+        row_id = cursor.lastrowid
+        print(f"[TAROT SESSION OK] id={row_id} user_id={user_id} session={session_id}", flush=True)
+        return jsonify({"code": 200, "message": "success", "data": {"id": row_id}})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        if conn:
+            conn.rollback()
+        return _json_error_500(e)
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@app.route("/tarot/session", methods=["GET"])
+def get_tarot_sessions():
+    """查询用户的塔罗会话历史。"""
+    user_id = request.args.get("user_id")
+    if not user_id:
+        return jsonify({"code": 400, "message": "缺少 user_id"}), 400
+
+    limit = int(request.args.get("limit", "20"))
+    limit = min(max(limit, 1), 100)
+
+    conn = cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT * FROM tarot_sessions WHERE user_id = %s ORDER BY created_at DESC LIMIT %s",
+            (int(user_id), limit),
+        )
+        rows = cursor.fetchall()
+        import json as _json
+
+        for r in rows:
+            if r.get("created_at") and hasattr(r["created_at"], "strftime"):
+                r["created_at"] = r["created_at"].strftime("%Y-%m-%d %H:%M:%S")
+            if r.get("updated_at") and hasattr(r["updated_at"], "strftime"):
+                r["updated_at"] = r["updated_at"].strftime("%Y-%m-%d %H:%M:%S")
+            # 解析 JSON 字段
+            for field in ("cards_json", "chat_messages", "user_snapshot"):
+                val = r.get(field)
+                if val and isinstance(val, str):
+                    try:
+                        r[field] = _json.loads(val)
+                    except Exception:
+                        pass
+        return jsonify({"code": 200, "message": "success", "data": rows, "count": len(rows)})
+    except Exception as e:
+        print(f"Error GET /tarot/session: {e}")
+        return _json_error_500(e)
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@app.route("/tarot/session/<int:session_db_id>", methods=["GET"])
+def get_tarot_session_detail(session_db_id):
+    """查询单条塔罗会话详情。"""
+    conn = cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM tarot_sessions WHERE id = %s", (session_db_id,))
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({"code": 404, "message": "未找到该会话"}), 404
+
+        import json as _json
+
+        if row.get("created_at") and hasattr(row["created_at"], "strftime"):
+            row["created_at"] = row["created_at"].strftime("%Y-%m-%d %H:%M:%S")
+        if row.get("updated_at") and hasattr(row["updated_at"], "strftime"):
+            row["updated_at"] = row["updated_at"].strftime("%Y-%m-%d %H:%M:%S")
+        for field in ("cards_json", "chat_messages", "user_snapshot"):
+            val = row.get(field)
+            if val and isinstance(val, str):
+                try:
+                    row[field] = _json.loads(val)
+                except Exception:
+                    pass
+        return jsonify({"code": 200, "message": "success", "data": row})
+    except Exception as e:
+        print(f"Error GET /tarot/session/{session_db_id}: {e}")
         return _json_error_500(e)
     finally:
         if cursor:

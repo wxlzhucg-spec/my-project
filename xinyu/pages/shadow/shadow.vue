@@ -7,6 +7,9 @@
 		<view class="nav-header" :style="{ paddingTop: statusBarHeight + 'px' }">
 			<view class="nav-back" v-if="fromTarot" @tap="goBack"><text class="nav-back-t">‹</text></view>
 			<text class="page-title">{{ tarotReading ? '塔罗解读' : '影子' }}</text>
+			<view v-if="!tarotReading && messageList.length > 1" class="nav-new-chat" @tap="onNewChat">
+				<text class="nav-new-chat-text">新对话</text>
+			</view>
 		</view>
 
 		<!-- 聊天区域 -->
@@ -73,7 +76,6 @@
 					</view>
 					<view class="landing-copy">
 						<text class="landing-title">今天想聊点什么？</text>
-						<text class="landing-subtitle">把脑海里绕来绕去的念头交给我，我们慢慢理顺。</text>
 					</view>
 				</view>
 
@@ -154,7 +156,7 @@
 					:class="msg.role === 'user' ? 'row-user' : 'row-ai'"
 				>
 					<view v-if="msg.role === 'ai'" class="avatar ai-avatar">
-						<text class="ai-avatar-t">影</text>
+						<view class="ai-avatar-silhouette"></view>
 					</view>
 					
 					<view class="message-main" :class="msg.role === 'user' ? 'message-main--user' : 'message-main--ai'">
@@ -162,14 +164,16 @@
 						<text class="message-text">{{ msg.content }}</text>
 					</view>
 					
-					<view v-if="msg.role === 'user'" class="avatar user-avatar">
-						<image src="/static/default-avatar.png" mode="aspectFill"></image>
+					<view v-if="msg.role === 'user'" class="avatar user-avatar" :style="userAvatar ? ('background-image:url(' + userAvatar + ')') : ''">
+						<view v-if="!userAvatar" class="user-avatar-placeholder">
+							<text class="user-avatar-icon">👤</text>
+						</view>
 					</view>
 				</view>
 
 				<!-- 打字中 -->
 				<view v-if="isTyping" class="message-row row-ai" id="msg-typing">
-					<view class="avatar ai-avatar"><text class="ai-avatar-t">影</text></view>
+					<view class="avatar ai-avatar"><view class="ai-avatar-silhouette"></view></view>
 					<view class="message-main bubble-ai typing-bubble">
 						<view class="dot"></view>
 						<view class="dot"></view>
@@ -179,12 +183,18 @@
 			</view>
 		</scroll-view>
 
+		<!-- 追问状态提示 -->
+		<view v-if="pendingClarification" class="clarify-hint-bar">
+			<text class="clarify-hint-text">正在回答追问</text>
+			<text class="clarify-hint-new" @tap="onNewChat">新对话</text>
+		</view>
+
 		<!-- 底部输入框 -->
-		<view class="input-bar" :style="{ bottom: inputBottom }">
+		<view class="input-bar" :class="{ 'input-bar--with-hint': pendingClarification }" :style="{ bottom: inputBottom }">
 			<input 
 				class="chat-input" 
 				v-model="inputText" 
-				placeholder="输入内容"
+				placeholder="说点什么吧…"
 				placeholder-class="input-placeholder"
 				:adjust-position="true"
 				@confirm="sendMessage"
@@ -196,12 +206,36 @@
 		</view>
 
 		<custom-tabbar :list="navList" />
+
+		<!-- 新对话确认弹窗 -->
+		<view v-if="showNewChatModal" class="modal-mask" @tap.self="showNewChatModal = false">
+			<view class="modal-box" :class="{ 'modal-in': showNewChatModal }">
+				<text class="modal-title">开始新对话</text>
+				<text class="modal-desc">当前对话将被清空，确定吗？</text>
+				<view class="modal-btns">
+					<view class="modal-btn modal-btn-cancel" @tap="showNewChatModal = false">
+						<text>取消</text>
+					</view>
+					<view class="modal-btn modal-btn-confirm" @tap="confirmNewChat">
+						<text>确定</text>
+					</view>
+				</view>
+			</view>
+		</view>
 	</view>
 </template>
 
 <script>
 	import customTabbar from '@/components/custom-tabbar/custom-tabbar.vue'
-	import { postShadowChat, getApiUserId } from '@/utils/api.js'
+	import { streamShadowChat, postTarotSession, getApiUserId, getApiOpenid, getApiUserPhone, getUser } from '@/utils/api.js'
+
+	var STORAGE_KEY_SESSION = 'shadowChatSession'
+	var STORAGE_KEY_MESSAGES = 'shadowChatMessages'
+	var STORAGE_KEY_PENDING = 'shadowChatPending'
+	var STORAGE_KEY_VERSION = 'shadowChatVersion'
+	var STORAGE_VERSION = 4  // 版本升级时自增，自动清除旧缓存
+	var MAX_MESSAGES = 200
+	var DEFAULT_AI_MSG = '嗨，我是你的影子 ☁️  今天过得怎么样？\n无论有什么烦恼，都可以跟我聊聊。'
 
 	var LANDING_BROW_L = {
 		sad: [87,90.6,96,85.5,105,90.1], calm: [87,88.9,96,87.3,105,88.9],
@@ -237,6 +271,7 @@
 				emotionState: 'happy',
 				shadowSessionId: '',
 				pendingClarification: false,
+				streamAbort: null,
 				landingFaceOY: -1.8,
 				landingBaseFaceOY: -1.8,
 				landingBrowLP: [87,86.9,96,82.5,105,86.9],
@@ -259,6 +294,8 @@
 						content: '你好，我是你的影子。今天过得怎么样？无论有什么烦恼，都可以跟我倾诉。'
 					}
 				],
+				userAvatar: '',
+				showNewChatModal: false,
 				navList: [
 					{ label: '首页', active: false, path: '/pages/index/index' },
 					{ label: '探索', active: false, path: '/pages/explore/explore' },
@@ -295,19 +332,113 @@
 					this.statusBarHeight = info.statusBarHeight;
 				}
 			} catch (e) {}
+			this.loadChatSession();
 			this.syncEmotionSnapshot();
 			this.checkTarotSession();
+			this.checkSpecialistSession();
 			this.startLandingAnim();
 		},
 		onShow() {
+			this.loadUserAvatar();
+			this.loadChatSession();
 			this.syncEmotionSnapshot();
 			this.checkTarotSession();
+			this.checkSpecialistSession();
 			this.startLandingAnim();
 		},
 		beforeDestroy() {
 			if (this.landingAnimTimer) clearTimeout(this.landingAnimTimer)
+			if (this.streamAbort) { this.streamAbort.abort(); this.streamAbort = null }
 		},
 		methods: {
+			loadUserAvatar: function() {
+				var self = this
+				// 1. 先读 Storage 缓存
+				var cached = ''
+				try {
+					var raw = uni.getStorageSync('userProfile')
+					if (raw) { var p = JSON.parse(raw); if (p.avatar) cached = p.avatar }
+				} catch (e) {}
+				if (!cached) {
+					try { cached = uni.getStorageSync('xinyu_user_avatar') || '' } catch(e) {}
+				}
+				if (cached) { self.userAvatar = cached; console.log('[shadow] avatar loaded, len=' + cached.length) }
+
+				// 2. 远端拉取，但仅当远端有头像时才覆盖（远端为空不覆盖本地）
+				var uid = getApiUserId()
+				var phone = getApiUserPhone()
+				var fetch = uid ? getUser({ id: uid }) : (phone ? getUser({ phone: phone }) : null)
+				if (fetch) {
+					fetch.then(function(res) {
+						if (res && res.data && res.data.avatar_url) {
+							self.userAvatar = res.data.avatar_url
+						}
+					}).catch(function() {})
+				}
+			},
+			// ── 会话持久化 ──
+			loadChatSession() {
+				try {
+					// 版本检测：版本不匹配时清除旧缓存，避免旧 session 数据干扰
+					var savedVer = uni.getStorageSync(STORAGE_KEY_VERSION);
+					if (savedVer !== STORAGE_VERSION) {
+						console.log('[shadow] 缓存版本不匹配，清除旧会话数据');
+						uni.removeStorageSync(STORAGE_KEY_SESSION);
+						uni.removeStorageSync(STORAGE_KEY_MESSAGES);
+						uni.removeStorageSync(STORAGE_KEY_PENDING);
+						uni.setStorageSync(STORAGE_KEY_VERSION, STORAGE_VERSION);
+						this.shadowSessionId = '';
+						this.pendingClarification = false;
+						this.messageList = [{ role: 'ai', content: DEFAULT_AI_MSG }];
+						return;
+					}
+					var sid = uni.getStorageSync(STORAGE_KEY_SESSION) || '';
+					if (sid) this.shadowSessionId = sid;
+					var pending = uni.getStorageSync(STORAGE_KEY_PENDING);
+					if (pending === true || pending === 'true') this.pendingClarification = true;
+					var raw = uni.getStorageSync(STORAGE_KEY_MESSAGES) || '';
+					if (raw) {
+						var msgs = JSON.parse(raw);
+						if (Array.isArray(msgs) && msgs.length > 0) {
+							this.messageList = msgs;
+							return;
+						}
+					}
+				} catch (e) {}
+				// 无历史记录时用默认欢迎语
+				if (this.messageList.length <= 1) {
+					this.messageList = [{ role: 'ai', content: DEFAULT_AI_MSG }];
+				}
+			},
+			saveChatSession() {
+				try {
+					if (this.shadowSessionId) {
+						uni.setStorageSync(STORAGE_KEY_SESSION, this.shadowSessionId);
+					}
+					uni.setStorageSync(STORAGE_KEY_PENDING, this.pendingClarification);
+					var msgs = this.messageList.slice(-MAX_MESSAGES);
+					uni.setStorageSync(STORAGE_KEY_MESSAGES, JSON.stringify(msgs));
+				} catch (e) {}
+			},
+			clearChatSession() {
+				if (this.streamAbort) { this.streamAbort.abort(); this.streamAbort = null }
+				this.shadowSessionId = '';
+				this.pendingClarification = false;
+				this.messageList = [{ role: 'ai', content: DEFAULT_AI_MSG }];
+				try {
+					uni.removeStorageSync(STORAGE_KEY_SESSION);
+					uni.removeStorageSync(STORAGE_KEY_MESSAGES);
+					uni.removeStorageSync(STORAGE_KEY_PENDING);
+					uni.setStorageSync(STORAGE_KEY_VERSION, STORAGE_VERSION);
+				} catch (e) {}
+			},
+			onNewChat() {
+				this.showNewChatModal = true;
+			},
+			confirmNewChat: function() {
+				this.showNewChatModal = false;
+				this.clearChatSession();
+			},
 			clamp(v, lo, hi) {
 				return Math.max(lo, Math.min(hi, v));
 			},
@@ -423,9 +554,307 @@
 				try { session = JSON.parse(raw); } catch (e) { return; }
 				if (!session || !session.cards || session.cards.length < 3) return;
 
+				// 清除旧会话（塔罗进入不需要默认欢迎语）
+				if (this.streamAbort) { this.streamAbort.abort(); this.streamAbort = null }
+				this.shadowSessionId = '';
+				this.pendingClarification = false;
+				this.messageList = [];
+				try {
+					uni.removeStorageSync(STORAGE_KEY_SESSION);
+					uni.removeStorageSync(STORAGE_KEY_MESSAGES);
+					uni.removeStorageSync(STORAGE_KEY_PENDING);
+					uni.setStorageSync(STORAGE_KEY_VERSION, STORAGE_VERSION);
+				} catch (e) {}
+
 				this.fromTarot = true;
 				this.tarotReading = this.buildTarotReading(session);
-				this.scrollToBottom();
+
+				var intent = session.intent || {};
+				var question = String(intent.question || intent.tagLabel || '帮我解读塔罗牌').trim();
+				var cards = session.cards || [];
+
+				// 在消息列表显示用户问题
+				this.messageList.push({ role: 'user', content: question });
+				this.isTyping = true;
+				this.saveChatSession();
+				this.scrollToBottom('msg-typing');
+
+				var self = this;
+				var userId = getApiUserId();
+				if (!userId) {
+					self.isTyping = false;
+					self.messageList.push({ role: 'ai', content: '请先登录后再与影子对话。' });
+					self.saveChatSession();
+					self.scrollToBottom();
+					return;
+				}
+
+				var payload = {
+					user_id: userId,
+					question: question,
+					category: 'TAROT'
+				};
+				var openid = getApiOpenid();
+				if (openid && openid.indexOf('p_') !== 0) {
+					payload.open_id = openid;
+				}
+				payload.tarot_cards = cards;
+
+				// 流式调用
+				var firstToken = true;
+				var scrollTimer = null;
+
+				this.streamAbort = streamShadowChat(payload, {
+					onSession: function(data) {
+						if (data.session_id) {
+							self.shadowSessionId = data.session_id;
+						}
+					},
+					onToken: function(data) {
+						var text = data.text || '';
+						if (!text) return;
+						if (firstToken) {
+							firstToken = false;
+							self.isTyping = false;
+							self.messageList.push({ role: 'ai', content: text });
+						} else {
+							var lastIdx = self.messageList.length - 1;
+							if (lastIdx >= 0 && self.messageList[lastIdx].role === 'ai') {
+								self.$set(self.messageList[lastIdx], 'content', self.messageList[lastIdx].content + text);
+							}
+						}
+						if (!scrollTimer) {
+							scrollTimer = setTimeout(function() {
+								self.scrollToBottom();
+								scrollTimer = null;
+							}, 80);
+						}
+					},
+					onDone: function(data) {
+						self.streamAbort = null;
+						if (firstToken) {
+							firstToken = false;
+							self.isTyping = false;
+							self.messageList.push({ role: 'ai', content: data.reply || '' });
+						} else {
+							var lastIdx = self.messageList.length - 1;
+							if (lastIdx >= 0 && self.messageList[lastIdx].role === 'ai' && data.reply) {
+								self.$set(self.messageList[lastIdx], 'content', data.reply);
+							}
+						}
+						if (data.session_id) {
+							self.shadowSessionId = data.session_id;
+						}
+						if (data.phase === 'clarifying') {
+							self.pendingClarification = true;
+						}
+						self.saveChatSession();
+						self.scrollToBottom();
+
+						// 前端侧持久化塔罗会话
+						if (data.phase === 'complete') {
+							self._persistSpecialistSession('TAROT', { cards: cards }, question, data);
+						}
+					},
+					onError: function(message) {
+						self.streamAbort = null;
+						self.isTyping = false;
+						if (firstToken) {
+							self.messageList.push({ role: 'ai', content: '出了点问题：' + (message || '请求失败') });
+						} else {
+							var lastIdx = self.messageList.length - 1;
+							if (lastIdx >= 0 && self.messageList[lastIdx].role === 'ai') {
+								self.$set(self.messageList[lastIdx], 'content', self.messageList[lastIdx].content + '\n\n[错误] ' + (message || '请求失败'));
+							}
+						}
+						self.saveChatSession();
+						self.scrollToBottom();
+					}
+				});
+			},
+			checkSpecialistSession() {
+				var raw = '';
+				try { raw = uni.getStorageSync('shadowSpecialistSession') || ''; } catch (e) {}
+				if (!raw) return;
+				try { uni.removeStorageSync('shadowSpecialistSession'); } catch (e) {}
+
+				var session = {};
+				try { session = JSON.parse(raw); } catch (e) { return; }
+				var category = session.category || '';
+				var specialistData = session.specialistData || null;
+				var question = String(session.question || '').trim();
+				if (!category || !specialistData) return;
+
+				// 清除旧会话（专项进入不需要默认欢迎语）
+				if (this.streamAbort) { this.streamAbort.abort(); this.streamAbort = null }
+				this.shadowSessionId = '';
+				this.pendingClarification = false;
+				this.messageList = [];
+				try {
+					uni.removeStorageSync(STORAGE_KEY_SESSION);
+					uni.removeStorageSync(STORAGE_KEY_MESSAGES);
+					uni.removeStorageSync(STORAGE_KEY_PENDING);
+					uni.setStorageSync(STORAGE_KEY_VERSION, STORAGE_VERSION);
+				} catch (e) {}
+
+				var self = this;
+				// 先在消息列表显示用户问题
+				this.messageList.push({ role: 'user', content: question });
+				this.isTyping = true;
+				this.saveChatSession();
+				this.scrollToBottom('msg-typing');
+
+				var userId = getApiUserId();
+				if (!userId) {
+					self.isTyping = false;
+					self.messageList.push({ role: 'ai', content: '请先登录后再与影子对话。' });
+					self.saveChatSession();
+					self.scrollToBottom();
+					return;
+				}
+
+				var payload = {
+					user_id: userId,
+					question: question,
+					category: category
+				};
+				var openid = getApiOpenid();
+				if (openid && openid.indexOf('p_') !== 0) {
+					payload.open_id = openid;
+				}
+
+				// 根据分类设置专项数据
+				if (category === 'ZODIAC') {
+					payload.zodiac_data = specialistData;
+				} else if (category === 'EMOTION_LOG') {
+					payload.emotion_log = specialistData;
+				} else if (category === 'TAROT') {
+					payload.tarot_cards = specialistData.cards || specialistData;
+				}
+
+				// 流式调用
+				var firstToken = true;
+				var scrollTimer = null;
+
+				this.streamAbort = streamShadowChat(payload, {
+					onSession: function(data) {
+						if (data.session_id) {
+							self.shadowSessionId = data.session_id;
+						}
+					},
+					onToken: function(data) {
+						var text = data.text || '';
+						if (!text) return;
+						if (firstToken) {
+							firstToken = false;
+							self.isTyping = false;
+							self.messageList.push({ role: 'ai', content: text });
+						} else {
+							var lastIdx = self.messageList.length - 1;
+							if (lastIdx >= 0 && self.messageList[lastIdx].role === 'ai') {
+								self.$set(self.messageList[lastIdx], 'content', self.messageList[lastIdx].content + text);
+							}
+						}
+						if (!scrollTimer) {
+							scrollTimer = setTimeout(function() {
+								self.scrollToBottom();
+								scrollTimer = null;
+							}, 80);
+						}
+					},
+					onDone: function(data) {
+						self.streamAbort = null;
+						if (firstToken) {
+							firstToken = false;
+							self.isTyping = false;
+							self.messageList.push({ role: 'ai', content: data.reply || '' });
+						} else {
+							var lastIdx = self.messageList.length - 1;
+							if (lastIdx >= 0 && self.messageList[lastIdx].role === 'ai' && data.reply) {
+								self.$set(self.messageList[lastIdx], 'content', data.reply);
+							}
+						}
+						if (data.session_id) {
+							self.shadowSessionId = data.session_id;
+						}
+						if (data.phase === 'clarifying') {
+							self.pendingClarification = true;
+						}
+						self.saveChatSession();
+						self.scrollToBottom();
+
+						// 前端侧持久化塔罗/专项会话（作为后端自动持久化的补充备份）
+						if (category && data.phase === 'complete') {
+							self._persistSpecialistSession(category, specialistData, question, data);
+						}
+					},
+					onError: function(message) {
+						self.streamAbort = null;
+						self.isTyping = false;
+						if (firstToken) {
+							self.messageList.push({ role: 'ai', content: '出了点问题：' + (message || '请求失败') });
+						} else {
+							var lastIdx = self.messageList.length - 1;
+							if (lastIdx >= 0 && self.messageList[lastIdx].role === 'ai') {
+								self.$set(self.messageList[lastIdx], 'content', self.messageList[lastIdx].content + '\n\n[错误] ' + (message || '请求失败'));
+							}
+						}
+						self.saveChatSession();
+						self.scrollToBottom();
+					}
+				});
+			},
+			_persistSpecialistSession(cat, specialistData, question, doneData) {
+				// 前端侧保存专项会话记录到数据库（补充后端自动持久化）
+				var uid = getApiUserId();
+				if (!uid) return;
+				var drawId = '';
+				try { drawId = uni.getStorageSync('tarotDrawId') || ''; } catch (e) {}
+
+				// 构建聊天消息快照
+				var msgs = [];
+				for (var i = 0; i < this.messageList.length; i++) {
+					var m = this.messageList[i];
+					if (m.content) {
+						msgs.push({ role: m.role === 'user' ? 'user' : 'ai', content: m.content });
+					}
+				}
+
+				var payload = {
+					user_id: uid,
+					draw_id: drawId || null,
+					session_id: doneData.session_id || this.shadowSessionId || '',
+					category: cat,
+					question: question || '',
+					ai_reply: doneData.reply || '',
+					phase: doneData.phase || 'complete',
+					chat_messages: msgs,
+					message_count: msgs.length
+				};
+
+				// 塔罗专项：附带牌面和主题数据
+				if (cat === 'TAROT' && specialistData) {
+					var cards = specialistData.cards || specialistData;
+					if (Array.isArray(cards)) {
+						payload.cards_json = cards;
+					}
+					var intentRaw = '';
+					try { intentRaw = uni.getStorageSync('tarotIntent') || ''; } catch (e) {}
+					if (intentRaw) {
+						try {
+							var intent = JSON.parse(intentRaw);
+							payload.theme_tag_id = intent.tagId || null;
+							payload.theme_tag_label = intent.tagLabel || null;
+							if (intent.question && !payload.question) {
+								payload.question = intent.question;
+							}
+						} catch (e2) {}
+					}
+				}
+
+				postTarotSession(payload).catch(function(err) {
+					console.warn('[shadow] 专项会话保存失败（后端已自动持久化，此为补充）', err);
+				});
 			},
 			buildTarotReading(session) {
 				var cards = (session.cards || []).slice(0, 3);
@@ -452,6 +881,12 @@
 			},
 			sendMessage() {
 				if (!this.inputText.trim()) return;
+
+				// 取消上一次未完成的流
+				if (this.streamAbort) {
+					this.streamAbort.abort();
+					this.streamAbort = null;
+				}
 				
 				var userMsg = this.inputText.trim();
 				this.messageList.push({
@@ -459,10 +894,8 @@
 					content: userMsg
 				});
 				this.inputText = '';
+				this.saveChatSession();
 				
-				this.scrollToBottom();
-				
-				// Show typing indicator
 				this.isTyping = true;
 				this.scrollToBottom('msg-typing');
 
@@ -474,23 +907,21 @@
 					role: 'ai',
 					content: '请先登录后再与影子对话。'
 				});
+				self.saveChatSession();
 				self.scrollToBottom();
 				return;
 			}
 
-			// 根据情绪快照推断 emotion_keyword
-				var mood = this.emotionSnapshot.mood || 72;
-				var vit = this.emotionSnapshot.vit || 62;
-				var keyword = '迷茫';
-				if (mood < 28) keyword = '失落';
-				else if (mood < 50) keyword = '焦虑';
-				else if (mood > 78 && vit > 84) keyword = '愤怒';
-				else if (mood >= 50) keyword = '困惑';
-
 				var payload = {
-					emotion_keyword: keyword,
+					user_id: userId,
 					question: userMsg
 				};
+
+				// 传递 open_id（仅真实微信 open_id）
+				var openid = getApiOpenid();
+				if (openid && openid.indexOf('p_') !== 0) {
+					payload.open_id = openid;
+				}
 
 				// 两轮对话：如果有 pendingClarification，把用户当前消息作为 supplements
 				if (this.pendingClarification) {
@@ -501,33 +932,84 @@
 					payload.session_id = this.shadowSessionId;
 				}
 
-				postShadowChat(payload).then(function(res) {
-					self.isTyping = false;
-					if (!res) {
-						self.messageList.push({ role: 'ai', content: '影子暂时断开了链接，请稍后重试。' });
+				// ── 流式调用 ──
+				var firstToken = true;
+				var scrollTimer = null;
+
+				this.streamAbort = streamShadowChat(payload, {
+					onSession: function(data) {
+						if (data.session_id) {
+							self.shadowSessionId = data.session_id;
+						}
+					},
+					onToken: function(data) {
+						var text = data.text || '';
+						if (!text) return;
+
+						if (firstToken) {
+							firstToken = false;
+							self.isTyping = false;
+							self.messageList.push({ role: 'ai', content: text });
+						} else {
+							var lastIdx = self.messageList.length - 1;
+							if (lastIdx >= 0 && self.messageList[lastIdx].role === 'ai') {
+								self.$set(self.messageList[lastIdx], 'content', self.messageList[lastIdx].content + text);
+							}
+						}
+
+						// 节流滚动：每 80ms 最多触发一次
+						if (!scrollTimer) {
+							scrollTimer = setTimeout(function() {
+								self.scrollToBottom();
+								scrollTimer = null;
+							}, 80);
+						}
+					},
+					onDone: function(data) {
+						self.streamAbort = null;
+
+						if (firstToken) {
+							// 没收到 token 但收到了 done（边界情况），用 reply
+							firstToken = false;
+							self.isTyping = false;
+							self.messageList.push({ role: 'ai', content: data.reply || '' });
+						} else {
+							// 用 done 中的完整 reply 替换，确保最终内容准确
+							var lastIdx = self.messageList.length - 1;
+							if (lastIdx >= 0 && self.messageList[lastIdx].role === 'ai' && data.reply) {
+								self.$set(self.messageList[lastIdx], 'content', data.reply);
+							}
+						}
+
+						if (data.session_id) {
+							self.shadowSessionId = data.session_id;
+						}
+						if (data.phase === 'clarifying') {
+							self.pendingClarification = true;
+						}
+
+						self.saveChatSession();
 						self.scrollToBottom();
-						return;
-					}
-					// 保存 session_id（正式环境也有；勿依赖 debug_info）
-					if (res.session_id) {
-						self.shadowSessionId = res.session_id;
-					} else if (res.debug_info && res.debug_info.session_id) {
-						self.shadowSessionId = res.debug_info.session_id;
-					}
-					var reply = res.reply || '影子暂时断开了链接...';
-					self.messageList.push({ role: 'ai', content: reply });
+					},
+					onError: function(message) {
+						self.streamAbort = null;
+						self.isTyping = false;
 
-					// 如果是追问阶段，标记 pending
-					if (res.phase === 'clarifying') {
-						self.pendingClarification = true;
-					}
+						if (firstToken) {
+							self.messageList.push({
+								role: 'ai',
+								content: '出了点问题：' + (message || '请求失败')
+							});
+						} else {
+							var lastIdx = self.messageList.length - 1;
+							if (lastIdx >= 0 && self.messageList[lastIdx].role === 'ai') {
+								self.$set(self.messageList[lastIdx], 'content', self.messageList[lastIdx].content + '\n\n[错误] ' + (message || '请求失败'));
+							}
+						}
 
-					self.scrollToBottom();
-				}).catch(function(err) {
-					self.isTyping = false;
-					var errMsg = err && err.message ? err.message : '请求失败';
-					self.messageList.push({ role: 'ai', content: '出了点问题：' + errMsg });
-					self.scrollToBottom();
+						self.saveChatSession();
+						self.scrollToBottom();
+					}
 				});
 			},
 			scrollToBottom(id) {
@@ -549,8 +1031,8 @@
 	/* ===== 全局容器 ===== */
 	.container {
 		background:
-			radial-gradient(ellipse 92% 56% at 50% 0%, rgba(226, 214, 255, 0.38) 0%, rgba(226, 214, 255, 0.08) 34%, transparent 62%),
-			linear-gradient(180deg, #ffffff 0%, #fcfbff 50%, #faf8ff 100%);
+			radial-gradient(ellipse 100% 60% at 50% 0%, rgba(200, 188, 255, 0.35) 0%, rgba(200, 188, 255, 0.10) 40%, transparent 68%),
+			linear-gradient(180deg, #faf8ff 0%, #f5f1fc 30%, #efeaf9 100%);
 		min-height: 100vh;
 		display: flex;
 		flex-direction: column;
@@ -561,43 +1043,61 @@
 		position: absolute;
 		top: -120rpx; left: -8%;
 		width: 116%; height: 520rpx;
-		background: radial-gradient(ellipse at 50% 18%, rgba(232,220,255,0.42) 0%, rgba(232,220,255,0.10) 42%, transparent 72%);
+		background: radial-gradient(ellipse at 50% 18%, rgba(210,195,255,0.38) 0%, rgba(210,195,255,0.08) 45%, transparent 72%);
 		pointer-events: none; z-index: 0;
 	}
 
 	/* ===== 顶部导航 ===== */
 	.nav-header {
 		position: fixed; top: 0; left: 0; width: 100%;
-		background: rgba(255, 255, 255, 0.82);
-		backdrop-filter: blur(28px);
-		-webkit-backdrop-filter: blur(28px);
+		background: rgba(250, 247, 255, 0.82);
+		backdrop-filter: blur(32px);
+		-webkit-backdrop-filter: blur(32px);
 		z-index: 100;
 		display: flex; align-items: center; justify-content: center;
 		height: 44px;
-		border-bottom: 1rpx solid rgba(228, 223, 242, 0.72);
+		border-bottom: 1rpx solid rgba(210, 200, 235, 0.40);
 	}
 	.nav-back {
 		position: absolute; left: 24rpx;
-		width: 62rpx; height: 62rpx;
+		width: 64rpx; height: 64rpx;
 		display: flex; align-items: center; justify-content: center;
 		border-radius: 50%;
-		background: rgba(255,255,255,0.96);
-		border: 1rpx solid rgba(229,223,244,0.92);
-		box-shadow: 0 6rpx 16rpx rgba(160, 152, 196, 0.10);
+		background: rgba(255,255,255,0.88);
+		border: 1rpx solid rgba(208, 200, 235, 0.55);
+		box-shadow: 0 4rpx 16rpx rgba(140, 125, 200, 0.10);
+		transition: transform 0.18s ease;
 	}
-	.nav-back-t { font-size: 40rpx; color: #4d456f; margin-top: -4rpx; }
+	.nav-back:active { transform: scale(0.90); }
+	.nav-back-t { font-size: 36rpx; color: #5e5480; margin-top: -3rpx; }
 	.page-title {
-		font-size: 32rpx; font-weight: 700;
-		color: #28233b; letter-spacing: 0;
+		font-size: 34rpx; font-weight: 600;
+		color: #322c52; letter-spacing: 3rpx;
+	}
+	.nav-new-chat {
+		position: absolute; right: 24rpx;
+		padding: 12rpx 26rpx;
+		border-radius: 28rpx;
+		background: rgba(138, 118, 200, 0.07);
+		border: 1rpx solid rgba(138, 118, 200, 0.14);
+		transition: all 0.18s ease;
+	}
+	.nav-new-chat:active {
+		background: rgba(138, 118, 200, 0.15);
+		transform: scale(0.95);
+	}
+	.nav-new-chat-text {
+		font-size: 23rpx; color: #7b6db5; font-weight: 600;
+		letter-spacing: 1rpx;
 	}
 
 	/* ===== 聊天滚动区 ===== */
 	.chat-scroll { flex: 1; height: 100vh; box-sizing: border-box; }
-	.chat-list { padding: 28rpx 28rpx 24rpx; display: flex; flex-direction: column; }
+	.chat-list { padding: 28rpx 28rpx 20rpx; display: flex; flex-direction: column; gap: 8rpx; }
 	.chat-list--landing {
 		min-height: calc(100vh - 320rpx);
 		justify-content: flex-start;
-		padding-top: 8rpx;
+		padding-top: 16rpx;
 	}
 
 	/* ===== 欢迎区 ===== */
@@ -606,295 +1106,430 @@
 		flex-direction: column;
 		align-items: center;
 		padding: 0 24rpx 0;
-		margin-top: -18rpx;
+		margin-top: -12rpx;
 	}
 	.landing-hero-card {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		padding: 12rpx 0 0;
-		margin-bottom: 18rpx;
+		padding: 8rpx 0 0;
+		margin-bottom: 28rpx;
 	}
 	.landing-mascot-wrap {
-		width: 188rpx;
-		height: 144rpx;
+		width: 180rpx;
+		height: 138rpx;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		margin-bottom: 12rpx;
+		margin-bottom: 18rpx;
 		transform-origin: 50% 62%;
 		will-change: transform;
 	}
 	.landing-mascot {
-		width: 172rpx;
-		height: 134rpx;
+		width: 168rpx;
+		height: 130rpx;
 		display: block;
-		filter: drop-shadow(0 14rpx 24rpx rgba(255, 214, 103, 0.16));
+		filter: drop-shadow(0 14rpx 26rpx rgba(190, 172, 255, 0.25));
 	}
 	.landing-caption {
 		font-size: 25rpx;
-		line-height: 1.5;
-		color: rgba(108, 102, 136, 0.72);
+		line-height: 1.65;
+		color: rgba(115, 108, 148, 0.62);
 		text-align: center;
-		padding: 0 18rpx;
+		padding: 0 20rpx;
+		letter-spacing: 1rpx;
 	}
 	.landing-copy {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		max-width: 560rpx;
+		max-width: 580rpx;
 	}
 	.landing-title {
-		font-size: 52rpx;
-		line-height: 1.18;
+		font-size: 56rpx;
+		line-height: 1.25;
 		font-weight: 700;
-		color: #23212c;
+		color: #332d52;
 		text-align: center;
+		letter-spacing: 3rpx;
 	}
 	.landing-subtitle {
-		margin-top: 12rpx;
+		margin-top: 18rpx;
 		font-size: 27rpx;
-		line-height: 1.6;
-		color: rgba(103, 97, 132, 0.70);
+		line-height: 1.75;
+		color: rgba(105, 98, 138, 0.58);
 		text-align: center;
+		letter-spacing: 1rpx;
 	}
 
 	/* ===== 塔罗问题气泡 ===== */
 	.tarot-q-wrap {
 		display: flex; justify-content: flex-end;
-		margin-bottom: 24rpx;
+		margin-bottom: 28rpx;
 	}
 	.tarot-q-bubble {
-		max-width: 64%;
-		padding: 24rpx 32rpx;
+		max-width: 66%;
+		padding: 22rpx 30rpx;
 		border-radius: 26rpx 26rpx 8rpx 26rpx;
-		background: linear-gradient(140deg, #6d82ff 0%, #8c72ef 100%);
-		box-shadow: 0 12rpx 32rpx rgba(118, 116, 214, 0.26);
+		background: linear-gradient(145deg, #9685ee 0%, #7d6bd6 100%);
+		box-shadow: 0 12rpx 30rpx rgba(130, 115, 220, 0.30), 0 3rpx 8rpx rgba(130, 115, 220, 0.10);
 	}
 	.tarot-q-text {
-		font-size: 28rpx; color: rgba(255,255,255,0.96);
-		line-height: 1.6; font-weight: 500;
+		font-size: 29rpx; color: rgba(255,255,255,0.97);
+		line-height: 1.64; font-weight: 500;
+		letter-spacing: 0.3rpx;
 	}
 
 	/* ===== 塔罗解读卡片 ===== */
 	.tarot-reading-card {
 		margin-bottom: 32rpx;
-		padding: 30rpx 26rpx 26rpx;
-		border-radius: 28rpx;
-		background: rgba(255,255,255,0.76);
+		padding: 28rpx 24rpx 24rpx;
+		border-radius: 26rpx;
+		background: rgba(255,255,255,0.92);
 		box-shadow:
-			0 18rpx 42rpx rgba(152, 158, 210, 0.12),
-			inset 0 1rpx 0 rgba(255,255,255,0.88);
-		border: 1rpx solid rgba(216, 218, 242, 0.88);
+			0 16rpx 40rpx rgba(145, 140, 190, 0.12),
+			0 4rpx 10rpx rgba(145, 140, 190, 0.05),
+			inset 0 1rpx 0 rgba(255,255,255,0.92);
+		border: 1rpx solid rgba(212, 208, 235, 0.58);
 	}
 	.trc-head { display: flex; align-items: center; margin-bottom: 24rpx; }
 	.trc-icon-ring {
-		width: 60rpx; height: 60rpx; border-radius: 16rpx;
-		background: linear-gradient(145deg, rgba(196,172,255,0.30), rgba(148,116,220,0.22));
-		border: 1rpx solid rgba(196,172,255,0.20);
+		width: 56rpx; height: 56rpx; border-radius: 14rpx;
+		background: linear-gradient(145deg, rgba(190,175,255,0.26), rgba(142,112,215,0.18));
+		border: 1rpx solid rgba(190,175,255,0.16);
 		display: flex; align-items: center; justify-content: center;
-		box-shadow: 0 6rpx 18rpx rgba(100, 72, 200, 0.20);
-		margin-right: 18rpx;
+		box-shadow: 0 4rpx 14rpx rgba(110, 85, 190, 0.14);
+		margin-right: 16rpx;
 	}
-	.trc-icon-glyph { font-size: 26rpx; color: rgba(220,200,255,0.95); }
+	.trc-icon-glyph { font-size: 24rpx; color: rgba(205,192,255,0.88); }
 	.trc-head-text { flex: 1; display: flex; flex-direction: column; }
 	.trc-head-title {
-		font-size: 27rpx; font-weight: 700;
-		color: #3c4268; line-height: 1.35;
+		font-size: 26rpx; font-weight: 700;
+		color: #3a3d60; line-height: 1.38;
+		letter-spacing: 0.5rpx;
 	}
 	.trc-head-sub {
-		margin-top: 6rpx; font-size: 21rpx;
-		color: rgba(118, 126, 166, 0.68); line-height: 1.4;
+		margin-top: 5rpx; font-size: 21rpx;
+		color: rgba(122, 128, 162, 0.58); line-height: 1.42;
+		letter-spacing: 0.5rpx;
 	}
 
 	/* 三张牌 */
 	.trc-cards-strip {
-		display: flex; justify-content: center; gap: 16rpx;
-		padding: 20rpx 10rpx;
+		display: flex; justify-content: center; gap: 14rpx;
+		padding: 20rpx 8rpx;
 		border-radius: 20rpx;
-		background: rgba(238, 242, 255, 0.86);
-		border: 1rpx solid rgba(216, 218, 242, 0.80);
+		background: linear-gradient(135deg, rgba(240,238,255,0.82), rgba(232,228,250,0.70));
+		border: 1rpx solid rgba(212, 208, 235, 0.50);
 		margin-bottom: 12rpx;
 	}
 	.trc-card-col { flex: 1; display: flex; flex-direction: column; align-items: center; }
 	.trc-card {
-		width: 100%; max-width: 156rpx; height: 220rpx;
-		border-radius: 18rpx; position: relative;
-		box-shadow: 0 12rpx 30rpx rgba(12, 10, 28, 0.45);
+		width: 100%; max-width: 152rpx; height: 214rpx;
+		border-radius: 16rpx; position: relative;
+		box-shadow: 0 10rpx 28rpx rgba(15, 12, 30, 0.42);
 		display: flex; flex-direction: column;
 		align-items: center; justify-content: center;
-		padding: 12rpx 8rpx;
-		border: 1rpx solid rgba(255,255,255,0.08);
+		padding: 10rpx 8rpx;
+		border: 1rpx solid rgba(255,255,255,0.10);
 	}
 	.trc-card-num {
-		position: absolute; top: 12rpx; left: 14rpx;
-		font-size: 18rpx; font-weight: 700;
-		color: rgba(255,255,255,0.18); font-style: italic;
+		position: absolute; top: 10rpx; left: 12rpx;
+		font-size: 17rpx; font-weight: 700;
+		color: rgba(255,255,255,0.16); font-style: italic;
 	}
 	.trc-card-ring {
-		width: 52rpx; height: 52rpx; border-radius: 50%;
-		background: rgba(255,255,255,0.12);
-		border: 1rpx solid rgba(255,255,255,0.14);
+		width: 48rpx; height: 48rpx; border-radius: 50%;
+		background: rgba(255,255,255,0.11);
+		border: 1rpx solid rgba(255,255,255,0.13);
 		display: flex; align-items: center; justify-content: center;
-		margin-bottom: 10rpx;
+		margin-bottom: 8rpx;
 	}
-	.trc-card-sym { font-size: 26rpx; color: rgba(255,255,255,0.55); }
+	.trc-card-sym { font-size: 24rpx; color: rgba(255,255,255,0.52); }
 	.trc-card-name-inner {
-		font-size: 21rpx; font-weight: 700;
-		color: rgba(255,255,255,0.88); text-align: center;
+		font-size: 20rpx; font-weight: 700;
+		color: rgba(255,255,255,0.90); text-align: center;
 	}
 	.trc-card-label {
-		margin-top: 14rpx; font-size: 23rpx;
-		font-weight: 600; color: rgba(88, 95, 138, 0.82);
+		margin-top: 12rpx; font-size: 22rpx;
+		font-weight: 600; color: rgba(82, 88, 128, 0.75);
+		letter-spacing: 0.5rpx;
 	}
 
 	.trc-divider {
 		height: 1rpx; margin: 22rpx 0 20rpx;
-		background: linear-gradient(90deg, transparent, rgba(148,132,210,0.18), transparent);
+		background: linear-gradient(90deg, transparent, rgba(160,148,205,0.14), transparent);
 	}
 
 	/* 解读段落 */
-	.trc-reading-body { display: flex; flex-direction: column; gap: 22rpx; }
+	.trc-reading-body { display: flex; flex-direction: column; gap: 20rpx; }
 	.trc-section { padding: 0 2rpx; }
 	.trc-section-title {
-		display: block; font-size: 27rpx; font-weight: 700;
-		color: #3d446e; line-height: 1.55;
+		display: block; font-size: 26rpx; font-weight: 700;
+		color: #3c4068; line-height: 1.55;
+		letter-spacing: 0.5rpx;
 	}
 	.trc-section-content {
 		display: block; margin-top: 8rpx;
-		font-size: 26rpx; line-height: 1.78;
-		color: rgba(92, 100, 138, 0.82);
+		font-size: 28rpx; line-height: 1.64;
+		color: rgba(95, 102, 138, 0.76);
+		letter-spacing: 0.3rpx;
 	}
 
 	/* 工具条 */
-	.trc-tools { display: flex; gap: 14rpx; margin-top: 28rpx; flex-wrap: wrap; }
+	.trc-tools { display: flex; gap: 12rpx; margin-top: 26rpx; flex-wrap: wrap; }
 	.trc-tool-chip {
 		display: flex; align-items: center; gap: 8rpx;
-		padding: 16rpx 22rpx;
-		border-radius: 16rpx;
-		background: rgba(244, 246, 255, 0.92);
-		border: 1rpx solid rgba(216, 218, 242, 0.84);
+		padding: 14rpx 20rpx;
+		border-radius: 18rpx;
+		background: rgba(245,244,255,0.94);
+		border: 1rpx solid rgba(212, 208, 235, 0.58);
+		transition: all 0.18s ease;
 	}
-	.trc-tool-hover { background: rgba(230, 234, 252, 0.96); }
-	.trc-tool-emoji { font-size: 26rpx; }
-	.trc-tool-text { font-size: 23rpx; color: rgba(88, 95, 138, 0.86); font-weight: 600; }
+	.trc-tool-hover { background: rgba(230,228,250,0.96); transform: scale(0.96); }
+	.trc-tool-emoji { font-size: 24rpx; }
+	.trc-tool-text { font-size: 22rpx; color: rgba(82, 88, 128, 0.78); font-weight: 600; letter-spacing: 0.5rpx; }
 
 	/* ===== 消息通用 ===== */
-	.message-row { display: flex; margin-bottom: 26rpx; align-items: flex-start; }
+	.message-row {
+		display: flex;
+		margin-bottom: 32rpx;
+		align-items: flex-start;
+		animation: msgFadeIn 0.32s ease-out;
+	}
 	.row-user { justify-content: flex-end; }
 	.row-ai { justify-content: flex-start; }
 
+	@keyframes msgFadeIn {
+		from { opacity: 0; transform: translateY(10rpx); }
+		to { opacity: 1; transform: translateY(0); }
+	}
+
 	.avatar {
-		width: 64rpx; height: 64rpx; border-radius: 18rpx;
+		width: 76rpx; height: 76rpx; border-radius: 50%;
 		flex-shrink: 0; overflow: hidden;
+		transition: transform 0.18s ease;
 	}
+	.avatar:active { transform: scale(0.92); }
 	.ai-avatar {
-		background: linear-gradient(145deg, #9fb3ff 0%, #8f87f0 100%);
-		border: 1rpx solid rgba(192,194,244,0.64);
+		background: linear-gradient(180deg, #d4c8f5 0%, #b8a8e8 40%, #9e8cd8 100%);
+		border: 1rpx solid rgba(200, 190, 240, 0.45);
 		display: flex; align-items: center; justify-content: center;
-		margin-right: 16rpx;
-		box-shadow: 0 10rpx 18rpx rgba(125, 133, 225, 0.18);
+		margin-right: 14rpx;
+		box-shadow: 0 4rpx 16rpx rgba(140, 125, 210, 0.15);
 	}
-	.ai-avatar-t { font-size: 28rpx; font-weight: 800; color: rgba(255,255,255,0.96); }
+	.ai-avatar-silhouette {
+		width: 44rpx; height: 56rpx;
+		background: rgba(120, 105, 175, 0.35);
+		border-radius: 50% 50% 45% 45% / 55% 55% 45% 45%;
+		filter: blur(4rpx);
+		position: relative;
+	}
+	.ai-avatar-silhouette::after {
+		content: '';
+		position: absolute;
+		bottom: -14rpx;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 32rpx; height: 18rpx;
+		background: rgba(120, 105, 175, 0.30);
+		border-radius: 50%;
+		filter: blur(3rpx);
+	}
 	.user-avatar {
-		margin-left: 16rpx;
-		background: rgba(232, 234, 248, 0.84);
-		border: 1rpx solid rgba(223,227,246,0.92);
+		margin-left: 14rpx;
+		background-color: rgba(235, 234, 248, 0.86);
+		background-size: cover;
+		background-position: center;
+		background-repeat: no-repeat;
+		border: 1rpx solid rgba(212, 208, 235, 0.58);
+		box-shadow: 0 4rpx 12rpx rgba(140, 130, 196, 0.10);
 	}
-	.user-avatar image { width: 100%; height: 100%; }
+	.user-avatar-placeholder {
+		width: 100%; height: 100%;
+		display: flex; align-items: center; justify-content: center;
+		background: linear-gradient(135deg, #e8e4f6, #ddd8f0);
+	}
+	.user-avatar-icon { font-size: 36rpx; opacity: 0.45; }
 
 	.message-main {
-		max-width: 72%;
-		padding: 22rpx 26rpx;
-		border-radius: 28rpx;
-		font-size: 29rpx;
-		line-height: 1.7;
+		max-width: 74%;
+		padding: 24rpx 28rpx;
+		border-radius: 26rpx;
+		font-size: 28rpx;
+		line-height: 1.68;
 		word-break: break-all;
 	}
 	.message-main .message-text {
 		display: block;
 		white-space: pre-wrap;
 		word-break: break-word;
-		line-height: 1.72;
+		line-height: 1.68;
+		letter-spacing: 0.4rpx;
 	}
 	.message-role {
 		display: inline-block;
-		margin-bottom: 10rpx;
+		margin-bottom: 8rpx;
 		font-size: 22rpx;
-		font-weight: 700;
-		color: rgba(129, 122, 170, 0.84);
+		font-weight: 500;
+		color: rgba(140, 132, 175, 0.55);
 		letter-spacing: 1rpx;
 	}
 	.message-main--ai,
 	.bubble-ai {
-		background: rgba(255,255,255,0.98);
-		color: #394062;
-		border-top-left-radius: 10rpx;
-		box-shadow: 0 10rpx 24rpx rgba(165, 170, 214, 0.10);
-		border: 1rpx solid rgba(232, 234, 246, 0.96);
+		background: rgba(255,255,255,0.94);
+		color: #3d3a52;
+		border-top-left-radius: 8rpx;
+		box-shadow: 0 6rpx 20rpx rgba(155, 148, 205, 0.08), 0 2rpx 6rpx rgba(155, 148, 205, 0.04);
+		border: 1rpx solid rgba(225, 222, 242, 0.60);
+	}
+	.message-main--ai .message-text {
+		font-size: 27rpx;
+		line-height: 1.72;
+		letter-spacing: 0.5rpx;
+		color: #4a4562;
 	}
 	.message-main--user {
-		background: linear-gradient(145deg, #6a84ff, #886feb);
-		color: rgba(255,255,255,0.96);
-		border-top-right-radius: 10rpx;
-		box-shadow: 0 14rpx 28rpx rgba(123, 118, 214, 0.22);
+		background: linear-gradient(145deg, #9685ee, #7d6bd6);
+		color: rgba(255,255,255,0.97);
+		border-top-right-radius: 8rpx;
+		box-shadow: 0 10rpx 26rpx rgba(130, 115, 220, 0.22), 0 3rpx 8rpx rgba(130, 115, 220, 0.08);
+	}
+	.message-main--user .message-text {
+		letter-spacing: 0.3rpx;
 	}
 
 	/* 打字动画 */
-	.typing-bubble { display: flex; align-items: center; height: 44rpx; padding: 22rpx 28rpx; min-width: 112rpx; }
+	.typing-bubble { display: flex; align-items: center; height: 48rpx; padding: 22rpx 28rpx; min-width: 120rpx; }
 	.dot {
-		width: 12rpx; height: 12rpx;
-		background: rgba(132, 144, 214, 0.62); border-radius: 50%;
-		margin: 0 6rpx;
+		width: 13rpx; height: 13rpx;
+		background: rgba(145, 135, 210, 0.48); border-radius: 50%;
+		margin: 0 7rpx;
 		animation: bounce 1.4s infinite ease-in-out both;
 	}
 	.dot:nth-child(1) { animation-delay: -0.32s; }
 	.dot:nth-child(2) { animation-delay: -0.16s; }
 	@keyframes bounce {
-		0%, 80%, 100% { transform: scale(0); }
-		40% { transform: scale(1); }
+		0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+		40% { transform: scale(1); opacity: 1; }
 	}
 
 	/* ===== 底部输入栏 ===== */
+	.clarify-hint-bar {
+		position: fixed; left: 0; width: 100%;
+		bottom: calc(114rpx + env(safe-area-inset-bottom));
+		background: rgba(138, 118, 200, 0.05);
+		padding: 10rpx 28rpx;
+		box-sizing: border-box;
+		display: flex; align-items: center; justify-content: space-between;
+		z-index: 91;
+		height: 54rpx;
+	}
+	.clarify-hint-text {
+		font-size: 22rpx; color: #8278b5; font-weight: 400;
+		letter-spacing: 1rpx;
+	}
+	.clarify-hint-new {
+		font-size: 22rpx; color: #8278b5; font-weight: 600;
+		text-decoration: underline;
+		letter-spacing: 1rpx;
+	}
 	.input-bar {
 		position: fixed; left: 0; width: 100%;
-		background: rgba(255, 255, 255, 0.88);
-		backdrop-filter: blur(22px);
-		-webkit-backdrop-filter: blur(22px);
-		padding: 16rpx 20rpx;
+		background: rgba(250, 247, 255, 0.88);
+		backdrop-filter: blur(26px);
+		-webkit-backdrop-filter: blur(26px);
+		padding: 14rpx 20rpx;
 		box-sizing: border-box;
 		display: flex; align-items: center;
-		border-top: 1rpx solid rgba(242, 238, 249, 0.96);
+		border-top: 1rpx solid rgba(210, 200, 235, 0.44);
 		z-index: 90;
+		transition: bottom 0.25s ease;
 	}
 	.chat-input {
-		flex: 1; height: 82rpx;
-		background: rgba(250, 248, 255, 0.96);
+		flex: 1; height: 80rpx;
+		background: rgba(255, 255, 255, 0.94);
 		border-radius: 999rpx;
-		padding: 0 30rpx;
+		padding: 0 32rpx;
 		font-size: 29rpx; color: #2e2c37;
 		font-weight: 400;
-		border: 1rpx solid rgba(239, 233, 248, 1);
-		box-shadow: none;
+		letter-spacing: 0.6rpx;
+		border: 1rpx solid rgba(210, 200, 235, 0.58);
+		box-shadow: inset 0 2rpx 6rpx rgba(140, 130, 196, 0.03);
+		transition: border-color 0.2s ease, box-shadow 0.2s ease;
 	}
-	.input-placeholder { color: rgba(150, 144, 166, 0.88); }
+	.chat-input:focus {
+		border-color: rgba(155, 135, 215, 0.50);
+		box-shadow: inset 0 2rpx 6rpx rgba(140, 130, 196, 0.03), 0 0 0 4rpx rgba(155, 135, 215, 0.07);
+	}
+	.input-placeholder { color: rgba(155, 148, 175, 0.65); letter-spacing: 1rpx; }
 	.send-btn {
 		margin-left: 14rpx;
 		min-width: 96rpx;
 		height: 72rpx;
 		padding: 0 24rpx;
 		border-radius: 999rpx;
-		background: rgba(250, 248, 255, 0.96);
-		border: 1rpx solid rgba(239, 233, 248, 1);
+		background: rgba(248, 246, 255, 0.96);
+		border: 1rpx solid rgba(210, 200, 235, 0.55);
 		display: flex; align-items: center; justify-content: center;
-		transition: all 0.2s;
+		transition: all 0.22s ease;
 		box-shadow: none;
 	}
-	.send-btn-t { font-size: 27rpx; color: #5a5570; font-weight: 700; }
+	.send-btn:active { transform: scale(0.93); }
+	.send-btn-t { font-size: 27rpx; color: #625a82; font-weight: 700; letter-spacing: 2rpx; }
 	.btn-active {
-		background: linear-gradient(145deg, #8e7aeb, #7b68da);
+		background: linear-gradient(145deg, #9685ee, #7d6bd6);
 		border-color: transparent;
-		box-shadow: 0 10rpx 22rpx rgba(136, 120, 219, 0.20);
+		box-shadow: 0 8rpx 24rpx rgba(130, 115, 220, 0.28);
 	}
-	.btn-active .send-btn-t { color: rgba(255,255,255,0.96); }
+	.btn-active .send-btn-t { color: rgba(255,255,255,0.97); }
+	.btn-active:active {
+		transform: scale(0.93);
+		box-shadow: 0 5rpx 14rpx rgba(130, 115, 220, 0.18);
+	}
+
+	/* 自定义弹窗 */
+	.modal-mask {
+		position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+		background: rgba(40, 35, 60, 0.45);
+		z-index: 999;
+		display: flex; align-items: center; justify-content: center;
+	}
+	.modal-box {
+		width: 520rpx;
+		background: #fff;
+		border-radius: 24rpx;
+		padding: 36rpx 32rpx 24rpx;
+		box-shadow: 0 16rpx 48rpx rgba(80, 70, 120, 0.15), 0 4rpx 12rpx rgba(80, 70, 120, 0.06);
+		animation: modalIn 0.2s ease-out both;
+	}
+	@keyframes modalIn {
+		from { opacity: 0; transform: scale(0.94) translateY(16rpx); }
+		to { opacity: 1; transform: scale(1) translateY(0); }
+	}
+	.modal-title {
+		display: block; text-align: center;
+		font-size: 28rpx; font-weight: 600; color: #3d3a52;
+		margin-bottom: 12rpx; letter-spacing: 0.5rpx;
+	}
+	.modal-desc {
+		display: block; text-align: center;
+		font-size: 24rpx; color: #8b82a6;
+		line-height: 1.4; margin-bottom: 28rpx;
+	}
+	.modal-btns {
+		display: flex; border-top: 1rpx solid rgba(210, 206, 230, 0.45);
+	}
+	.modal-btn {
+		flex: 1; text-align: center; padding: 18rpx 0;
+		font-size: 27rpx;
+	}
+	.modal-btn-cancel { color: #9b92b2; }
+	.modal-btn-cancel:active { background: rgba(155,146,178,0.06); }
+	.modal-btn-confirm { color: #7d6bd6; font-weight: 600; position: relative; }
+	.modal-btn-confirm::before {
+		content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+		width: 1rpx; height: 32rpx; background: rgba(200,195,225,0.60);
+	}
+	.modal-btn-confirm:active { background: rgba(125,107,214,0.05); }
 </style>

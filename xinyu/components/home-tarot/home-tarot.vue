@@ -21,7 +21,7 @@
 		<view class="tarot-theme-panel" v-if="!hasResult">
 			<view class="theme-head">
 				<text class="theme-head-title">主题</text>
-				<text class="theme-head-meta">可选</text>
+				<text class="theme-head-meta">必选其一</text>
 			</view>
 			<view class="theme-tag-grid">
 				<view
@@ -39,7 +39,7 @@
 				type="text"
 				:value="customQuestion"
 				@input="onQuestionInput"
-				placeholder="自定义问题（可选）"
+				placeholder="自定义问题（与主题二选一）"
 				placeholder-class="theme-question-ph"
 				confirm-type="done"
 				maxlength="120"
@@ -68,9 +68,15 @@
 		</view>
 
 		<view class="btn-row">
-			<view class="draw-btn" hover-class="draw-btn-hover" @tap="onDrawBtn">
+			<view
+				class="draw-btn"
+				:class="{ 'draw-btn--disabled': !canDraw }"
+				hover-class="canDraw ? 'draw-btn-hover' : ''"
+				@tap="onDrawBtn"
+			>
 				<text class="draw-btn-text">{{ hasResult ? '解析卡牌' : '点击抽卡' }}</text>
 			</view>
+			<text class="draw-hint" :class="{ 'draw-hint--show': !hasResult && !canDraw }">请先选定标签再抽牌</text>
 		</view>
 		<view v-if="hasResult" class="reset-row" @tap="resetDraw">
 			<text class="reset-link">重新抽一次</text>
@@ -123,6 +129,11 @@
 				]
 			}
 		},
+		computed: {
+			canDraw: function() {
+				return !!(this.selectedTagId || (this.customQuestion || '').trim())
+			}
+		},
 		mounted: function() { this.checkDrawn() },
 		methods: {
 			checkDrawn: function() {
@@ -144,6 +155,10 @@
 				if (this.hasResult) {
 					this.$emit('analyze')
 				} else {
+					if (!this.canDraw) {
+						uni.showToast({ title: '请先选择一个主题或填写自定义问题', icon: 'none' })
+						return
+					}
 					this.$emit('open-draw', {
 						tagId: this.selectedTagId,
 						customQuestion: this.customQuestion
@@ -409,7 +424,7 @@
 	/* ---- 按钮 ---- */
 	.btn-row {
 		display: flex;
-		justify-content: center;
+		flex-direction: column;
 		align-items: center;
 		margin: 28rpx 0 14rpx;
 	}
@@ -423,6 +438,14 @@
 		background: linear-gradient(148deg, #9a8fcb 0%, #8276ba 52%, #7264af 100%);
 		box-shadow: 0 6rpx 22rpx rgba(100, 88, 170, 0.24);
 		border: 1rpx solid rgba(255, 255, 255, 0.16);
+		transition: opacity 0.2s ease, transform 0.18s ease;
+	}
+	.draw-btn--disabled {
+		background: linear-gradient(148deg, #c4bdd6 0%, #b5aec8 52%, #a8a1bc 100%);
+		box-shadow: none;
+	}
+	.draw-btn--disabled .draw-btn-text {
+		color: rgba(255,255,255,0.45);
 	}
 	.draw-btn-hover {
 		opacity: 0.88;
@@ -442,5 +465,20 @@
 		font-size: 22rpx;
 		color: rgba(130, 118, 186, 0.48);
 		font-weight: 400;
+	}
+	.draw-hint {
+		display: block;
+		text-align: center;
+		font-size: 20rpx;
+		color: rgba(180, 168, 210, 0.55);
+		margin-top: 10rpx;
+		letter-spacing: 1rpx;
+		height: 28rpx;
+		line-height: 28rpx;
+		opacity: 0;
+		transition: opacity 0.2s ease;
+	}
+	.draw-hint--show {
+		opacity: 1;
 	}
 </style>

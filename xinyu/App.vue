@@ -13,5 +13,6 @@
 </script>
 
 <style>
+	@import './tailwind.css';
 	/*每个页面公共css */
 </style>

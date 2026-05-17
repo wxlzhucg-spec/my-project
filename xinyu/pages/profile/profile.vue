@@ -1,38 +1,78 @@
 <template>
 	<view class="container" :style="containerStyle">
 		<view class="top-bg-glow"></view>
-		<text class="page-title">我的</text>
 
 		<!-- 用户信息头部 -->
 		<view class="user-header" @tap="goEditProfile">
 			<view class="avatar-container">
-				<image v-if="userInfo.avatar" class="avatar" :src="userInfo.avatar" mode="aspectFill"></image>
-				<view v-else class="avatar avatar-empty"><text class="avatar-empty-text">+</text></view>
-				<view class="avatar-badge"></view>
+				<view class="avatar" :style="userInfo.avatar ? ('background-image:url(' + userInfo.avatar + ')') : ''">
+					<view v-if="!userInfo.avatar" class="avatar-empty"><text class="avatar-empty-text">+</text></view>
+				</view>
+				<view class="avatar-badge"><text class="badge-icon">✎</text></view>
 			</view>
 			<view class="user-info">
 				<view class="name-row">
 					<text class="nickname">{{ userInfo.nickname }}</text>
-					<view class="vip-tag" v-if="userInfo.mbti">{{ userInfo.mbti }}</view>
+					<view class="mbti-tag" v-if="userInfo.mbti">{{ userInfo.mbti }}</view>
 				</view>
 				<text class="sub-desc">{{ userInfo.desc }}</text>
 			</view>
-			<view class="arrow-icon">›</view>
+			<text class="arrow-icon">›</text>
 		</view>
 
 		<!-- 统计数据面板 -->
 		<view class="stats-panel">
 			<view class="stat-item">
+				<text class="stat-icon">📝</text>
 				<text class="stat-val">12</text>
 				<text class="stat-label">记录/天</text>
 			</view>
+			<view class="stat-divider"></view>
 			<view class="stat-item">
+				<text class="stat-icon">📋</text>
 				<text class="stat-val">3</text>
 				<text class="stat-label">报告/份</text>
 			</view>
+			<view class="stat-divider"></view>
 			<view class="stat-item">
+				<text class="stat-icon">💚</text>
 				<text class="stat-val">89</text>
 				<text class="stat-label">平均/分</text>
+			</view>
+		</view>
+
+		<!-- 功能菜单 -->
+		<view class="menu-card">
+			<view class="menu-item" @tap="goEditProfile">
+				<view class="menu-icon-wrap menu-icon-profile">
+					<text class="menu-emoji">👤</text>
+				</view>
+				<text class="menu-label">个人资料</text>
+				<text class="menu-arrow">›</text>
+			</view>
+			<view class="menu-sep"></view>
+			<view class="menu-item">
+				<view class="menu-icon-wrap menu-icon-test">
+					<text class="menu-emoji">🧠</text>
+				</view>
+				<text class="menu-label">心理测试</text>
+				<text class="menu-arrow">›</text>
+			</view>
+			<view class="menu-sep"></view>
+			<view class="menu-item">
+				<view class="menu-icon-wrap menu-icon-report">
+					<text class="menu-emoji">📊</text>
+				</view>
+				<text class="menu-label">健康报告</text>
+				<text class="menu-arrow">›</text>
+			</view>
+			<view class="menu-sep"></view>
+			<view class="menu-item">
+				<view class="menu-icon-wrap menu-icon-setting">
+					<text class="menu-emoji">⚙️</text>
+				</view>
+				<text class="menu-label">设置</text>
+				<text class="menu-arrow">›</text>
 			</view>
 		</view>
 
@@ -40,10 +80,11 @@
 		<view class="section-card">
 			<view class="section-header">
 				<text class="section-title">测试记录</text>
+				<text class="section-more">全部 ›</text>
 			</view>
 			<view class="record-list">
 				<view class="record-item" v-for="(item, index) in testRecords" :key="index">
-					<view class="record-icon test-icon"></view>
+					<view class="record-dot" :class="'dot-' + (index % 2 === 0 ? 'green' : 'blue')"></view>
 					<view class="record-content">
 						<text class="record-name">{{ item.title }}</text>
 						<text class="record-date">{{ item.date }}</text>
@@ -57,10 +98,11 @@
 		<view class="section-card">
 			<view class="section-header">
 				<text class="section-title">报告记录</text>
+				<text class="section-more">全部 ›</text>
 			</view>
 			<view class="record-list">
 				<view class="record-item" v-for="(item, index) in reportRecords" :key="index">
-					<view class="record-icon report-icon"></view>
+					<view class="record-dot" :class="'dot-' + (index % 2 === 0 ? 'purple' : 'orange')"></view>
 					<view class="record-content">
 						<text class="record-name">{{ item.title }}</text>
 						<text class="record-date">{{ item.date }}</text>
@@ -70,12 +112,18 @@
 			</view>
 		</view>
 
-		<view class="auth-links">
-			<view class="auth-link" @tap="goLogin">
-				<text class="auth-link-t">已有账号？去登录</text>
+		<!-- 底部登录 -->
+		<view class="auth-area">
+			<view class="auth-btn auth-btn-login" @tap="goLogin">
+				<text class="auth-btn-t">登录账号</text>
 			</view>
-			<view class="auth-link" @tap="goRegister">
-				<text class="auth-link-t">没有账号？去注册</text>
+			<view class="auth-divider">
+				<view class="auth-line"></view>
+				<text class="auth-or">或</text>
+				<view class="auth-line"></view>
+			</view>
+			<view class="auth-btn auth-btn-register" @tap="goRegister">
+				<text class="auth-btn-t2">注册新账号</text>
 			</view>
 		</view>
 
@@ -158,8 +206,18 @@
 							self.userInfo.nickname = d.nickname || '点击完善资料'
 							self.userInfo.avatar = d.avatar_url || ''
 							self.userInfo.mbti = d.mbti || ''
+							// 远程头像为空时，从本地缓存补充
+							if (!self.userInfo.avatar) {
+								var cachedRaw = uni.getStorageSync('userProfile')
+								if (cachedRaw) {
+									try {
+										var cached = JSON.parse(cachedRaw)
+										if (cached.avatar) self.userInfo.avatar = cached.avatar
+									} catch (e) {}
+								}
+							}
 							uni.setStorageSync('userProfile', JSON.stringify({
-								avatar: d.avatar_url || '',
+								avatar: self.userInfo.avatar,
 								nickname: d.nickname || '',
 								gender: d.gender || '',
 								birthDate: d.birth_date || '',
@@ -184,13 +242,21 @@
 							self.userInfo.nickname = d.nickname || '点击完善资料'
 							self.userInfo.avatar = d.avatar_url || ''
 							self.userInfo.mbti = d.mbti || ''
+							// 远程头像为空时，从本地缓存补充
+							if (!self.userInfo.avatar) {
+								var cachedRaw = uni.getStorageSync('userProfile')
+								if (cachedRaw) {
+									try {
+										var cached = JSON.parse(cachedRaw)
+										if (cached.avatar) self.userInfo.avatar = cached.avatar
+									} catch (e) {}
+								}
+							}
 							if (d.id != null && d.id !== '') {
-								try {
-									uni.setStorageSync('xinyu_user_id', Number(d.id))
-								} catch (e0) {}
+								try { uni.setStorageSync('xinyu_user_id', Number(d.id)) } catch (e0) {}
 							}
 							uni.setStorageSync('userProfile', JSON.stringify({
-								avatar: d.avatar_url || '',
+								avatar: self.userInfo.avatar,
 								nickname: d.nickname || '',
 								gender: d.gender || '',
 								birthDate: d.birth_date || '',
@@ -231,7 +297,7 @@
 <style scoped>
 	.container {
 		padding: 35rpx;
-		background: linear-gradient(180deg, #d6d0e2 0%, #c8c0d8 30%, #b8aece 60%, #a498be 100%);
+		background: linear-gradient(180deg, #ddd8ea 0%, #cec6de 35%, #bfb5d2 65%, #a998c2 100%);
 		min-height: 100vh;
 		position: relative;
 		overflow-x: hidden;
@@ -243,64 +309,68 @@
 		left: -20%;
 		width: 140%;
 		height: 600rpx;
-		background: radial-gradient(ellipse at 50% 30%, rgba(255,255,255,0.22) 0%, transparent 65%);
+		background: radial-gradient(ellipse at 50% 30%, rgba(255,255,255,0.25) 0%, transparent 65%);
 		pointer-events: none;
 		z-index: 0;
 	}
 
-	.page-title {
-		font-size: 40rpx;
-		font-weight: bold;
-		color: #2d2048;
-		margin-bottom: 40rpx;
-		display: block;
-		position: relative;
-		z-index: 1;
-	}
-
+	/* ── 用户头部 ── */
 	.user-header {
 		display: flex;
 		align-items: center;
-		padding: 30rpx 10rpx 50rpx 10rpx;
+		padding: 24rpx 10rpx 44rpx;
 		position: relative;
 		z-index: 1;
 	}
 
 	.avatar-container {
 		position: relative;
-		width: 140rpx;
-		height: 140rpx;
-		margin-right: 32rpx;
+		width: 128rpx;
+		height: 128rpx;
+		margin-right: 28rpx;
+		flex-shrink: 0;
 	}
 
 	.avatar {
 		width: 100%;
 		height: 100%;
-		border-radius: 70rpx;
-		border: 4rpx solid rgba(255, 255, 255, 0.7);
-		box-shadow: 0 8rpx 24rpx rgba(80, 60, 130, 0.1);
-		background-color: rgba(255, 255, 255, 0.6);
+		border-radius: 50%;
+		border: 3rpx solid rgba(255,255,255,0.65);
+		box-shadow: 0 8rpx 28rpx rgba(80, 60, 130, 0.12);
+		background-color: rgba(255,255,255,0.55);
+		background-size: cover;
+		background-position: center;
+		background-repeat: no-repeat;
+		overflow: hidden;
 	}
+
 	.avatar-empty {
-		display: flex;
-		align-items: center;
-		justify-content: center;
+		width: 100%; height: 100%;
+		display: flex; align-items: center; justify-content: center;
+		background: linear-gradient(135deg, #e8e4f6, #ddd8f0);
+		border-radius: 50%;
 	}
 	.avatar-empty-text {
-		font-size: 52rpx;
+		font-size: 48rpx;
 		color: #b0a4c4;
 		font-weight: 200;
 	}
 
 	.avatar-badge {
 		position: absolute;
-		right: 0;
-		bottom: 8rpx;
-		width: 28rpx;
-		height: 28rpx;
-		background: #8878a8;
-		border: 4rpx solid #ffffff;
+		right: -4rpx;
+		bottom: -4rpx;
+		width: 38rpx;
+		height: 38rpx;
+		background: #7d6bd6;
+		border: 3rpx solid #fff;
 		border-radius: 50%;
+		display: flex; align-items: center; justify-content: center;
+		box-shadow: 0 4rpx 12rpx rgba(125,107,214,0.25);
+	}
+	.badge-icon {
+		font-size: 18rpx;
+		color: #fff;
 	}
 
 	.user-info {
@@ -312,44 +382,49 @@
 	.name-row {
 		display: flex;
 		align-items: center;
-		margin-bottom: 12rpx;
+		margin-bottom: 8rpx;
 	}
 
 	.nickname {
-		font-size: 40rpx;
+		font-size: 38rpx;
 		font-weight: 700;
 		color: #2d2048;
-		letter-spacing: 1rpx;
+		letter-spacing: 0.5rpx;
 	}
 
-	.vip-tag {
-		background: linear-gradient(135deg, rgba(136, 120, 168, 0.8), rgba(80, 60, 120, 0.8));
-		color: #ffffff;
+	.mbti-tag {
+		background: linear-gradient(135deg, #8b78c4, #6d58b0);
+		color: #fff;
 		font-size: 20rpx;
 		font-weight: 600;
-		padding: 4rpx 12rpx;
-		border-radius: 12rpx;
-		margin-left: 16rpx;
+		padding: 4rpx 14rpx;
+		border-radius: 16rpx;
+		margin-left: 14rpx;
+		letter-spacing: 0.5rpx;
 	}
 
 	.sub-desc {
-		font-size: 26rpx;
-		color: rgba(45, 32, 72, 0.7);
+		font-size: 25rpx;
+		color: rgba(45, 32, 72, 0.65);
+		letter-spacing: 0.3rpx;
 	}
 
 	.arrow-icon {
-		font-size: 32rpx;
-		color: rgba(45, 32, 72, 0.5);
+		font-size: 36rpx;
+		color: rgba(45, 32, 72, 0.35);
 		font-family: monospace;
+		margin-left: 8rpx;
 	}
 
+	/* ── 统计面板 ── */
 	.stats-panel {
 		display: flex;
-		background: rgba(255, 255, 255, 0.82);
-		border-radius: 32rpx;
-		padding: 40rpx 20rpx;
+		align-items: center;
+		background: rgba(255,255,255,0.80);
+		border-radius: 28rpx;
+		padding: 36rpx 16rpx;
 		margin-bottom: 24rpx;
-		box-shadow: 0 6rpx 24rpx rgba(80, 60, 130, 0.07);
+		box-shadow: 0 6rpx 28rpx rgba(80, 60, 130, 0.07);
 		border: 1rpx solid rgba(255,255,255,0.5);
 		position: relative;
 		z-index: 1;
@@ -360,44 +435,106 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		border-right: 1rpx solid rgba(100, 80, 140, 0.1);
-	}
-	
-	.stat-item:last-child {
-		border-right: none;
 	}
 
+	.stat-icon { font-size: 28rpx; margin-bottom: 8rpx; }
 	.stat-val {
 		font-size: 36rpx;
 		font-weight: 700;
 		color: #2d2048;
-		margin-bottom: 8rpx;
+		margin-bottom: 4rpx;
 	}
-
 	.stat-label {
-		font-size: 24rpx;
-		color: #6c5c88;
+		font-size: 22rpx;
+		color: #8b7da8;
+		letter-spacing: 0.5rpx;
 	}
 
-	.section-card {
-		background: rgba(255, 255, 255, 0.82);
-		border-radius: 32rpx;
-		padding: 36rpx 32rpx;
+	.stat-divider {
+		width: 1rpx;
+		height: 56rpx;
+		background: rgba(100, 80, 140, 0.10);
+	}
+
+	/* ── 功能菜单 ── */
+	.menu-card {
+		background: rgba(255,255,255,0.80);
+		border-radius: 28rpx;
+		padding: 8rpx 0;
 		margin-bottom: 24rpx;
-		box-shadow: 0 6rpx 24rpx rgba(80, 60, 130, 0.07);
+		box-shadow: 0 6rpx 28rpx rgba(80, 60, 130, 0.07);
+		border: 1rpx solid rgba(255,255,255,0.5);
+		position: relative;
+		z-index: 1;
+	}
+
+	.menu-item {
+		display: flex;
+		align-items: center;
+		padding: 28rpx 32rpx;
+		transition: background 0.15s;
+	}
+	.menu-item:active { background: rgba(125,107,214,0.05); }
+
+	.menu-icon-wrap {
+		width: 52rpx; height: 52rpx;
+		border-radius: 14rpx;
+		display: flex; align-items: center; justify-content: center;
+		margin-right: 24rpx;
+	}
+	.menu-icon-profile { background: rgba(175,160,220,0.18); }
+	.menu-icon-test { background: rgba(160,210,175,0.20); }
+	.menu-icon-report { background: rgba(160,190,230,0.20); }
+	.menu-icon-setting { background: rgba(200,190,210,0.18); }
+	.menu-emoji { font-size: 26rpx; }
+
+	.menu-label {
+		flex: 1;
+		font-size: 28rpx;
+		color: #2d2048;
+		font-weight: 500;
+	}
+
+	.menu-arrow {
+		font-size: 30rpx;
+		color: rgba(45, 32, 72, 0.30);
+		font-family: monospace;
+	}
+
+	.menu-sep {
+		height: 1rpx;
+		background: rgba(100, 80, 140, 0.08);
+		margin: 0 32rpx;
+	}
+
+	/* ── 记录卡片 ── */
+	.section-card {
+		background: rgba(255,255,255,0.80);
+		border-radius: 28rpx;
+		padding: 32rpx 32rpx 28rpx;
+		margin-bottom: 24rpx;
+		box-shadow: 0 6rpx 28rpx rgba(80, 60, 130, 0.07);
 		border: 1rpx solid rgba(255,255,255,0.5);
 		position: relative;
 		z-index: 1;
 	}
 
 	.section-header {
-		margin-bottom: 28rpx;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 24rpx;
 	}
 
 	.section-title {
 		font-size: 28rpx;
 		font-weight: 600;
 		color: #2d2048;
+	}
+
+	.section-more {
+		font-size: 22rpx;
+		color: #8b7da8;
 	}
 
 	.record-list {
@@ -408,29 +545,25 @@
 	.record-item {
 		display: flex;
 		align-items: center;
-		padding: 24rpx 0;
-		border-bottom: 1rpx solid rgba(100, 80, 140, 0.1);
+		padding: 22rpx 0;
+		border-bottom: 1rpx solid rgba(100, 80, 140, 0.06);
 	}
-	
 	.record-item:last-child {
 		border-bottom: none;
 		padding-bottom: 0;
 	}
 
-	.record-icon {
-		width: 72rpx;
-		height: 72rpx;
-		border-radius: 20rpx;
-		margin-right: 24rpx;
+	.record-dot {
+		width: 14rpx;
+		height: 14rpx;
+		border-radius: 50%;
+		margin-right: 20rpx;
+		flex-shrink: 0;
 	}
-
-	.test-icon {
-		background: linear-gradient(135deg, rgba(232, 245, 233, 0.8), rgba(200, 230, 201, 0.8));
-	}
-
-	.report-icon {
-		background: linear-gradient(135deg, rgba(227, 242, 253, 0.8), rgba(187, 222, 251, 0.8));
-	}
+	.dot-green { background: #a0d4a4; }
+	.dot-blue { background: #a0c4e8; }
+	.dot-purple { background: #b8a8e0; }
+	.dot-orange { background: #e0c8a0; }
 
 	.record-content {
 		flex: 1;
@@ -439,57 +572,93 @@
 	}
 
 	.record-name {
-		font-size: 28rpx;
+		font-size: 27rpx;
 		color: #2d2048;
-		margin-bottom: 8rpx;
+		margin-bottom: 6rpx;
 		font-weight: 500;
 	}
 
 	.record-date {
-		font-size: 22rpx;
-		color: #6c5c88;
+		font-size: 21rpx;
+		color: #8b7da8;
 	}
 
 	.record-tag {
-		background-color: rgba(100, 80, 140, 0.08);
-		padding: 4rpx 12rpx;
-		border-radius: 8rpx;
+		background: rgba(100, 80, 140, 0.07);
+		padding: 4rpx 14rpx;
+		border-radius: 16rpx;
 	}
-
 	.record-tag text {
 		font-size: 20rpx;
-		color: #6c5c88;
+		color: #8b7da8;
 	}
 
 	.record-action {
 		padding: 8rpx 20rpx;
 		border-radius: 20rpx;
-		border: 1rpx solid rgba(100, 80, 140, 0.12);
-		background: rgba(100, 80, 140, 0.06);
+		border: 1rpx solid rgba(125,107,214,0.20);
+		background: rgba(125,107,214,0.06);
 	}
-
 	.record-action text {
 		font-size: 22rpx;
-		color: #6c5c88;
+		color: #7d6bd6;
 		font-weight: 500;
 	}
 
-	.auth-links {
-		padding: 24rpx 0 8rpx;
+	/* ── 底部登录区 ── */
+	.auth-area {
+		padding: 16rpx 0 8rpx;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
+		position: relative;
+		z-index: 1;
 	}
-	.auth-link {
+
+	.auth-btn {
+		width: 100%;
+		height: 88rpx;
+		border-radius: 44rpx;
 		display: flex;
+		align-items: center;
 		justify-content: center;
 	}
-	.auth-link + .auth-link {
-		margin-top: 16rpx;
+
+	.auth-btn-login {
+		background: linear-gradient(135deg, #8b78c4, #6d58b0);
+		box-shadow: 0 8rpx 24rpx rgba(109,88,176,0.22);
 	}
-	.auth-link-t {
-		font-size: 26rpx;
-		color: #5c4d90;
-		text-decoration: underline;
+	.auth-btn-login:active {
+		transform: scale(0.97);
+		box-shadow: 0 4rpx 14rpx rgba(109,88,176,0.15);
+	}
+
+	.auth-btn-t {
+		font-size: 28rpx;
+		color: #fff;
+		font-weight: 600;
+		letter-spacing: 2rpx;
+	}
+
+	.auth-divider {
+		display: flex;
+		align-items: center;
+		width: 100%;
+		margin: 24rpx 0;
+	}
+	.auth-line { flex: 1; height: 1rpx; background: rgba(100,80,140,0.12); }
+	.auth-or { font-size: 22rpx; color: #8b7da8; padding: 0 20rpx; }
+
+	.auth-btn-register {
+		background: rgba(255,255,255,0.50);
+		border: 1rpx solid rgba(125,107,214,0.25);
+	}
+	.auth-btn-register:active { background: rgba(255,255,255,0.65); }
+
+	.auth-btn-t2 {
+		font-size: 28rpx;
+		color: #7d6bd6;
+		font-weight: 500;
+		letter-spacing: 1rpx;
 	}
 </style>
