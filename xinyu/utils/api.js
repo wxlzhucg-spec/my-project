@@ -603,13 +603,13 @@ export function postShadowChat(payload) {
 		emotion_keyword: String(payload.emotion_keyword || '迷茫').trim(),
 		question: question
 	}
-	// 优先传 user_id（手机号登录用户没有真实 open_id）
+	// 优先传 user_id（手机号登录用户）
 	var userId = getApiUserId()
 	if (userId) body.user_id = userId
-	// 仅在存在真实微信 open_id 时才下发；前端注册时写入的 'p_手机号' 伪值不算
+	// 传递真实微信 open_id（排除 'p_手机号' 伪值），后端优先用 user_id
 	var openid = String(payload.open_id || '').trim()
 	if (!openid) openid = getApiOpenid()
-	if (openid && openid.indexOf('p_') !== 0 && !userId) body.open_id = openid
+	if (openid && openid.indexOf('p_') !== 0) body.open_id = openid
 	if (payload.session_id) body.session_id = String(payload.session_id)
 	if (payload.supplements) body.supplements = String(payload.supplements)
 
@@ -679,6 +679,34 @@ export function postTarotSession(payload) {
 	})
 }
 
+/**
+ * SSE 文本块解析辅助函数。
+ * @param {string} raw - SSE 文本（可能包含多个 \n\n 分隔的事件块）
+ * @param {object} cb - 回调集合 { onSession, onToken, onDone, onError }
+ * @param {boolean} isFinal - 是否为最终完整数据（success 回调中为 true）
+ */
+function _parseSSEChunks(raw, cb, isFinal) {
+	if (!raw) return
+	var parts = raw.split('\n\n')
+	for (var p = 0; p < parts.length; p++) {
+		var eventType = ''
+		var eventData = ''
+		var lines = parts[p].split('\n')
+		for (var l = 0; l < lines.length; l++) {
+			if (lines[l].indexOf('event:') === 0) eventType = lines[l].substring(6).trim()
+			else if (lines[l].indexOf('data:') === 0) eventData = lines[l].substring(5).trim()
+		}
+		if (!eventType || !eventData) continue
+		try {
+			var data = JSON.parse(eventData)
+			if (eventType === 'session' && cb.onSession) cb.onSession(data)
+			else if (eventType === 'token' && cb.onToken) cb.onToken(data)
+			else if (eventType === 'done' && cb.onDone) cb.onDone(data)
+			else if (eventType === 'error' && cb.onError) cb.onError(data.message || '流式错误')
+		} catch(e) {}
+	}
+}
+
 export function streamShadowChat(payload, callbacks) {
 	var cb = callbacks || {}
 	var question = String(payload.question || '').trim()
@@ -695,7 +723,9 @@ export function streamShadowChat(payload, callbacks) {
 	if (userId) body.user_id = userId
 	var openid = String(payload.open_id || '').trim()
 	if (!openid) openid = getApiOpenid()
-	if (openid && openid.indexOf('p_') !== 0 && !userId) body.open_id = openid
+	// 传递真实微信 open_id（排除 'p_手机号' 伪值）
+	// 后端 _fill_user_from_db 优先用 user_id，open_id 作为补充标识
+	if (openid && openid.indexOf('p_') !== 0) body.open_id = openid
 	if (payload.session_id) body.session_id = String(payload.session_id)
 	if (payload.supplements) body.supplements = String(payload.supplements)
 	if (payload.category) body.category = String(payload.category)
@@ -766,6 +796,7 @@ export function streamShadowChat(payload, callbacks) {
 
 	// #ifndef H5
 	// 小程序端：用 uni.request + enableChunked
+	var chunkReceived = false  // 标记 onChunkData 是否真正收到了数据
 	var requestTask = uni.request({
 		url: url,
 		method: 'POST',
@@ -778,7 +809,31 @@ export function streamShadowChat(payload, callbacks) {
 			var sc = res.statusCode
 			if (sc < 200 || sc >= 300) {
 				if (cb.onError) cb.onError('HTTP ' + sc)
+				return
 			}
+			// 如果 onChunkData 已经真正收到了数据，不再重复处理
+			if (chunkReceived) return
+			var raw = res.data
+			if (typeof raw !== 'string') {
+				// 非流式返回：可能是 /api/shadow 的 JSON 格式
+				if (raw && typeof raw === 'object') {
+					if (cb.onSession && raw.session_id) cb.onSession({ session_id: raw.session_id })
+					if (cb.onToken && raw.reply) {
+						// 模拟一次性 token
+						cb.onToken({ text: raw.reply, node: 'generate_node' })
+					}
+					if (cb.onDone) cb.onDone({
+						session_id: raw.session_id || '',
+						phase: raw.phase || 'complete',
+						category: raw.category || '',
+						reply: raw.reply || '',
+						error: raw.error || null
+					})
+				}
+				return
+			}
+			// SSE 文本解析（fallback：onChunkData 不可用或不触发时，数据在 success 中一次性返回）
+			_parseSSEChunks(raw, cb, true)
 		},
 		fail: function(err) {
 			if (aborted) return
@@ -793,32 +848,27 @@ export function streamShadowChat(payload, callbacks) {
 			if (aborted) return
 			var str = ''
 			if (typeof chunk === 'object' && chunk.data) {
-				var arr = chunk.data
-				for (var i = 0; i < arr.length; i++) str += String.fromCharCode(arr[i])
+				// ArrayBuffer → UTF-8 字符串（使用 TextDecoder 兼容中文）
+				try {
+					var decoder = new TextDecoder('utf-8')
+					str = decoder.decode(new Uint8Array(chunk.data), { stream: true })
+				} catch(e) {
+					// fallback：逐字节转字符（仅对 ASCII 可靠）
+					var arr = chunk.data
+					for (var i = 0; i < arr.length; i++) str += String.fromCharCode(arr[i])
+				}
 			} else if (typeof chunk === 'string') {
 				str = chunk
 			}
+			if (!str) return
+			chunkReceived = true
 			buffer += str
-
-			var parts = buffer.split('\n\n')
-			buffer = parts.pop()
-
-			for (var p = 0; p < parts.length; p++) {
-				var eventType = ''
-				var eventData = ''
-				var lines = parts[p].split('\n')
-				for (var l = 0; l < lines.length; l++) {
-					if (lines[l].indexOf('event:') === 0) eventType = lines[l].substring(6).trim()
-					else if (lines[l].indexOf('data:') === 0) eventData = lines[l].substring(5).trim()
-				}
-				if (!eventType || !eventData) continue
-				try {
-					var data = JSON.parse(eventData)
-					if (eventType === 'session' && cb.onSession) cb.onSession(data)
-					else if (eventType === 'token' && cb.onToken) cb.onToken(data)
-					else if (eventType === 'done' && cb.onDone) cb.onDone(data)
-					else if (eventType === 'error' && cb.onError) cb.onError(data.message || '流式错误')
-				} catch(e) {}
+			// 只解析以 \n\n 结尾的完整事件块，保留不完整的尾部
+			var lastSep = buffer.lastIndexOf('\n\n')
+			if (lastSep >= 0) {
+				var completePart = buffer.substring(0, lastSep)
+				buffer = buffer.substring(lastSep + 2)
+				_parseSSEChunks(completePart, cb, false)
 			}
 		})
 	}
