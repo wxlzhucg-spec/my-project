@@ -10,7 +10,7 @@ module.exports = {
   corePlugins: {
     preflight: false
   },
-  separator: '__',
+  separator: process.env.UNI_PLATFORM && process.env.UNI_PLATFORM.indexOf('mp-') === 0 ? '__' : ':',
   theme: {
     extend: {}
   },

@@ -2,7 +2,7 @@
 <view class="page" :style="pageStyle">
 	<!-- 星空背景 -->
 	<view class="star-layer">
-		<view v-for="(s,i) in stars" :key="'s'+i" class="star" :style="s"></view>
+		<view v-for="(s,i) in stars" :key="i" class="star" :style="s"></view>
 	</view>
 	<view class="orb orb-a"></view>
 	<view class="orb orb-b"></view>
@@ -19,7 +19,7 @@
 	<!-- 进度条 -->
 	<view class="progress-wrap" v-if="phase === 'test'">
 		<view class="progress-bg">
-			<view class="progress-fill" :style="{ width: progressPct + '%' }"></view>
+			<view class="progress-fill" :style="progressBarStyle"></view>
 		</view>
 		<text class="progress-text">{{ curQ + 1 }} / {{ questions.length }}</text>
 	</view>
@@ -29,25 +29,25 @@
 		<view class="q-card">
 			<view class="q-num">
 				<text class="q-num-label">Q{{ curQ + 1 }}</text>
-				<text class="q-dim-tag" :style="{ background: curDimColor }">{{ curDimLabel }}</text>
+				<text class="q-dim-tag" :style="dimTagStyle">{{ curDimLabel }}</text>
 			</view>
 			<text class="q-text">{{ questions[curQ].text }}</text>
 		</view>
 		<view class="opts">
 			<view class="opt-row" v-for="(opt, oi) in freqOpts" :key="oi"
 				:class="{ active: answers[curQ] === oi }"
-				:style="answers[curQ] === oi ? { background: curDimColor, borderColor: curDimColor } : {}"
+				:style="curOptStyles[oi]"
 				@tap="selectOpt(oi)">
 				<view class="opt-radio" :class="{ checked: answers[curQ] === oi }"
-					:style="answers[curQ] === oi ? { borderColor: curDimColor } : {}">
-					<view class="opt-dot" v-if="answers[curQ] === oi" :style="{ background: curDimColor }"></view>
+					:style="curOptRadioStyles[oi]">
+					<view class="opt-dot" v-if="answers[curQ] === oi" :style="optDotStyle"></view>
 				</view>
-				<text class="opt-text" :style="answers[curQ] === oi ? { color: '#fff' } : {}">{{ opt }}</text>
+				<text class="opt-text" :style="curOptTextStyles[oi]">{{ opt }}</text>
 			</view>
 		</view>
 		<view class="btns">
 			<view class="btn-prev" v-if="curQ > 0" @tap="prevQ"><text>上一题</text></view>
-			<view class="btn-next" :style="{ background: curDimColor }" @tap="nextQ">
+			<view class="btn-next" :style="btnNextStyle" @tap="nextQ">
 				<text>{{ curQ < questions.length - 1 ? '下一题' : '查看结果' }}</text>
 			</view>
 		</view>
@@ -58,11 +58,11 @@
 		<view class="result-phase">
 
 			<!-- 主等级卡片 -->
-			<view class="hero-card" :style="{ borderColor: levelColor }">
-				<view class="hero-glow" :style="{ background: 'radial-gradient(circle,' + levelColor + '22,transparent 65%)' }"></view>
+		<view class="hero-card" :style="heroCardStyle">
+			<view class="hero-glow" :style="heroGlowStyle"></view>
 				<text class="hero-icon">{{ resultData.icon }}</text>
-				<text class="hero-level" :style="{ color: levelColor }">{{ resultData.level }}</text>
-				<text class="hero-code" :style="{ color: levelColor }">{{ totalScore }}分 / {{ maxScore }}分</text>
+			<text class="hero-level" :style="heroLevelStyle">{{ resultData.level }}</text>
+			<text class="hero-code" :style="heroCodeStyle">{{ totalScore }}分 / {{ maxScore }}分</text>
 				<text class="hero-desc">{{ resultData.desc }}</text>
 			</view>
 
@@ -77,11 +77,11 @@
 						</view>
 						<view class="dim-bar-wrap">
 							<view class="dim-bar-bg">
-								<view class="dim-bar-fill" :style="{ width: d.pct + '%', background: d.color }"></view>
+								<view class="dim-bar-fill" :style="d.dimBarSty"></view>
 							</view>
 						</view>
-						<text class="dim-pct" :style="{ color: d.color }">{{ d.pct }}%</text>
-						<text class="dim-tag" :style="{ color: d.tagColor }">{{ d.tag }}</text>
+					<text class="dim-pct" :style="d.dimPctSty">{{ d.pct }}%</text>
+					<text class="dim-tag" :style="d.dimTagTextSty">{{ d.tag }}</text>
 					</view>
 				</view>
 			</view>
@@ -95,8 +95,8 @@
 						<text class="symp-text">{{ q.shortText }}</text>
 						<view class="symp-dots">
 							<view class="symp-dot" v-for="(o, oi) in 4" :key="oi"
-								:class="{ filled: (answers[qi] || 0) >= oi }"
-								:style="(answers[qi] || 0) >= oi ? { background: sympColor(answers[qi]) } : {}"></view>
+								:class="dotFilledCls[qi][oi]"
+								:style="symptomDotStyles[qi][oi]"></view>
 						</view>
 						<text class="symp-freq">{{ freqShort[answers[qi] || 0] }}</text>
 					</view>
@@ -104,18 +104,18 @@
 			</view>
 
 			<!-- 维度详情与建议 -->
-			<view class="section-card" v-for="(d, di) in dimResults" :key="'d'+di">
+			<view class="section-card" v-for="(d, di) in dimResults" :key="di">
 				<view class="detail-header">
 					<text class="detail-icon">{{ d.icon }}</text>
 					<view class="detail-info">
 						<text class="detail-name">{{ d.name }}</text>
-						<text class="detail-tag" :style="{ color: d.tagColor }">{{ d.tag }}</text>
+						<text class="detail-tag" :style="d.detailTagSty">{{ d.tag }}</text>
 					</view>
 				</view>
 				<text class="detail-desc">{{ d.desc }}</text>
 				<view class="advice-list">
 					<view class="advice-item" v-for="(a, ai) in d.advices" :key="ai">
-						<text class="advice-bullet" :style="{ color: d.color }">✦</text>
+						<text class="advice-bullet" :style="d.adviceBulletSty">✦</text>
 						<text class="advice-text">{{ a }}</text>
 					</view>
 				</view>
@@ -276,6 +276,9 @@ module.exports = {
 		progressPct: function() {
 			return Math.round(((this.curQ + 1) / this.questions.length) * 100)
 		},
+		progressBarStyle: function() {
+			return { width: this.progressPct + '%' }
+		},
 		curDimLabel: function() {
 			var q = this.questions[this.curQ]
 			for (var i = 0; i < DIMS.length; i++) {
@@ -289,6 +292,89 @@ module.exports = {
 				if (DIMS[i].key === q.dim) return DIMS[i].color
 			}
 			return '#7c6dd8'
+		},
+		dimTagStyle: function() {
+			return { background: this.curDimColor }
+		},
+		curOptStyles: function() {
+			var arr = []
+			for (var oi = 0; oi < this.freqOpts.length; oi++) {
+				if (this.answers[this.curQ] === oi) {
+					arr.push({ background: this.curDimColor, borderColor: this.curDimColor })
+				} else {
+					arr.push({})
+				}
+			}
+			return arr
+		},
+		curOptRadioStyles: function() {
+			var arr = []
+			for (var oi = 0; oi < this.freqOpts.length; oi++) {
+				if (this.answers[this.curQ] === oi) {
+					arr.push({ borderColor: this.curDimColor })
+				} else {
+					arr.push({})
+				}
+			}
+			return arr
+		},
+		optDotStyle: function() {
+			return { background: this.curDimColor }
+		},
+		curOptTextStyles: function() {
+			var arr = []
+			for (var oi = 0; oi < this.freqOpts.length; oi++) {
+				if (this.answers[this.curQ] === oi) {
+					arr.push({ color: '#fff' })
+				} else {
+					arr.push({})
+				}
+			}
+			return arr
+		},
+		btnNextStyle: function() {
+			return { background: this.curDimColor }
+		},
+		heroGlowStyle: function() {
+			return { background: 'radial-gradient(circle,' + this.levelColor + '22,transparent 65%)' }
+		},
+		heroCardStyle: function() {
+			return { borderColor: this.levelColor }
+		},
+		heroLevelStyle: function() {
+			return { color: this.levelColor }
+		},
+		heroCodeStyle: function() {
+			return { color: this.levelColor }
+		},
+		symptomDotStyles: function() {
+			var colors = ['rgba(255,255,255,0.15)', '#3ec9c1', '#dda03f', '#d4607a']
+			var result = []
+			for (var qi = 0; qi < this.questions.length; qi++) {
+				var row = []
+				var ans = this.answers[qi] || 0
+				for (var oi = 0; oi < 4; oi++) {
+					if (ans >= oi) {
+						row.push({ background: colors[ans] || colors[0] })
+					} else {
+						row.push({})
+					}
+				}
+				result.push(row)
+			}
+			return result
+		},
+		dotFilledCls: function() {
+			var result = []
+			for (var qi = 0; qi < this.questions.length; qi++) {
+				var row = []
+				var ans = this.answers[qi] || 0
+				for (var oi = 0; oi < 4; oi++) {
+					row.push({ filled: ans >= oi })
+				}
+				result.push(row)
+			}
+			return result
 		}
 	},
 	onLoad: function() {
@@ -301,12 +387,23 @@ module.exports = {
 				this.resultData = d.resultData
 				this.levelColor = d.levelColor
 				this.dimResults = d.dimResults
+				this._recomputeDimStyles()
 				this.answers = d.answers || []
 				this.phase = 'result'
 			} catch(e) {}
 		}
 	},
 	methods: {
+		_recomputeDimStyles: function() {
+			for (var i = 0; i < this.dimResults.length; i++) {
+				var d = this.dimResults[i]
+				this.$set(d, 'dimBarSty', { width: d.pct + '%', background: d.color })
+				this.$set(d, 'dimPctSty', { color: d.color })
+				this.$set(d, 'dimTagTextSty', { color: d.tagColor })
+				this.$set(d, 'detailTagSty', { color: d.tagColor })
+				this.$set(d, 'adviceBulletSty', { color: d.color })
+			}
+		},
 		makeStars: function() {
 			var arr = []
 			for (var i = 0; i < 60; i++) {
@@ -376,7 +473,12 @@ module.exports = {
 					pct: pct,
 					tag: dt.tag,
 					tagColor: dt.tagColor,
-					advices: ADVICE_MAP[dim.key]
+					advices: ADVICE_MAP[dim.key],
+					dimBarSty: { width: pct + '%', background: dim.color },
+					dimPctSty: { color: dim.color },
+					dimTagTextSty: { color: dt.tagColor },
+					detailTagSty: { color: dt.tagColor },
+					adviceBulletSty: { color: dim.color }
 				})
 			}
 			self.dimResults = dimResults
@@ -393,10 +495,6 @@ module.exports = {
 				}))
 				self._saveToDb()
 			}, 200)
-		},
-		sympColor: function(ans) {
-			var colors = ['rgba(255,255,255,0.15)', '#3ec9c1', '#dda03f', '#d4607a']
-			return colors[ans] || colors[0]
 		},
 		retest: function() {
 			this.phase = 'test'

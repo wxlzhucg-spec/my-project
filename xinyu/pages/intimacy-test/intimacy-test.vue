@@ -2,7 +2,7 @@
 <view class="page" :style="pageStyle">
 	<!-- 星空背景 -->
 	<view class="star-layer">
-		<view v-for="(s,i) in stars" :key="'s'+i" class="star" :style="s"></view>
+		<view v-for="(s,i) in stars" :key="i" class="star" :style="s"></view>
 	</view>
 	<view class="orb orb-a"></view>
 	<view class="orb orb-b"></view>
@@ -19,7 +19,7 @@
 	<!-- 进度条 -->
 	<view class="progress-wrap" v-if="phase === 'test'">
 		<view class="progress-bg">
-			<view class="progress-fill" :style="{ width: progressPct + '%' }"></view>
+			<view class="progress-fill" :style="progressBarStyle"></view>
 		</view>
 		<text class="progress-text">{{ curQ + 1 }} / {{ questions.length }}</text>
 	</view>
@@ -36,13 +36,13 @@
 		<view class="opts">
 			<view class="opt-row" v-for="(opt, oi) in agreeOpts" :key="oi"
 				:class="{ active: answers[curQ] === oi }"
-				:style="answers[curQ] === oi ? { background: curDimColor, borderColor: curDimColor } : {}"
+				:style="curOptStyles[oi]"
 				@tap="selectOpt(oi)">
 				<view class="opt-radio" :class="{ checked: answers[curQ] === oi }"
-					:style="answers[curQ] === oi ? { borderColor: curDimColor } : {}">
-					<view class="opt-dot" v-if="answers[curQ] === oi" :style="{ background: curDimColor }"></view>
+					:style="curOptRadioStyles[oi]">
+					<view class="opt-dot" v-if="answers[curQ] === oi" :style="optDotStyle"></view>
 				</view>
-				<text class="opt-text" :style="answers[curQ] === oi ? { color: '#fff' } : {}">{{ opt }}</text>
+				<text class="opt-text" :style="curOptTextStyles[oi]">{{ opt }}</text>
 			</view>
 		</view>
 		<view class="btns">
@@ -59,7 +59,7 @@
 
 			<!-- 依恋类型主卡 -->
 			<view class="hero-card" :style="{ borderColor: resultData.color }">
-				<view class="hero-glow" :style="{ background: 'radial-gradient(circle,' + resultData.color + '22,transparent 65%)' }"></view>
+				<view class="hero-glow" :style="heroGlowStyle"></view>
 				<text class="hero-icon">{{ resultData.icon }}</text>
 				<text class="hero-level" :style="{ color: resultData.color }">{{ resultData.name }}</text>
 				<text class="hero-code" :style="{ color: resultData.color }">{{ resultData.enName }}</text>
@@ -77,7 +77,7 @@
 						</view>
 						<view class="axis-bar-wrap">
 							<view class="axis-bar-bg">
-								<view class="axis-bar-fill" :style="{ width: a.pct + '%', background: a.color }"></view>
+								<view class="axis-bar-fill" :style="a.barStyle"></view>
 							</view>
 						</view>
 						<text class="axis-pct" :style="{ color: a.color }">{{ a.pct }}%</text>
@@ -350,6 +350,9 @@ module.exports = {
 		progressPct: function() {
 			return Math.round(((this.curQ + 1) / this.questions.length) * 100)
 		},
+		progressBarStyle: function() {
+			return { width: this.progressPct + '%' }
+		},
 		curDimLabel: function() {
 			var q = this.questions[this.curQ]
 			for (var i = 0; i < AXES.length; i++) {
@@ -363,6 +366,45 @@ module.exports = {
 				if (AXES[i].key === q.dim) return AXES[i].color
 			}
 			return '#d4607a'
+		},
+		heroGlowStyle: function() {
+			return { background: 'radial-gradient(circle,' + this.resultData.color + '22,transparent 65%)' }
+		},
+		curOptStyles: function() {
+			var styles = []
+			for (var i = 0; i < this.agreeOpts.length; i++) {
+				if (this.answers[this.curQ] === i) {
+					styles.push({ background: this.curDimColor, borderColor: this.curDimColor })
+				} else {
+					styles.push({})
+				}
+			}
+			return styles
+		},
+		curOptRadioStyles: function() {
+			var styles = []
+			for (var i = 0; i < this.agreeOpts.length; i++) {
+				if (this.answers[this.curQ] === i) {
+					styles.push({ borderColor: this.curDimColor })
+				} else {
+					styles.push({})
+				}
+			}
+			return styles
+		},
+		curOptTextStyles: function() {
+			var styles = []
+			for (var i = 0; i < this.agreeOpts.length; i++) {
+				if (this.answers[this.curQ] === i) {
+					styles.push({ color: '#fff' })
+				} else {
+					styles.push({})
+				}
+			}
+			return styles
+		},
+		optDotStyle: function() {
+			return { background: this.curDimColor }
 		}
 	},
 	onLoad: function() {
@@ -454,19 +496,22 @@ module.exports = {
 					key: 'avoid', name: '回避倾向', icon: '🧊', color: '#5b8def',
 					pct: avoidPct,
 					tag: avoidPct > 50 ? '倾向回避' : '亲近自在',
-					tagColor: avoidPct > 50 ? '#5b8def' : '#3ec9c1'
+					tagColor: avoidPct > 50 ? '#5b8def' : '#3ec9c1',
+					barStyle: { width: avoidPct + '%', background: '#5b8def' }
 				},
 				{
 					key: 'anxiety', name: '焦虑倾向', icon: '🌊', color: '#d4607a',
 					pct: anxietyPct,
 					tag: anxietyPct > 50 ? '倾向焦虑' : '内心安定',
-					tagColor: anxietyPct > 50 ? '#d4607a' : '#3ec9c1'
+					tagColor: anxietyPct > 50 ? '#d4607a' : '#3ec9c1',
+					barStyle: { width: anxietyPct + '%', background: '#d4607a' }
 				},
 				{
 					key: 'secure', name: '安全感', icon: '⚓', color: '#3ec9c1',
 					pct: securePct,
 					tag: securePct > 50 ? '根基稳' : '需建设',
-					tagColor: securePct > 50 ? '#3ec9c1' : '#dda03f'
+					tagColor: securePct > 50 ? '#3ec9c1' : '#dda03f',
+					barStyle: { width: securePct + '%', background: '#3ec9c1' }
 				}
 			]
 			self.axisResults = axisResults

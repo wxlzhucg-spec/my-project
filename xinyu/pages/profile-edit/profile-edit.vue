@@ -1,5 +1,5 @@
 <template>
-<view class="page" :style="pageStyle">
+<view class="page">
 	<view class="glow"></view>
 
 	<view class="nav-row">
@@ -142,14 +142,6 @@ export default {
 		}
 	},
 	computed: {
-		pageStyle: function() {
-			var h = 44
-			try {
-				var info = uni.getWindowInfo ? uni.getWindowInfo() : uni.getSystemInfoSync()
-				if (info && info.statusBarHeight) h = info.statusBarHeight
-			} catch (e) {}
-			return { paddingTop: h + 'px' }
-		},
 		dtRange: function() {
 			var years = [], months = [], hours = [], minutes = []
 			for (var y = 1950; y <= 2015; y++) years.push(y + '年')
@@ -464,8 +456,9 @@ export default {
 
 <style scoped>
 .page {
+	padding-top: env(safe-area-inset-top);
 	min-height: 100vh;
-	padding: 0 36rpx;
+	padding-left: 36rpx; padding-right: 36rpx;
 	background: linear-gradient(180deg, #d6d0e2 0%, #c8c0d8 30%, #b8aece 60%, #a498be 100%);
 	position: relative;
 }

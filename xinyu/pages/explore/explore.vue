@@ -1,9 +1,9 @@
 <template>
-<view class="page" :style="pageStyle">
+<view class="page">
 
 	<!-- 星空背景 -->
 	<view class="star-layer">
-		<view v-for="(s,i) in stars" :key="'s'+i" class="star" :style="s"></view>
+		<view v-for="(s,i) in stars" :key="i" class="star" :style="s"></view>
 	</view>
 	<view class="orb orb-a"></view>
 	<view class="orb orb-b"></view>
@@ -16,7 +16,7 @@
 		</view>
 		<view class="hdr-pill">
 			<view class="hdr-dot"></view>
-			<text class="hdr-frac">{{ litCount }} / {{ nodes.length }}</text>
+			<text class="hdr-frac">{{ litCount }} / {{ nodeCount }}</text>
 		</view>
 	</view>
 
@@ -25,7 +25,7 @@
 		<view class="sc-left">
 			<text class="sc-title">探索灵魂之境</text>
 			<view class="sc-bar-wrap">
-				<view class="sc-bar" :style="{ width: progress + '%' }"></view>
+				<view class="sc-bar" :style="barStyle"></view>
 			</view>
 			<text class="sc-sub">点亮每颗星辰，绘制属于你的专属星图</text>
 		</view>
@@ -39,31 +39,28 @@
 	<scroll-view scroll-y class="map-scroll" :scroll-top="scrollTop" :scroll-with-animation="true">
 		<view class="map-canvas">
 			<!-- 连线 -->
-			<view v-for="(ln,i) in lineData" :key="'ln'+i"
+			<view v-for="(ln,i) in lineData" :key="'l-'+i"
 				class="conn-line" :class="{ 'line-lit': ln.lit }"
 				:style="ln.style"></view>
 
 			<!-- 节点 -->
-			<view v-for="(nd,i) in nodes" :key="'nd'+i"
-				class="node" :class="nodeClass(nd)"
-				:style="{ left: nd.x + '%', top: nd.yr + 'rpx' }"
-				@tap="openModal(i)">
-				<!-- 光晕 -->
-				<view class="aura" v-if="nd.lit || !nd.isFinal"
-					:style="{ background: nd.lit ? ('radial-gradient(circle,' + nd.glow + ',transparent 65%)') : 'radial-gradient(circle,rgba(150,133,238,0.22),transparent 65%)' }"></view>
-				<!-- 菱形 -->
-				<view class="diamond" :class="{ 'diamond-circle': nd.isFinal }">
-					<view class="diamond-inner" :style="nd.lit ? { borderColor: nd.color, boxShadow: '0 0 28rpx ' + nd.glow } : {}"></view>
-					<text class="node-icon">{{ nd.icon }}</text>
-				</view>
-				<!-- 文字 -->
-				<view class="node-text">
-					<text class="node-title" :style="nd.lit ? {} : { color: 'rgba(115,108,148,0.40)' }">
-						{{ nd.lit ? nd.name : (nd.isFinal ? '— 终极 —' : '待点亮') }}
-					</text>
-					<view class="title-line" :style="{ background: nd.lit ? nd.color : 'rgba(150,133,238,0.25)' }"></view>
-					<text class="node-tag" :style="{ color: nd.lit ? nd.color : 'rgba(150,133,238,0.32)' }">{{ nd.en }}</text>
-				</view>
+		<view v-for="(nd,i) in nodes" :key="'n-'+i"
+			class="node" :class="nd.cls"
+			:style="nd.posStyle"
+			@tap="openModal(i)">
+			<!-- 光晕 -->
+			<view class="aura" v-if="nd.lit || !nd.isFinal" :style="nd.auraSty"></view>
+			<!-- 菱形 -->
+			<view class="diamond" :class="nd.diamondCls">
+				<view class="diamond-inner" :style="nd.diamondInnerSty"></view>
+				<text class="node-icon">{{ nd.icon }}</text>
+			</view>
+			<!-- 文字 -->
+			<view class="node-text">
+				<text class="node-title" :style="nd.titleSty">{{ nd.displayName }}</text>
+				<view class="title-line" :style="nd.lineSty"></view>
+				<text class="node-tag" :style="nd.tagSty">{{ nd.en }}</text>
+			</view>
 			</view>
 		</view>
 	</scroll-view>
@@ -79,8 +76,7 @@
 			<view class="m-rule"></view>
 			<text class="m-quote">{{ curNode.quote }}</text>
 			<text class="m-desc">{{ curNode.desc }}</text>
-			<view class="m-btn" :class="{ 'm-btn-lit': curNode.lit, 'm-btn-lock': curNode.isFinal && !allLit && !curNode.lit }"
-				hover-class="m-btn-hover" @tap="onAction">
+			<view class="m-btn" :class="btnClass" hover-class="m-btn-hover" @tap="onAction">
 				<text class="m-btn-text">{{ btnLabel }}</text>
 			</view>
 			<text class="m-skip" @tap="closeModal">返回星图</text>
@@ -110,13 +106,31 @@ var MAP_H = 1300, MAP_RPX = 2500
 
 function scaleY(y) { return Math.round(y / MAP_H * MAP_RPX) }
 
+function enrichNode(n) {
+	var nd = Object.assign({}, n, { yr: scaleY(n.y) })
+	if (nd.isFinal && !nd.lit) nd.cls = 'node-final'
+	else if (nd.lit) nd.cls = 'node-lit'
+	else nd.cls = 'node-dim'
+	nd.posStyle = { left: nd.x + '%', top: nd.yr + 'rpx' }
+	var bg = nd.lit ? 'radial-gradient(circle,' + nd.glow + ',transparent 65%)' : 'radial-gradient(circle,rgba(150,133,238,0.22),transparent 65%)'
+	nd.auraSty = { background: bg }
+	nd.diamondCls = nd.isFinal ? ['diamond-circle'] : []
+	nd.diamondInnerSty = nd.lit ? { borderColor: nd.color, boxShadow: '0 0 28rpx ' + nd.glow } : {}
+	nd.titleSty = nd.lit ? {} : { color: 'rgba(115,108,148,0.40)' }
+	nd.lineSty = { background: nd.lit ? nd.color : 'rgba(150,133,238,0.25)' }
+	nd.tagSty = { color: nd.lit ? nd.color : 'rgba(150,133,238,0.32)' }
+	if (nd.lit) nd.displayName = nd.name
+	else if (nd.isFinal) nd.displayName = '— 终极 —'
+	else nd.displayName = '待点亮'
+	return nd
+}
+
 export default {
 	components: { customTabbar },
 	data: function() {
 		var nodes = []
 		for (var i = 0; i < NODES.length; i++) {
-			var n = NODES[i]
-			nodes.push(Object.assign({}, n, { yr: scaleY(n.y) }))
+			nodes.push(enrichNode(NODES[i]))
 		}
 		return {
 			nodes: nodes,
@@ -135,11 +149,6 @@ export default {
 		}
 	},
 	computed: {
-		pageStyle: function() {
-			var h = 44
-			try { var info = uni.getWindowInfo ? uni.getWindowInfo() : uni.getSystemInfoSync(); if (info.statusBarHeight) h = info.statusBarHeight } catch(e){}
-			return { paddingTop: h + 'px' }
-		},
 		litCount: function() {
 			var c = 0; for (var i = 0; i < this.nodes.length; i++) { if (this.nodes[i].lit) c++ } return c
 		},
@@ -148,6 +157,16 @@ export default {
 			for (var i = 0; i < this.nodes.length; i++) { if (!this.nodes[i].isFinal && !this.nodes[i].lit) return false } return true
 		},
 		curNode: function() { return this.curIdx >= 0 ? this.nodes[this.curIdx] : {} },
+		btnClass: function() {
+			var cls = []
+			if (this.curNode.lit) cls.push('m-btn-lit')
+			if (this.curNode.isFinal && !this.allLit && !this.curNode.lit) cls.push('m-btn-lock')
+			return cls
+		},
+		barStyle: function() {
+			return { width: this.progress + '%' }
+		},
+		nodeCount: function() { return this.nodes.length },
 		btnLabel: function() {
 			if (!this.curNode.name) return ''
 			if (this.curNode.id === 0) return '开始星盘解析 ✦'
@@ -211,11 +230,6 @@ export default {
 				self.lineData = lines
 			})
 		},
-		nodeClass: function(nd) {
-			if (nd.isFinal && !nd.lit) return 'node-final'
-			if (nd.lit) return 'node-lit'
-			return 'node-dim'
-		},
 		openModal: function(i) {
 			this.curIdx = i
 			this.showModal = true
@@ -230,8 +244,7 @@ export default {
 			// 星盘解析：已点亮则跳转报告页，未点亮则先点亮再跳转
 			if (nd.id === 0) {
 				if (!nd.lit) {
-					var updated = Object.assign({}, nd, { lit: true })
-					this.$set(this.nodes, this.curIdx, updated)
+					this.$set(this.nodes, this.curIdx, enrichNode(Object.assign({}, nd, { lit: true })))
 					this.computeLines()
 				}
 				this.closeModal()
@@ -244,8 +257,7 @@ export default {
 			// 九型人格：跳转测试页
 			if (nd.id === 2) {
 				if (!nd.lit) {
-					var updated = Object.assign({}, nd, { lit: true })
-					this.$set(this.nodes, this.curIdx, updated)
+					this.$set(this.nodes, this.curIdx, enrichNode(Object.assign({}, nd, { lit: true })))
 					this.computeLines()
 				}
 				this.closeModal()
@@ -258,8 +270,7 @@ export default {
 			// 亲密关系：跳转亲密关系测试页
 			if (nd.id === 3) {
 				if (!nd.lit) {
-					var updated = Object.assign({}, nd, { lit: true })
-					this.$set(this.nodes, this.curIdx, updated)
+					this.$set(this.nodes, this.curIdx, enrichNode(Object.assign({}, nd, { lit: true })))
 					this.computeLines()
 				}
 				this.closeModal()
@@ -272,8 +283,7 @@ export default {
 			// 人格解码：跳转MBTI测试页
 			if (nd.id === 1) {
 				if (!nd.lit) {
-					var updated = Object.assign({}, nd, { lit: true })
-					this.$set(this.nodes, this.curIdx, updated)
+					this.$set(this.nodes, this.curIdx, enrichNode(Object.assign({}, nd, { lit: true })))
 					this.computeLines()
 				}
 				this.closeModal()
@@ -286,8 +296,7 @@ export default {
 			// 职业发展：跳转霍兰德测试页
 			if (nd.id === 6) {
 				if (!nd.lit) {
-					var updated = Object.assign({}, nd, { lit: true })
-					this.$set(this.nodes, this.curIdx, updated)
+					this.$set(this.nodes, this.curIdx, enrichNode(Object.assign({}, nd, { lit: true })))
 					this.computeLines()
 				}
 				this.closeModal()
@@ -300,8 +309,7 @@ export default {
 			// 心理健康：跳转心理健康测试页
 			if (nd.id === 4) {
 				if (!nd.lit) {
-					var updated = Object.assign({}, nd, { lit: true })
-					this.$set(this.nodes, this.curIdx, updated)
+					this.$set(this.nodes, this.curIdx, enrichNode(Object.assign({}, nd, { lit: true })))
 					this.computeLines()
 				}
 				this.closeModal()
@@ -314,8 +322,7 @@ export default {
 			// 抑郁评估：跳转抑郁测试页
 			if (nd.id === 5) {
 				if (!nd.lit) {
-					var updated = Object.assign({}, nd, { lit: true })
-					this.$set(this.nodes, this.curIdx, updated)
+					this.$set(this.nodes, this.curIdx, enrichNode(Object.assign({}, nd, { lit: true })))
 					this.computeLines()
 				}
 				this.closeModal()
@@ -327,8 +334,7 @@ export default {
 			}
 			if (nd.lit) { this.closeModal(); return }
 			if (nd.isFinal && !this.allLit) return
-			var updated = Object.assign({}, nd, { lit: true })
-			this.$set(this.nodes, this.curIdx, updated)
+			this.$set(this.nodes, this.curIdx, enrichNode(Object.assign({}, nd, { lit: true })))
 			this.computeLines()
 			this.closeModal()
 		}
@@ -338,6 +344,7 @@ export default {
 
 <style scoped>
 .page {
+	padding-top: env(safe-area-inset-top);
 	position: relative;
 	min-height: 100vh;
 	background:
@@ -541,7 +548,7 @@ export default {
 	background: linear-gradient(165deg, rgba(252,250,255,0.98), rgba(245,241,252,0.98));
 	border-top: 1rpx solid rgba(210,200,235,0.50);
 	border-radius: 48rpx 48rpx 0 0;
-	padding: 0 40rpx 60rpx;
+	padding: 0 40rpx calc(60rpx + env(safe-area-inset-bottom) + 120rpx);
 	transform: translateY(100%);
 	transition: transform 0.45s cubic-bezier(0.22,1,0.36,1);
 	position: relative; overflow: hidden;

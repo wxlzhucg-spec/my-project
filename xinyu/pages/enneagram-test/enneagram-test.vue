@@ -1,8 +1,8 @@
 <template>
-<view class="page" :style="pageStyle">
+<view class="page">
 	<!-- 星空背景 -->
 	<view class="star-layer">
-		<view v-for="(s,i) in stars" :key="'s'+i" class="star" :style="s"></view>
+		<view v-for="(s,i) in stars" :key="i" class="star" :style="s"></view>
 	</view>
 	<view class="orb orb-a"></view>
 
@@ -18,7 +18,7 @@
 	<!-- 进度条 -->
 	<view class="progress-wrap" v-if="phase === 'test'">
 		<view class="progress-bg">
-			<view class="progress-fill" :style="{ width: progressPct + '%' }"></view>
+			<view class="progress-fill" :style="progressBarStyle"></view>
 		</view>
 		<text class="progress-text">{{ curQ + 1 }} / {{ questions.length }}</text>
 	</view>
@@ -104,7 +104,7 @@
 							<text class="radar-name">{{ item.name }}</text>
 						</view>
 						<view class="radar-bar-wrap">
-							<view class="radar-bar" :style="{ width: item.pct + '%', background: item.color }"></view>
+							<view class="radar-bar" :style="item.barStyle"></view>
 						</view>
 						<text class="radar-pct">{{ item.pct }}%</text>
 					</view>
@@ -369,13 +369,11 @@ export default {
 		}
 	},
 	computed: {
-		pageStyle: function() {
-			var h = 44
-			try { var info = uni.getWindowInfo ? uni.getWindowInfo() : uni.getSystemInfoSync(); if (info.statusBarHeight) h = info.statusBarHeight } catch(e){}
-			return { paddingTop: h + 'px' }
-		},
 		progressPct: function() {
 			return Math.round(((this.curQ + 1) / this.questions.length) * 100)
+		},
+		progressBarStyle: function() {
+			return { width: this.progressPct + '%' }
 		}
 	},
 	onLoad: function() {
@@ -496,11 +494,13 @@ export default {
 				var radar = []
 				for (var r = 1; r <= 9; r++) {
 					var td = TYPE_DATA[r]
+					var pct = totalScore > 0 ? Math.round(scores[r] / totalScore * 100) : 0
 					radar.push({
 						icon: td.icon,
 						name: td.num + '号 ' + td.name,
-						pct: totalScore > 0 ? Math.round(scores[r] / totalScore * 100) : 0,
-						color: td.color
+						pct: pct,
+						color: td.color,
+						barStyle: { width: pct + '%', background: td.color }
 					})
 				}
 				self.radarData = radar
@@ -546,6 +546,7 @@ export default {
 
 <style scoped>
 .page {
+	padding-top: env(safe-area-inset-top);
 	position: relative;
 	min-height: 100vh;
 	background:

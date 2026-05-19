@@ -1,8 +1,8 @@
 <template>
-<view class="page" :style="pageStyle">
+<view class="page">
 	<!-- 星空背景 -->
 	<view class="star-layer">
-		<view v-for="(s,i) in stars" :key="'s'+i" class="star" :style="s"></view>
+		<view v-for="(s,i) in stars" :key="i" class="star" :style="s"></view>
 	</view>
 	<view class="orb orb-a"></view>
 
@@ -18,7 +18,7 @@
 	<!-- 进度条 -->
 	<view class="progress-wrap" v-if="phase === 'test'">
 		<view class="progress-bg">
-			<view class="progress-fill" :style="{ width: progressPct + '%' }"></view>
+			<view class="progress-fill" :style="progressBarStyle"></view>
 		</view>
 		<text class="progress-text">{{ curQ + 1 }} / {{ questions.length }}</text>
 	</view>
@@ -63,19 +63,19 @@
 		<view class="result-phase">
 			<!-- 主类型卡片 -->
 			<view class="result-hero">
-				<view class="hero-glow" :style="{ background: 'radial-gradient(circle,' + resultData.heroGlow + ',transparent 65%)' }"></view>
+				<view class="hero-glow" :style="heroGlowStyle"></view>
 				<text class="hero-icon">{{ resultData.icon }}</text>
 				<text class="hero-code" :style="{ color: resultData.color }">{{ resultData.type }}</text>
 				<text class="hero-name">{{ resultData.name }}</text>
 				<text class="hero-en">{{ resultData.en }}</text>
-				<view class="hero-rule" :style="{ background: 'linear-gradient(90deg, transparent,' + resultData.color + ',transparent)' }"></view>
+				<view class="hero-rule" :style="heroRuleStyle"></view>
 				<text class="hero-desc">{{ resultData.desc }}</text>
 			</view>
 
 			<!-- 四维倾向 -->
 			<view class="section-card">
 				<view class="card-label">
-					<view class="label-dot" :style="{ background: resultData.color, boxShadow: '0 0 10rpx ' + resultData.heroGlow }"></view>
+					<view class="label-dot" :style="labelDotStyle"></view>
 					<text class="label-text">四维倾向</text>
 				</view>
 				<view class="dim-list">
@@ -84,7 +84,7 @@
 							<text class="dim-letter dim-letter-left" :class="{ 'dim-letter-active': dm.leftActive }">{{ dm.left }}</text>
 							<view class="dim-bar-wrap">
 								<view class="dim-bar-bg"></view>
-								<view class="dim-bar-fill" :style="{ left: dm.pct + '%', background: dm.leftActive ? dm.leftColor : dm.rightColor }"></view>
+								<view class="dim-bar-fill" :style="dm.dimBarSty"></view>
 							</view>
 							<text class="dim-letter dim-letter-right" :class="{ 'dim-letter-active': !dm.leftActive }">{{ dm.right }}</text>
 						</view>
@@ -125,7 +125,7 @@
 							<text class="func-desc">{{ fc.desc }}</text>
 						</view>
 						<view class="func-bar-wrap">
-							<view class="func-bar" :style="{ width: fc.pct + '%', background: idx === 0 ? resultData.color : 'rgba(157,114,255,0.35)' }"></view>
+							<view class="func-bar" :style="fc.funcBarSty"></view>
 						</view>
 					</view>
 				</view>
@@ -152,7 +152,7 @@
 				</view>
 				<view class="advice-list">
 					<view class="advice-item" v-for="(adv, idx) in resultData.advices" :key="idx">
-						<view class="advice-dot" :style="{ background: resultData.color, boxShadow: '0 0 8rpx ' + resultData.heroGlow }"></view>
+						<view class="advice-dot" :style="adviceDotStyle"></view>
 						<text class="advice-text">{{ adv }}</text>
 					</view>
 				</view>
@@ -160,7 +160,7 @@
 
 			<!-- 操作按钮 -->
 			<view class="action-area">
-				<view class="action-btn primary-btn" :style="{ background: 'linear-gradient(148deg,' + resultData.color + ',' + resultData.colorDark + ')' }" @tap="onDeepAnalysis">
+				<view class="action-btn primary-btn" :style="primaryBtnStyle" @tap="onDeepAnalysis">
 					<text class="btn-text">深度解读 ✦</text>
 				</view>
 				<view class="action-btn secondary-btn" @tap="onRetest">
@@ -506,17 +506,30 @@ export default {
 		}
 	},
 	computed: {
-		pageStyle: function() {
-			var h = 44
-			try { var info = uni.getWindowInfo ? uni.getWindowInfo() : uni.getSystemInfoSync(); if (info.statusBarHeight) h = info.statusBarHeight } catch(e){}
-			return { paddingTop: h + 'px' }
-		},
 		progressPct: function() {
 			return Math.round(((this.curQ + 1) / this.questions.length) * 100)
+		},
+		progressBarStyle: function() {
+			return { width: this.progressPct + '%' }
 		},
 		curDimData: function() {
 			if (!this.questions[this.curQ]) return { label: '', bgColor: '', textColor: '', borderColor: '' }
 			return DIM_TAG[this.questions[this.curQ].dim] || { label: '', bgColor: '', textColor: '', borderColor: '' }
+		},
+		heroGlowStyle: function() {
+			return { background: 'radial-gradient(circle,' + this.resultData.heroGlow + ',transparent 65%)' }
+		},
+		heroRuleStyle: function() {
+			return { background: 'linear-gradient(90deg, transparent,' + this.resultData.color + ',transparent)' }
+		},
+		labelDotStyle: function() {
+			return { background: this.resultData.color, boxShadow: '0 0 10rpx ' + this.resultData.heroGlow }
+		},
+		adviceDotStyle: function() {
+			return { background: this.resultData.color, boxShadow: '0 0 8rpx ' + this.resultData.heroGlow }
+		},
+		primaryBtnStyle: function() {
+			return { background: 'linear-gradient(148deg,' + this.resultData.color + ',' + this.resultData.colorDark + ')' }
 		}
 	},
 	onLoad: function() {
@@ -527,6 +540,23 @@ export default {
 				if (r.resultData && r.resultData.type) {
 					this.resultData = r.resultData
 					this.dimData = r.dimData
+					// 确保 dimBarSty 存在（旧缓存可能没有）
+					for (var d = 0; d < this.dimData.length; d++) {
+						var dm = this.dimData[d]
+						if (!dm.dimBarSty) {
+							dm.dimBarSty = { left: dm.pct + '%', background: dm.leftActive ? dm.leftColor : dm.rightColor }
+						}
+					}
+					// 确保 funcBarSty 存在
+					var funcs = this.resultData.functions || []
+					for (var fi = 0; fi < funcs.length; fi++) {
+						if (!funcs[fi].funcBarSty) {
+							funcs[fi].funcBarSty = {
+								width: funcs[fi].pct + '%',
+								background: fi === 0 ? this.resultData.color : 'rgba(157,114,255,0.35)'
+							}
+						}
+					}
 					this.phase = 'result'
 				}
 			} catch(e) {}
@@ -599,6 +629,15 @@ export default {
 
 				self.resultData = MBTI_DATA[typeStr]
 
+				// 为 functions 预计算 funcBarSty
+				var funcs = self.resultData.functions || []
+				for (var fi = 0; fi < funcs.length; fi++) {
+					funcs[fi].funcBarSty = {
+						width: funcs[fi].pct + '%',
+						background: fi === 0 ? self.resultData.color : 'rgba(157,114,255,0.35)'
+					}
+				}
+
 				// 四维倾向数据
 				var dims = ['EI', 'SN', 'TF', 'JP']
 				var dimData = []
@@ -616,7 +655,8 @@ export default {
 						leftActive: leftScore >= rightScore,
 						pct: pct,
 						leftColor: dc.leftColor,
-						rightColor: dc.rightColor
+						rightColor: dc.rightColor,
+						dimBarSty: { left: pct + '%', background: leftScore >= rightScore ? dc.leftColor : dc.rightColor }
 					})
 				}
 				self.dimData = dimData
@@ -656,6 +696,7 @@ export default {
 
 <style scoped>
 .page {
+	padding-top: env(safe-area-inset-top);
 	position: relative;
 	min-height: 100vh;
 	background:

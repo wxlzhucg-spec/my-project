@@ -1,0 +1,10 @@
+#!/usr/bin/expect -f
+set timeout 60
+set password "010824Wy?"
+set server "43.143.169.226"
+
+spawn ssh root@$server "curl -s -X POST http://127.0.0.1:8000/api/shadow -H 'Content-Type: application/json' -d '{\"question\":\"今天有什么新闻\",\"open_id\":\"test_open_id_001\"}'"
+expect {
+    "password:" { send "$password\r"; exp_continue }
+    eof
+}

@@ -5,7 +5,7 @@
 				class="tab-item" :class="{ active: item.active }"
 				@tap="switchTab(index)">
 				<view class="tab-icon">
-					<view class="tab-icon-shell" :class="'icon-' + iconNames[index]">
+					<view class="tab-icon-shell" :class="item.iconCls">
 						<view class="icon-core"></view>
 					</view>
 				</view>
@@ -39,7 +39,11 @@
 			}
 		},
 		mounted: function() {
-			this.localList = JSON.parse(JSON.stringify(this.list))
+			var self = this
+			this.localList = JSON.parse(JSON.stringify(this.list)).map(function(item, index) {
+				item.iconCls = 'icon-' + self.iconNames[index]
+				return item
+			})
 		},
 		methods: {
 			switchTab: function(index) {
@@ -48,7 +52,6 @@
 				this.localList = this.localList.map(function(item, i) {
 					return Object.assign({}, item, { active: i === index })
 				})
-				try { uni.vibrateShort({ type: 'light' }) } catch (e) {}
 				uni.reLaunch({ url: target.path })
 			}
 		}
@@ -61,7 +64,7 @@
 		bottom: 0;
 		left: 0;
 		width: 100%;
-		padding: 0 0 calc(20rpx + env(safe-area-inset-bottom)) 0;
+		padding: 0 0 calc(10rpx + env(safe-area-inset-bottom)) 0;
 		display: flex;
 		justify-content: center;
 		z-index: 1000;
@@ -69,7 +72,7 @@
 	}
 	.tabbar-inner {
 		pointer-events: auto;
-		width: 88%;
+		width: 78%;
 		display: flex;
 		justify-content: space-around;
 		align-items: center;
@@ -233,12 +236,13 @@
 		color: #4f436f;
 		font-weight: 700;
 	}
-	.tab-line {
-		position: absolute;
-		bottom: -4rpx;
-		width: 34rpx;
-		height: 4rpx;
-		border-radius: 4rpx;
-		background: linear-gradient(90deg, #6f61a1, #57497d);
-	}
+.tab-line {
+	position: absolute;
+	bottom: -4rpx;
+	width: 34rpx;
+	height: 4rpx;
+	border-radius: 4rpx;
+	background: linear-gradient(90deg, #6f61a1, #57497d);
+}
+/* trigger-rebuild */
 </style>

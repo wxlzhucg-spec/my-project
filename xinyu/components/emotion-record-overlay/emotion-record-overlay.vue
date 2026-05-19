@@ -21,47 +21,7 @@
 					<view class="mascot-stage" @tap.stop>
 						<view class="mascot-halo" :style="{ background: haloBackground, opacity: haloOpacity, transform: haloTransform }"></view>
 						<view class="mascot-wrap" :style="{ transform: mascotTransform }">
-							<svg class="mascot-svg" fill="none" viewBox="0 0 241.376 188.924">
-								<mask id="body-mask" maskUnits="userSpaceOnUse" style="mask-type:alpha">
-									<path d="M148.652 0C182.792 0.000197914 210.468 27.6759 210.468 61.8154C210.468 65.0652 210.216 68.2567 209.732 71.3711C228.627 82.089 241.376 102.386 241.376 125.66C241.376 158.482 215.946 185.714 183.158 187.199C162.354 188.141 139.439 188.924 120.688 188.924C101.936 188.924 79.0222 188.141 58.2178 187.199C25.4299 185.714 0 158.482 0 125.66C0 100.709 14.651 79.1799 35.8194 69.2061C35.4947 67.2817 35.3233 65.3048 35.3233 63.2881C35.3233 43.7796 51.138 27.9648 70.6465 27.9648C78.9593 27.9648 86.6002 30.8374 92.6338 35.6426C102.489 14.5861 123.868 0 148.652 0Z" fill="white"/>
-								</mask>
-								<g mask="url(#body-mask)">
-									<g filter="url(#body-glow-filter)">
-										<ellipse cx="125.451" cy="107.208" rx="111.979" ry="90.3693" fill="url(#body-grad)"/>
-									</g>
-									<rect x="-5" y="-5" width="252" height="200" :fill="bodyTintFill" :opacity="bodyTintOpacity"/>
-								</g>
-								<path d="M218 154 C222 152 227 145 228 138" stroke="#FFE08A" stroke-linecap="round" stroke-width="5.2" fill="none" :opacity="sparkOpacity"/>
-								<path d="M29 89 C26 90 22 95 21 100" stroke="#FFE08A" stroke-linecap="round" stroke-width="5.2" fill="none" :opacity="sparkOpacity"/>
-								<g id="face-layer">
-									<g :transform="faceInnerTransform">
-										<path :d="browLD" stroke="#2C2C35" stroke-width="5" stroke-linecap="round" fill="none"/>
-										<path :d="browRD" stroke="#2C2C35" stroke-width="5" stroke-linecap="round" fill="none"/>
-										<ellipse cx="91" cy="98" rx="7.5" :ry="eyeRy" fill="#2C2C35"/>
-										<ellipse cx="151" cy="98" rx="7.5" :ry="eyeRy" fill="#2C2C35"/>
-										<g :opacity="blushOpacity">
-											<ellipse cx="68" cy="108" rx="11" ry="6" fill="#FF7799" transform="rotate(-12, 68, 108)"/>
-											<ellipse cx="174" cy="108" rx="11" ry="6" fill="#FF7799" transform="rotate(12, 174, 108)"/>
-										</g>
-										<g :opacity="tearsOpacity">
-											<path d="M91 111 Q87 120 89 128 Q91 136 93 128 Q95 120 91 111Z" fill="#88BBFF"/>
-											<path d="M151 111 Q147 120 149 128 Q151 136 153 128 Q155 120 151 111Z" fill="#88BBFF"/>
-										</g>
-										<path :d="mouthArcD" fill="none" stroke="#2C2C35" stroke-width="5.5" stroke-linecap="round"/>
-									</g>
-								</g>
-								<defs>
-									<filter id="body-glow-filter" x="-40" y="-36" width="330" height="286" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-										<feFlood flood-opacity="0" result="BackgroundImageFix"/>
-										<feBlend in="SourceGraphic" in2="BackgroundImageFix" mode="normal" result="shape"/>
-										<feGaussianBlur stdDeviation="18"/>
-									</filter>
-									<radialGradient id="body-grad" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(125.451 107.208) rotate(90) scale(90.37 111.98)">
-										<stop offset="0.22" :stop-color="gradStopColor"/>
-										<stop offset="1" :stop-color="gradStopColor" stop-opacity="0.69"/>
-									</radialGradient>
-								</defs>
-							</svg>
+							<canvas canvas-id="mascotCanvas" id="mascotCanvas" class="mascot-canvas"></canvas>
 						</view>
 					</view>
 
@@ -326,8 +286,9 @@ export default {
 				document.body.addEventListener('touchmove', this.preventDefault, { passive: false })
 			}
 			this.measureTracks()
+			this.initCanvas()
 			this.lastTs = Date.now()
-			this.tick()
+			this.timerId = setTimeout(() => this.tick(), 16)
 		})
 	},
 	beforeDestroy() {
@@ -342,6 +303,13 @@ export default {
 		}
 	},
 	methods: {
+		initCanvas() {
+			try {
+				this.canvasCtx = uni.createCanvasContext('mascotCanvas', this)
+			} catch(e) {
+				this.canvasCtx = null
+			}
+		},
 		preventDefault(e) {
 			e.preventDefault()
 		},
@@ -502,6 +470,195 @@ export default {
 			this.haloOpacity = (0.03 + e * 0.05).toFixed(3)
 			this.haloTransform = `translateX(-50%) scale(${haloScale.toFixed(3)})`
 			this.haloBackground = `radial-gradient(circle, rgba(${~~gr},${~~gg},${~~gb},0.16) 0%, rgba(${~~gr},${~~gg},${~~gb},0.04) 42%, rgba(${~~gr},${~~gg},${~~gb},0) 70%)`
+
+			this.drawSprite()
+		},
+		drawSprite() {
+			var ctx = this.canvasCtx
+			if (!ctx) return
+			var W = 241, H = 189
+			ctx.clearRect(0, 0, W, H)
+
+			function drawBodyPath(ctx) {
+				ctx.beginPath()
+				ctx.moveTo(148.652, 0)
+				ctx.bezierCurveTo(182.792, 0.0002, 210.468, 27.6759, 210.468, 61.8154)
+				ctx.bezierCurveTo(210.468, 65.0652, 210.216, 68.2567, 209.732, 71.3711)
+				ctx.bezierCurveTo(228.627, 82.089, 241.376, 102.386, 241.376, 125.66)
+				ctx.bezierCurveTo(241.376, 158.482, 215.946, 185.714, 183.158, 187.199)
+				ctx.bezierCurveTo(162.354, 188.141, 139.439, 188.924, 120.688, 188.924)
+				ctx.bezierCurveTo(101.936, 188.924, 79.022, 188.141, 58.218, 187.199)
+				ctx.bezierCurveTo(25.430, 185.714, 0, 158.482, 0, 125.66)
+				ctx.bezierCurveTo(0, 100.709, 14.651, 79.180, 35.819, 69.206)
+				ctx.bezierCurveTo(35.495, 67.282, 35.323, 65.305, 35.323, 63.288)
+				ctx.bezierCurveTo(35.323, 43.780, 51.138, 27.965, 70.647, 27.965)
+				ctx.bezierCurveTo(78.959, 27.965, 86.600, 30.837, 92.634, 35.643)
+				ctx.bezierCurveTo(102.489, 14.586, 123.868, 0, 148.652, 0)
+				ctx.closePath()
+			}
+
+			// body shadow
+			ctx.save()
+			ctx.globalAlpha = 0.06
+			ctx.fillStyle = '#161230'
+			ctx.beginPath()
+			ctx.save()
+			ctx.translate(121, 192)
+			ctx.scale(1.2, 0.12)
+			ctx.arc(0, 0, 50, 0, Math.PI * 2)
+			ctx.restore()
+			ctx.fill()
+			ctx.restore()
+
+			// body fill
+			ctx.save()
+			ctx.globalAlpha = 0.92
+			if (ctx.createRadialGradient) {
+				var rg = ctx.createRadialGradient(110, 85, 12, 121, 100, 115)
+				rg.addColorStop(0, this.gradStopColor.replace('rgb', 'rgba').replace(')', ',1)'))
+				rg.addColorStop(1, this.gradStopColor.replace('rgb', 'rgba').replace(')', ',0.78)'))
+				ctx.fillStyle = rg
+			} else {
+				ctx.fillStyle = this.gradStopColor.replace('rgb', 'rgba').replace(')', ',0.90)')
+			}
+			drawBodyPath(ctx)
+			ctx.fill()
+			ctx.restore()
+
+			// tint
+			ctx.save()
+			ctx.globalAlpha = parseFloat(this.bodyTintOpacity) || 0
+			ctx.fillStyle = this.bodyTintFill
+			drawBodyPath(ctx)
+			ctx.fill()
+			ctx.restore()
+
+			// inner ear
+			ctx.save()
+			ctx.globalAlpha = 0.35
+			ctx.fillStyle = '#FFB0C8'
+			ctx.beginPath()
+			ctx.save()
+			ctx.translate(71, 28)
+			ctx.scale(0.78, 1.05)
+			ctx.arc(0, 0, 6.5, 0, Math.PI * 2)
+			ctx.restore()
+			ctx.fill()
+			ctx.beginPath()
+			ctx.save()
+			ctx.translate(150, 16)
+			ctx.scale(0.82, 1.0)
+			ctx.arc(0, 0, 7.5, 0, Math.PI * 2)
+			ctx.restore()
+			ctx.fill()
+			ctx.restore()
+
+			// face Y offset
+			var faceOY = 0
+			var tm = this.faceInnerTransform.match(/translate\(\s*[\d.-]+\s*,\s*([\d.-]+)\s*\)/)
+			if (tm) faceOY = parseFloat(tm[1])
+
+			// brows
+			ctx.save()
+			ctx.globalAlpha = 0.55
+			ctx.strokeStyle = '#48425e'
+			ctx.lineWidth = 2.8
+			ctx.lineCap = 'round'
+			this._drawQuad(ctx, this.browLD, faceOY)
+			ctx.stroke()
+			this._drawQuad(ctx, this.browRD, faceOY)
+			ctx.stroke()
+			ctx.restore()
+
+			// eyes
+			ctx.save()
+			ctx.fillStyle = '#2e2a42'
+			var ery = parseFloat(this.eyeRy) || 7.5
+			ctx.beginPath()
+			ctx.save()
+			ctx.translate(91, 98 + faceOY)
+			ctx.scale(1, ery / 7.5)
+			ctx.arc(0, 0, 7.5, 0, Math.PI * 2)
+			ctx.restore()
+			ctx.fill()
+			ctx.fillStyle = 'rgba(255,255,255,0.85)'
+			ctx.beginPath()
+			ctx.save()
+			ctx.translate(89, 96 + faceOY)
+			ctx.arc(0, 0, 2.4, 0, Math.PI * 2)
+			ctx.restore()
+			ctx.fill()
+			ctx.fillStyle = '#2e2a42'
+			ctx.beginPath()
+			ctx.save()
+			ctx.translate(151, 98 + faceOY)
+			ctx.scale(1, ery / 7.5)
+			ctx.arc(0, 0, 7.5, 0, Math.PI * 2)
+			ctx.restore()
+			ctx.fill()
+			ctx.fillStyle = 'rgba(255,255,255,0.85)'
+			ctx.beginPath()
+			ctx.save()
+			ctx.translate(149, 96 + faceOY)
+			ctx.arc(0, 0, 2.4, 0, Math.PI * 2)
+			ctx.restore()
+			ctx.fill()
+			ctx.restore()
+
+			// blush
+			ctx.save()
+			ctx.globalAlpha = (parseFloat(this.blushOpacity) || 0) * 0.38
+			ctx.fillStyle = '#FF8FAB'
+			ctx.beginPath()
+			ctx.save()
+			ctx.translate(64, 108 + faceOY)
+			ctx.scale(16/5.8, 1)
+			ctx.arc(0, 0, 5.8, 0, Math.PI * 2)
+			ctx.restore()
+			ctx.fill()
+			ctx.beginPath()
+			ctx.save()
+			ctx.translate(178, 108 + faceOY)
+			ctx.scale(16/5.8, 1)
+			ctx.arc(0, 0, 5.8, 0, Math.PI * 2)
+			ctx.restore()
+			ctx.fill()
+			ctx.restore()
+
+			// tears
+			ctx.save()
+			ctx.globalAlpha = parseFloat(this.tearsOpacity) || 0
+			ctx.fillStyle = '#99CCFF'
+			this._drawTear(ctx, 91, 111 + faceOY)
+			this._drawTear(ctx, 151, 111 + faceOY)
+			ctx.restore()
+
+			// mouth
+			ctx.save()
+			ctx.strokeStyle = '#3e3858'
+			ctx.lineWidth = 3.6
+			ctx.lineCap = 'round'
+			this._drawQuad(ctx, this.mouthArcD, faceOY)
+			ctx.stroke()
+			ctx.restore()
+
+			ctx.draw()
+		},
+		_drawQuad(ctx, d, oy) {
+			var m = d.match(/M\s*([\d.]+)\s+([\d.]+)\s+Q\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/)
+			if (!m) return
+			ctx.beginPath()
+			ctx.moveTo(parseFloat(m[1]), parseFloat(m[2]) + oy)
+			ctx.quadraticCurveTo(parseFloat(m[3]), parseFloat(m[4]) + oy, parseFloat(m[5]), parseFloat(m[6]) + oy)
+		},
+		_drawTear(ctx, cx, cy) {
+			ctx.beginPath()
+			ctx.moveTo(cx, cy)
+			ctx.quadraticCurveTo(cx - 4, cy + 9, cx - 2, cy + 17)
+			ctx.quadraticCurveTo(cx, cy + 25, cx + 2, cy + 17)
+			ctx.quadraticCurveTo(cx + 4, cy + 9, cx, cy)
+			ctx.closePath()
+			ctx.fill()
 		}
 	}
 }
@@ -650,12 +807,13 @@ export default {
 	pointer-events: none;
 }
 
-.mascot-svg {
+.mascot-canvas {
 	width: 100%;
 	height: 100%;
 	display: block;
-	overflow: visible;
 }
+
+
 
 /* 情绪标题 */
 .hero-copy {

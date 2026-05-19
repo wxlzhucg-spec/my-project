@@ -1,8 +1,8 @@
 <template>
-<view class="page" :style="pageStyle">
+<view class="page">
 	<!-- 星空背景 -->
 	<view class="star-layer">
-		<view v-for="(s,i) in stars" :key="'s'+i" class="star" :style="s"></view>
+		<view v-for="(s,i) in stars" :key="i" class="star" :style="s"></view>
 	</view>
 	<view class="orb orb-a"></view>
 
@@ -18,7 +18,7 @@
 	<!-- 进度条 -->
 	<view class="progress-wrap" v-if="phase === 'test'">
 		<view class="progress-bg">
-			<view class="progress-fill" :style="{ width: progressPct + '%' }"></view>
+			<view class="progress-fill" :style="progressBarStyle"></view>
 		</view>
 		<text class="progress-text">{{ curQ + 1 }} / {{ questions.length }}</text>
 	</view>
@@ -63,24 +63,24 @@
 		<view class="result-phase">
 			<!-- 主类型卡片 -->
 			<view class="result-hero">
-				<view class="hero-glow" :style="{ background: 'radial-gradient(circle,' + mainType.glowColor + ',transparent 65%)' }"></view>
+				<view class="hero-glow" :style="heroGlowStyle"></view>
 				<text class="hero-icon">{{ mainType.icon }}</text>
 				<text class="hero-code">{{ mainType.code }}</text>
 				<text class="hero-name">{{ mainType.name }}</text>
 				<text class="hero-en">{{ mainType.en }}</text>
-				<view class="hero-rule" :style="{ background: 'linear-gradient(90deg, transparent,' + mainType.color + ',transparent)' }"></view>
+				<view class="hero-rule" :style="heroRuleStyle"></view>
 				<text class="hero-desc">{{ mainType.desc }}</text>
 			</view>
 
 			<!-- 霍兰德代码组合 -->
 			<view class="section-card">
 				<view class="card-label">
-					<view class="label-dot" :style="{ background: mainType.color, boxShadow: '0 0 10rpx ' + mainType.glowColor }"></view>
+					<view class="label-dot" :style="labelDotStyle"></view>
 					<text class="label-text">你的霍兰德代码</text>
 				</view>
 				<view class="code-row">
 					<view class="code-item" v-for="(ct, idx) in topTypes" :key="idx">
-						<view class="code-badge" :style="{ background: ct.color, boxShadow: '0 4rpx 16rpx ' + ct.glowColor }">
+						<view class="code-badge" :style="ct.badgeSty">
 							<text class="code-badge-text">{{ ct.code }}</text>
 						</view>
 						<text class="code-name">{{ ct.name }}</text>
@@ -102,7 +102,7 @@
 							<text class="radar-name">{{ item.code }} {{ item.name }}</text>
 						</view>
 						<view class="radar-bar-wrap">
-							<view class="radar-bar" :style="{ width: item.pct + '%', background: item.color }"></view>
+							<view class="radar-bar" :style="item.barSty"></view>
 						</view>
 						<text class="radar-pct">{{ item.pct }}%</text>
 					</view>
@@ -151,7 +151,7 @@
 				</view>
 				<view class="advice-list">
 					<view class="advice-item" v-for="(adv, idx) in mainType.advices" :key="idx">
-						<view class="advice-dot" :style="{ background: mainType.color, boxShadow: '0 0 8rpx ' + mainType.glowColor }"></view>
+						<view class="advice-dot" :style="adviceDotStyle"></view>
 						<text class="advice-text">{{ adv }}</text>
 					</view>
 				</view>
@@ -159,7 +159,7 @@
 
 			<!-- 操作按钮 -->
 			<view class="action-area">
-				<view class="action-btn primary-btn" :style="{ background: 'linear-gradient(148deg,' + mainType.color + ',' + mainType.colorDark + ')' }" @tap="onDeepAnalysis">
+				<view class="action-btn primary-btn" :style="primaryBtnStyle" @tap="onDeepAnalysis">
 					<text class="btn-text">深度解读 ✦</text>
 				</view>
 				<view class="action-btn secondary-btn" @tap="onRetest">
@@ -346,17 +346,30 @@ export default {
 		}
 	},
 	computed: {
-		pageStyle: function() {
-			var h = 44
-			try { var info = uni.getWindowInfo ? uni.getWindowInfo() : uni.getSystemInfoSync(); if (info.statusBarHeight) h = info.statusBarHeight } catch(e){}
-			return { paddingTop: h + 'px' }
-		},
 		progressPct: function() {
 			return Math.round(((this.curQ + 1) / this.questions.length) * 100)
 		},
 		curTypeData: function() {
 			if (!this.questions[this.curQ]) return { label: '', bgColor: '', textColor: '', borderColor: '' }
 			return TYPE_TAG[this.questions[this.curQ].type] || { label: '', bgColor: '', textColor: '', borderColor: '' }
+		},
+		progressBarStyle: function() {
+			return { width: this.progressPct + '%' }
+		},
+		heroGlowStyle: function() {
+			return { background: 'radial-gradient(circle,' + this.mainType.glowColor + ',transparent 65%)' }
+		},
+		heroRuleStyle: function() {
+			return { background: 'linear-gradient(90deg, transparent,' + this.mainType.color + ',transparent)' }
+		},
+		labelDotStyle: function() {
+			return { background: this.mainType.color, boxShadow: '0 0 10rpx ' + this.mainType.glowColor }
+		},
+		adviceDotStyle: function() {
+			return { background: this.mainType.color, boxShadow: '0 0 8rpx ' + this.mainType.glowColor }
+		},
+		primaryBtnStyle: function() {
+			return { background: 'linear-gradient(148deg,' + this.mainType.color + ',' + this.mainType.colorDark + ')' }
 		}
 	},
 	onLoad: function() {
@@ -366,8 +379,19 @@ export default {
 				var r = JSON.parse(saved)
 				if (r.mainType && r.mainType.code) {
 					this.mainType = r.mainType
-					this.radarData = r.radarData
-					this.topTypes = r.topTypes
+					// Pre-compute styles for items from storage
+					var topTypes = r.topTypes || []
+					for (var i = 0; i < topTypes.length; i++) {
+						var ct = topTypes[i]
+						ct.badgeSty = { background: ct.color, boxShadow: '0 4rpx 16rpx ' + ct.glowColor }
+					}
+					this.topTypes = topTypes
+					var radarData = r.radarData || []
+					for (var j = 0; j < radarData.length; j++) {
+						var item = radarData[j]
+						item.barSty = { width: item.pct + '%', background: item.color }
+					}
+					this.radarData = radarData
 					this.scores = r.scores
 					this.careerGroups = r.careerGroups
 					this.phase = 'result'
@@ -456,7 +480,8 @@ export default {
 						name: ttd.name,
 						color: ttd.color,
 						glowColor: ttd.glowColor,
-						score: scores[tk]
+						score: scores[tk],
+						badgeSty: { background: ttd.color, boxShadow: '0 4rpx 16rpx ' + ttd.glowColor }
 					})
 				}
 				self.topTypes = topTypes
@@ -468,12 +493,14 @@ export default {
 				for (var r = 0; r < TYPE_KEYS.length; r++) {
 					var key = TYPE_KEYS[r]
 					var td = TYPE_DATA[key]
+					var pct = totalScore > 0 ? Math.round(scores[key] / totalScore * 100) : 0
 					radar.push({
 						icon: td.icon,
 						code: td.code,
 						name: td.name,
-						pct: totalScore > 0 ? Math.round(scores[key] / totalScore * 100) : 0,
-						color: td.color
+						pct: pct,
+						color: td.color,
+						barSty: { width: pct + '%', background: td.color }
 					})
 				}
 				self.radarData = radar
@@ -530,6 +557,7 @@ export default {
 
 <style scoped>
 .page {
+	padding-top: env(safe-area-inset-top);
 	position: relative;
 	min-height: 100vh;
 	background:

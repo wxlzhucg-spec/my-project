@@ -54,8 +54,17 @@ else
     echo "  没有找到运行中的旧进程"
 fi
 
-# 6. 启动新服务
-echo "[6/7] 启动 Shadow 服务（绑定 80 端口）..."
+# 6. 加载环境变量 + 启动新服务
+echo "[6/7] 加载环境变量并启动 Shadow 服务..."
+if [ -f "$PROJECT_DIR/.env" ]; then
+    set -a && source "$PROJECT_DIR/.env" && set +a
+    echo "  已加载 $PROJECT_DIR/.env"
+elif [ -f "$PROJECT_DIR/deploy/.env.production" ]; then
+    set -a && source "$PROJECT_DIR/deploy/.env.production" && set +a
+    echo "  已加载 deploy/.env.production"
+else
+    echo "  警告: 未找到 .env 或 deploy/.env.production，使用代码默认值"
+fi
 nohup python3 -m app.main > "$LOG_FILE" 2>&1 &
 NEW_PID=$!
 echo "  新进程 PID: $NEW_PID"

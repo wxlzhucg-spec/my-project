@@ -1,17 +1,12 @@
 <template>
-<view :class="embedded ? 'tdm-embedded-wrap' : 'tdm-modal-root'">
-	<view :class="embedded ? 'tdm-embedded-inner' : 'tdm-sheet tdm-sheet--fullscreen'">
+<view :class="wrapperCls">
+	<view :class="innerCls">
 		<view v-if="!embedded" class="tdm-sheet-shine"></view>
 		<view v-if="!embedded" class="tdm-topbar">
 			<text class="tdm-sheet-title">塔罗抽牌</text>
 		</view>
-		<view :class="embedded ? 'tdm-embedded-body' : 'tdm-sheet-body'">
-<view class="page-root" :class="{
-		'page-fan-pick': phase==='fanPick',
-		'page-root--in-sheet': !embedded,
-		'page-root--pick-ui': phase==='fanPick',
-		'page-root--reveal-ui': phase==='preview'
-	}">
+		<view :class="bodyCls">
+<view class="page-root" :class="pageRootCls">
 	<view class="ambient"></view>
 	<view class="nav-back" @tap="goBack"><text class="back-icon">‹</text></view>
 
@@ -30,10 +25,10 @@
 		<view class="pick-header">
 			<view class="pick-head-row">
 				<text class="pick-title-one">{{ pickComplete ? '牌已落定' : '凭直觉选出三张' }}</text>
-				<view class="pick-head-count" :class="{ 'pick-count--done': selected.length === 3 }">{{ selected.length }}/3</view>
+				<view class="pick-head-count" :class="pickCountCls">{{ selected.length }}/3</view>
 			</view>
 			<view class="pick-progress-track pick-progress-track--soft">
-				<view class="pick-progress-fill" :style="{ width: pickProgressPercent + '%' }"></view>
+				<view class="pick-progress-fill" :style="progressFillStyle"></view>
 			</view>
 		</view>
 
@@ -42,10 +37,10 @@
 				<view class="strip-inner">
 					<view
 						v-for="gi in deckIndexList"
-						:key="'strip'+gi"
+						:key="gi"
 						class="strip-card"
-						:class="{ stripPicked: !!pickedFan[gi], 'strip-card--focus': stripNearCenter(gi) }"
-						:style="getStripCardStyle(gi)"
+						:class="stripCardCls[gi]"
+						:style="stripCardStyles[gi]"
 						@tap="pickFanByGlobal(gi)">
 						<view class="fc-face fc-face-strip">
 							<view class="fc-frame">
@@ -60,8 +55,8 @@
 		</view>
 
 		<view class="slots-row slots-row--pick">
-			<view v-for="si in 3" :key="'sl'+si" class="slot-box">
-				<view v-if="selected.length >= si" class="slot-card">
+			<view v-for="(s, idx) in slotItems" :key="idx" class="slot-box">
+				<view v-if="s.filled" class="slot-card">
 					<view class="slot-back">
 						<view class="slot-bframe">
 							<view class="cat cat--slot"><view class="ce ce-l"></view><view class="ce ce-r"></view><view class="ch"></view></view>
@@ -69,7 +64,7 @@
 					</view>
 				</view>
 				<view v-else class="slot-empty"></view>
-				<text class="slot-caption">{{ posLabels[si - 1] }}</text>
+				<text class="slot-caption">{{ s.label }}</text>
 			</view>
 		</view>
 
@@ -80,10 +75,10 @@
 		v-else-if="phase==='shuffle'||phase==='shuffling'||phase==='revealing'"
 		class="fan-area">
 		<view class="fan-pan-inner">
-			<view v-for="(f,i) in fanCount" :key="'fan-'+i"
+			<view v-for="(f,i) in fanCount" :key="i"
 				class="fan-card"
-				:class="{ fanCardLong: phase==='revealing', fanPicked: false }"
-				:style="getFanStyle(i)">
+				:class="fanCardCls"
+				:style="fanStyles[i]">
 				<view class="fc-face">
 					<view class="fc-frame">
 						<view class="cat"><view class="ce ce-l"></view><view class="ce ce-r"></view><view class="ch"></view></view>
@@ -95,33 +90,33 @@
 
 	<!-- ===== 预览阶段：放大翻牌 ===== -->
 	<view class="pv-row" v-if="phase==='preview'">
-		<view v-for="si in 3" :key="'pv'+si" class="pv-col">
-			<view class="pv-card" :class="{ pvFlipping: pvFlipping===(si-1), pvFlipped: !!pvFlipped[si-1] }">
-				<view class="pv-back" v-if="!pvFlipped[si-1]">
+		<view v-for="(p, idx) in pvItems" :key="idx" class="pv-col">
+			<view class="pv-card" :class="p.cardCls">
+				<view class="pv-back" v-if="!p.flipped">
 					<view class="pv-bframe">
 						<view class="cat cat--pv"><view class="ce ce-l"></view><view class="ce ce-r"></view><view class="ch"></view></view>
 					</view>
 				</view>
-				<view class="pv-front" v-else :style="{ background: getCard(si-1).bg }">
+				<view class="pv-front" v-else :style="p.card.bgStyle">
 					<view class="pf-c pf-tl"></view>
 					<view class="pf-c pf-tr"></view>
 					<view class="pf-c pf-bl"></view>
 					<view class="pf-c pf-br"></view>
-					<text class="pf-num">{{ getCard(si-1).num }}</text>
+					<text class="pf-num">{{ p.card.num }}</text>
 					<view class="pf-ring">
-						<text class="pf-sym">{{ getCard(si-1).symbol }}</text>
+						<text class="pf-sym">{{ p.card.symbol }}</text>
 					</view>
-					<text class="pf-name">{{ getCard(si-1).name }}</text>
+					<text class="pf-name">{{ p.card.name }}</text>
 					<view class="pf-div"></view>
-					<text class="pf-desc">{{ getCard(si-1).desc }}</text>
+					<text class="pf-desc">{{ p.card.desc }}</text>
 				</view>
 			</view>
-			<text class="pv-pos-label" :class="{ 'pv-pos--shown': !!pvFlipped[si-1] }">{{ posLabels[si-1] }}</text>
+			<text class="pv-pos-label" :class="p.labelCls">{{ p.label }}</text>
 		</view>
 	</view>
 
 	<!-- ===== 操作按钮：预览完成后确认 ===== -->
-	<view v-if="showActBtn" class="act-btn" :class="{ disabled: !canAct }" hover-class="act-hover" @tap="doAction">
+	<view v-if="showActBtn" class="act-btn" :class="actBtnCls" hover-class="act-hover" @tap="doAction">
 		<text class="act-text">{{ actionLabel }}</text>
 	</view>
 	<view v-if="showActBtn" class="act-cancel-row" hover-class="act-cancel-hover" @tap="goBack">
@@ -277,6 +272,83 @@ export default {
 		},
 		pickProgressPercent: function() {
 			return Math.round((this.selected.length / 3) * 100)
+		},
+		wrapperCls: function() {
+			return this.embedded ? 'tdm-embedded-wrap' : 'tdm-modal-root'
+		},
+		innerCls: function() {
+			return this.embedded ? 'tdm-embedded-inner' : 'tdm-sheet tdm-sheet--fullscreen'
+		},
+		bodyCls: function() {
+			return this.embedded ? 'tdm-embedded-body' : 'tdm-sheet-body'
+		},
+		progressFillStyle: function() {
+			return { width: this.pickProgressPercent + '%' }
+		},
+		stripCardStyles: function() {
+			var styles = []
+			for (var gi = 0; gi < this.fanDeckTotal; gi++) {
+				styles.push(this._calcStripCardStyle(gi))
+			}
+			return styles
+		},
+		stripCardCls: function() {
+			var clsList = []
+			for (var gi = 0; gi < this.fanDeckTotal; gi++) {
+				var c = { stripPicked: !!this.pickedFan[gi] }
+				if (this.phase === 'fanPick' && !this.pickedFan[gi] && Math.abs(this._stripDelta(gi)) < 0.36) {
+					c['strip-card--focus'] = true
+				}
+				clsList.push(c)
+			}
+			return clsList
+		},
+		fanStyles: function() {
+			var styles = []
+			for (var i = 0; i < this.fanCount; i++) {
+				styles.push(this._calcFanStyle(i))
+			}
+			return styles
+		},
+		fanCardCls: function() {
+			return { fanCardLong: this.phase === 'revealing', fanPicked: false }
+		},
+		pageRootCls: function() {
+			return {
+				'page-fan-pick': this.phase === 'fanPick',
+				'page-root--in-sheet': !this.embedded,
+				'page-root--pick-ui': this.phase === 'fanPick',
+				'page-root--reveal-ui': this.phase === 'preview'
+			}
+		},
+		pickCountCls: function() {
+			return { 'pick-count--done': this.selected.length === 3 }
+		},
+		slotItems: function() {
+			var items = []
+			for (var i = 0; i < 3; i++) {
+				items.push({
+					filled: this.selected.length > i,
+					label: this.posLabels[i]
+				})
+			}
+			return items
+		},
+		pvItems: function() {
+			var items = []
+			for (var i = 0; i < 3; i++) {
+				items.push({
+					card: this._getCardData(i),
+					cardCls: { pvFlipping: this.pvFlipping === i, pvFlipped: !!this.pvFlipped[i] },
+					flipped: !!this.pvFlipped[i],
+					labelCls: { 'pv-pos--shown': !!this.pvFlipped[i] },
+					label: this.posLabels[i]
+				})
+			}
+			return items
+		},
+		actBtnCls: function() {
+			return { disabled: !this.canAct }
 		}
 	},
 	methods: {
@@ -291,10 +363,15 @@ export default {
 		stripMetrics: function() {
 			if (this._stripMetrics) return this._stripMetrics
 			try {
-				var w = uni.getSystemInfoSync().windowWidth
+				var w = uni.getWindowInfo().windowWidth
 				this._stripMetrics = { pr: w / 750, vw: w }
 			} catch (e) {
-				this._stripMetrics = { pr: 0.5, vw: 375 }
+				try {
+					var w = uni.getSystemInfoSync().windowWidth
+					this._stripMetrics = { pr: w / 750, vw: w }
+				} catch (e2) {
+					this._stripMetrics = { pr: 0.5, vw: 375 }
+				}
 			}
 			return this._stripMetrics
 		},
@@ -334,7 +411,7 @@ export default {
 			return this.phase === 'fanPick' && !this.pickedFan[gi] && Math.abs(this._stripDelta(gi)) < 0.36
 		},
 		/* 牌带：平铺排列，中心牌轻微放大 */
-		getStripCardStyle: function(gi) {
+		_calcStripCardStyle: function(gi) {
 			if (this.phase !== 'fanPick') {
 				return { zIndex: 1 }
 			}
@@ -360,7 +437,7 @@ export default {
 			return ''
 		},
 		/* 洗牌/摊开：槽位相对扇心；几何按原 13 张扇总跨度缩放 */
-		getFanStyle: function(idx) {
+		_calcFanStyle: function(idx) {
 			var n = FAN_VISIBLE
 			var hw = 48
 			var sc = typeof this.fanScale === 'number' ? this.fanScale : 1
@@ -457,9 +534,17 @@ export default {
 				}, 900)
 			}
 		},
-		getCard: function(si) {
-			if (si >= this.selected.length) return {}
-			return ARCANA[this.selected[si]] || {}
+		_getCardData: function(si) {
+			if (si >= this.selected.length) return { num: '', symbol: '', name: '', desc: '', bg: '', bgStyle: {} }
+			var c = ARCANA[this.selected[si]] || {}
+			return {
+				num: c.num || '',
+				symbol: c.symbol || '',
+				name: c.name || '',
+				desc: c.desc || '',
+				bg: c.bg || '',
+				bgStyle: { background: c.bg || 'transparent' }
+			}
 		},
 
 		/* ---- 预览翻牌 ---- */

@@ -91,9 +91,9 @@
 				<text class="summary-text">{{ personalitySummary }}</text>
 			</view>
 			<view class="traits-grid">
-				<view class="trait-item" v-for="(t, idx) in traits" :key="idx">
+				<view class="trait-item" v-for="(t, idx) in traitsWithBar" :key="idx">
 					<view class="trait-bar-wrap">
-						<view class="trait-bar" :style="{ width: t.value + '%', background: t.color }"></view>
+						<view class="trait-bar" :style="t.barStyle"></view>
 					</view>
 					<view class="trait-info">
 						<text class="trait-name">{{ t.name }}</text>
@@ -201,6 +201,16 @@ export default {
 		planetsScrollHeight: function() {
 			var count = this.planets.length || 10
 			return Math.min(count * 72 + 20, 520) + 'rpx'
+		},
+		traitsWithBar: function() {
+			return this.traits.map(function(t) {
+				return {
+					name: t.name,
+					value: t.value,
+					color: t.color,
+					barStyle: { width: t.value + '%', background: t.color }
+				}
+			})
 		}
 	}
 }

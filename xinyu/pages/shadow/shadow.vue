@@ -4,7 +4,7 @@
 		<view class="top-glow"></view>
 
 		<!-- 顶部导航 -->
-		<view class="nav-header" :style="{ paddingTop: statusBarHeight + 'px' }">
+		<view class="nav-header">
 			<view class="nav-back" v-if="fromTarot" @tap="goBack"><text class="nav-back-t">‹</text></view>
 			<text class="page-title">{{ tarotReading ? '塔罗解读' : '影子' }}</text>
 			<view v-if="!tarotReading && messageList.length > 1" class="nav-new-chat" @tap="onNewChat">
@@ -13,64 +13,16 @@
 		</view>
 
 		<!-- 聊天区域 -->
-		<scroll-view 
-			class="chat-scroll" 
-			scroll-y="true" 
+		<scroll-view
+			class="chat-scroll"
+			scroll-y="true"
 			:scroll-into-view="scrollToMessage"
-			:style="{ paddingTop: `calc(${statusBarHeight}px + 44px + 10rpx)`, paddingBottom: bottomPadding }"
 		>
 			<view class="chat-list" :class="{ 'chat-list--landing': showLanding }">
 				<view v-if="showLanding" class="welcome-panel">
 					<view class="landing-hero-card">
 						<view class="landing-mascot-wrap" :style="{ transform: landingMascotTf }">
-							<svg class="landing-mascot" fill="none" viewBox="0 0 241.376 188.924">
-								<defs>
-									<mask id="body-mask-shadow" maskUnits="userSpaceOnUse" style="mask-type:alpha">
-										<path d="M148.652 0C182.792 0.000197914 210.468 27.6759 210.468 61.8154C210.468 65.0652 210.216 68.2567 209.732 71.3711C228.627 82.089 241.376 102.386 241.376 125.66C241.376 158.482 215.946 185.714 183.158 187.199C162.354 188.141 139.439 188.924 120.688 188.924C101.936 188.924 79.0222 188.141 58.2178 187.199C25.4299 185.714 0 158.482 0 125.66C0 100.709 14.651 79.1799 35.8194 69.2061C35.4947 67.2817 35.3233 65.3048 35.3233 63.2881C35.3233 43.7796 51.138 27.9648 70.6465 27.9648C78.9593 27.9648 86.6002 30.8374 92.6338 35.6426C102.489 14.5861 123.868 0 148.652 0Z" fill="white"/>
-									</mask>
-									<filter id="body-glow-filter-shadow" x="-40%" y="-30%" width="180%" height="160%" filterUnits="objectBoundingBox" color-interpolation-filters="sRGB">
-										<feFlood flood-opacity="0" result="BackgroundImageFix"/>
-										<feBlend in="SourceGraphic" in2="BackgroundImageFix" mode="normal" result="shape"/>
-										<feGaussianBlur stdDeviation="16"/>
-									</filter>
-									<radialGradient id="body-grad-shadow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(125.451 107.208) rotate(90) scale(90.37 111.98)">
-										<stop offset="0.22" :stop-color="landingRgbStr(landingGradRGB)"/>
-										<stop offset="1" :stop-color="landingRgbStr(landingGradRGB)" stop-opacity="0.72"/>
-									</radialGradient>
-								</defs>
-
-								<g mask="url(#body-mask-shadow)">
-									<g filter="url(#body-glow-filter-shadow)">
-										<ellipse cx="125.451" cy="107.208" rx="111.979" ry="90.3693" fill="url(#body-grad-shadow)"/>
-									</g>
-									<rect x="-5" y="-5" width="252" height="200" :fill="landingRgbStr(landingTintRGBA)" :opacity="landingTintRGBA[3]"></rect>
-								</g>
-
-								<path d="M218 154 C222 152 227 145 228 138" :stroke="'rgba(206,196,255,' + landingSparkA.toFixed(2) + ')'" stroke-linecap="round" stroke-width="5.2" fill="none"/>
-								<path d="M29 89 C26 90 22 95 21 100" :stroke="'rgba(206,196,255,' + landingSparkA.toFixed(2) + ')'" stroke-linecap="round" stroke-width="5.2" fill="none"/>
-
-								<g :transform="'translate(0 ' + landingFaceOY.toFixed(1) + ')'">
-									<path :d="buildQuadPath(landingBrowLP)" stroke="#3d3952" stroke-width="3.5" stroke-linecap="round" fill="none" opacity="0.72"/>
-									<path :d="buildQuadPath(landingBrowRP)" stroke="#3d3952" stroke-width="3.5" stroke-linecap="round" fill="none" opacity="0.72"/>
-
-									<ellipse cx="96" cy="99" rx="7" :ry="landingEyeR.toFixed(2)" fill="#2d2a3d"/>
-									<ellipse :cx="94.6" :cy="99 - landingEyeR * 0.30" :rx="2.3" :ry="(landingEyeR * 0.30).toFixed(2)" fill="white" opacity="0.84"/>
-									<ellipse cx="146" cy="99" rx="7" :ry="landingEyeR.toFixed(2)" fill="#2d2a3d"/>
-									<ellipse :cx="144.6" :cy="99 - landingEyeR * 0.30" :rx="2.3" :ry="(landingEyeR * 0.30).toFixed(2)" fill="white" opacity="0.84"/>
-
-									<g :opacity="landingBlushA.toFixed(3)">
-										<ellipse cx="70" cy="110" rx="12.2" ry="5.2" fill="#FF8BAB" opacity="0.48" transform="rotate(-8, 70, 110)"/>
-										<ellipse cx="172" cy="110" rx="12.2" ry="5.2" fill="#FF8BAB" opacity="0.48" transform="rotate(8, 172, 110)"/>
-									</g>
-
-									<g :opacity="landingTearA.toFixed(3)">
-										<path d="M96 112 Q92 121 94 129 Q96 137 98 129 Q100 121 96 112Z" fill="#99CCFF" opacity="0.72"/>
-										<path d="M146 112 Q142 121 144 129 Q146 137 148 129 Q150 121 146 112Z" fill="#99CCFF" opacity="0.72"/>
-									</g>
-
-									<path :d="buildQuadPath(landingMouthP)" fill="none" stroke="#343142" stroke-width="4.9" stroke-linecap="round"/>
-								</g>
-							</svg>
+							<canvas canvas-id="shadowSpriteCanvas" id="shadowSpriteCanvas" class="landing-mascot-canvas"></canvas>
 						</view>
 						<text class="landing-caption">{{ emotionCaption }}</text>
 					</view>
@@ -102,7 +54,7 @@
 					<view class="trc-cards-strip">
 						<view
 							v-for="(card, ci) in tarotReading.cards"
-							:key="'trc' + ci"
+							:key="ci"
 							class="trc-card-col"
 						>
 							<view class="trc-card" :style="{ background: card.bg }">
@@ -121,7 +73,7 @@
 					<view class="trc-reading-body">
 						<view
 							v-for="(item, idx) in tarotReading.sections"
-							:key="'trs' + idx"
+							:key="idx"
 							class="trc-section"
 						>
 							<text class="trc-section-title">{{ item.title }}</text>
@@ -149,22 +101,22 @@
 				<!-- 普通消息 -->
 				<view
 					v-if="!showLanding"
-					v-for="(msg, index) in messageList" 
+					v-for="(msg, index) in messageList"
 					:key="index"
 					:id="'msg-' + index"
 					class="message-row"
-					:class="msg.role === 'user' ? 'row-user' : 'row-ai'"
+					:class="msgRowCls[index]"
 				>
 					<view v-if="msg.role === 'ai'" class="avatar ai-avatar">
 						<view class="ai-avatar-silhouette"></view>
 					</view>
-					
-					<view class="message-main" :class="msg.role === 'user' ? 'message-main--user' : 'message-main--ai'">
+
+					<view class="message-main" :class="msgMainCls[index]">
 						<text v-if="msg.role === 'ai'" class="message-role">影子</text>
 						<text class="message-text">{{ msg.content }}</text>
 					</view>
 					
-					<view v-if="msg.role === 'user'" class="avatar user-avatar" :style="userAvatar ? ('background-image:url(' + userAvatar + ')') : ''">
+					<view v-if="msg.role === 'user'" class="avatar user-avatar" :style="userAvatarStyle">
 						<view v-if="!userAvatar" class="user-avatar-placeholder">
 							<text class="user-avatar-icon">👤</text>
 						</view>
@@ -200,7 +152,7 @@
 				@confirm="sendMessage"
 				confirm-type="send"
 			/>
-			<view class="send-btn" :class="{ 'btn-active': inputText.length > 0 }" @tap="sendMessage">
+			<view class="send-btn" :class="sendBtnCls" @tap="sendMessage">
 				<text class="send-btn-t">发送</text>
 			</view>
 		</view>
@@ -261,7 +213,6 @@
 		},
 		data() {
 			return {
-				statusBarHeight: 44,
 				inputText: '',
 				isTyping: false,
 				scrollToMessage: '',
@@ -318,20 +269,32 @@
 			},
 			inputBottom() {
 				// The custom tabbar occupies effectively env(safe-area-inset-bottom) + its base height (~110rpx-130rpx)
-				return `calc(130rpx + env(safe-area-inset-bottom))`;
+				return 'calc(130rpx + env(safe-area-inset-bottom))';
 			},
-			bottomPadding() {
-				// Scroll view must clear BOTH the tabbar and the input bar (~110rpx)
-				return `calc(260rpx + env(safe-area-inset-bottom))`;
-			}
+		bottomPadding() {
+			// Scroll view must clear BOTH the tabbar and the input bar (~110rpx)
+			return 'calc(260rpx + env(safe-area-inset-bottom))';
 		},
+		userAvatarStyle() {
+			if (this.userAvatar) {
+				return { backgroundImage: 'url(' + this.userAvatar + ')' }
+			}
+			return {}
+		},
+		msgRowCls() {
+			return this.messageList.map(function(m) { return m.role === 'user' ? 'row-user' : 'row-ai' })
+		},
+		msgMainCls() {
+			return this.messageList.map(function(m) { return m.role === 'user' ? 'message-main--user' : 'message-main--ai' })
+		},
+		sendBtnCls() {
+			return { 'btn-active': this.inputText.length > 0 }
+		}
+	},
 		mounted() {
 			try {
-				var info = uni.getWindowInfo ? uni.getWindowInfo() : uni.getSystemInfoSync();
-				if (info && info.statusBarHeight) {
-					this.statusBarHeight = info.statusBarHeight;
-				}
-			} catch (e) {}
+				this.shadowCanvasCtx = uni.createCanvasContext('shadowSpriteCanvas', this)
+			} catch(e) {}
 			this.loadChatSession();
 			this.syncEmotionSnapshot();
 			this.checkTarotSession();
@@ -466,6 +429,196 @@
 			landingRgbStr(color) {
 				return 'rgb(' + color[0] + ',' + color[1] + ',' + color[2] + ')'
 			},
+			_drawTear(ctx, cx, cy) {
+				ctx.beginPath()
+				ctx.moveTo(cx, cy)
+				ctx.quadraticCurveTo(cx - 4, cy + 9, cx - 2, cy + 17)
+				ctx.quadraticCurveTo(cx, cy + 25, cx + 2, cy + 17)
+				ctx.quadraticCurveTo(cx + 4, cy + 9, cx, cy)
+				ctx.closePath()
+				ctx.fill()
+			},
+			drawShadowSprite() {
+				var ctx = this.shadowCanvasCtx
+				if (!ctx) return
+				var self = this
+				ctx.clearRect(0, 0, 241, 189)
+
+				function bodyPath(ctx) {
+					ctx.beginPath()
+					ctx.moveTo(148.652, 0)
+					ctx.bezierCurveTo(182.792, 0.0002, 210.468, 27.676, 210.468, 61.815)
+					ctx.bezierCurveTo(210.468, 65.065, 210.216, 68.257, 209.732, 71.371)
+					ctx.bezierCurveTo(228.627, 82.089, 241.376, 102.386, 241.376, 125.66)
+					ctx.bezierCurveTo(241.376, 158.482, 215.946, 185.714, 183.158, 187.199)
+					ctx.bezierCurveTo(162.354, 188.141, 139.439, 188.924, 120.688, 188.924)
+					ctx.bezierCurveTo(101.936, 188.924, 79.022, 188.141, 58.218, 187.199)
+					ctx.bezierCurveTo(25.430, 185.714, 0, 158.482, 0, 125.66)
+					ctx.bezierCurveTo(0, 100.709, 14.651, 79.180, 35.819, 69.206)
+					ctx.bezierCurveTo(35.495, 67.282, 35.323, 65.305, 35.323, 63.288)
+					ctx.bezierCurveTo(35.323, 43.780, 51.138, 27.965, 70.647, 27.965)
+					ctx.bezierCurveTo(78.959, 27.965, 86.600, 30.837, 92.634, 35.643)
+					ctx.bezierCurveTo(102.489, 14.586, 123.868, 0, 148.652, 0)
+					ctx.closePath()
+				}
+
+				// body shadow
+				ctx.save()
+				ctx.globalAlpha = 0.06
+				ctx.fillStyle = '#161230'
+				ctx.beginPath()
+				ctx.save()
+				ctx.translate(121, 192)
+				ctx.scale(1.2, 0.12)
+				ctx.arc(0, 0, 50, 0, Math.PI * 2)
+				ctx.restore()
+				ctx.fill()
+				ctx.restore()
+
+				// body fill
+				var gradColor = self.landingRgbStr(self.landingGradRGB)
+				ctx.save()
+				ctx.globalAlpha = 0.92
+				if (ctx.createRadialGradient) {
+					var rg = ctx.createRadialGradient(110, 85, 12, 121, 100, 115)
+					rg.addColorStop(0, gradColor.replace('rgb', 'rgba').replace(')', ',1)'))
+					rg.addColorStop(1, gradColor.replace('rgb', 'rgba').replace(')', ',0.78)'))
+					ctx.fillStyle = rg
+				} else {
+					ctx.fillStyle = gradColor.replace('rgb', 'rgba').replace(')', ',0.90)')
+				}
+				bodyPath(ctx)
+				ctx.fill()
+				ctx.restore()
+
+				// tint
+				ctx.save()
+				ctx.globalAlpha = self.landingTintRGBA[3]
+				ctx.fillStyle = self.landingRgbStr(self.landingTintRGBA)
+				bodyPath(ctx)
+				ctx.fill()
+				ctx.restore()
+
+				// inner ear
+				ctx.save()
+				ctx.globalAlpha = 0.35
+				ctx.fillStyle = '#FFB0C8'
+				ctx.beginPath()
+				ctx.save()
+				ctx.translate(71, 28)
+				ctx.scale(0.78, 1.05)
+				ctx.arc(0, 0, 6.5, 0, Math.PI * 2)
+				ctx.restore()
+				ctx.fill()
+				ctx.beginPath()
+				ctx.save()
+				ctx.translate(150, 16)
+				ctx.scale(0.82, 1.0)
+				ctx.arc(0, 0, 7.5, 0, Math.PI * 2)
+				ctx.restore()
+				ctx.fill()
+				ctx.restore()
+
+				var oy = self.landingFaceOY
+
+				// brows
+				ctx.save()
+				ctx.globalAlpha = 0.55
+				ctx.strokeStyle = '#48425e'
+				ctx.lineWidth = 2.8
+				ctx.lineCap = 'round'
+				if (self.landingBrowLP && self.landingBrowLP.length >= 6) {
+					ctx.beginPath()
+					ctx.moveTo(self.landingBrowLP[0], self.landingBrowLP[1] + oy)
+					ctx.quadraticCurveTo(self.landingBrowLP[2], self.landingBrowLP[3] + oy, self.landingBrowLP[4], self.landingBrowLP[5] + oy)
+					ctx.stroke()
+				}
+				if (self.landingBrowRP && self.landingBrowRP.length >= 6) {
+					ctx.beginPath()
+					ctx.moveTo(self.landingBrowRP[0], self.landingBrowRP[1] + oy)
+					ctx.quadraticCurveTo(self.landingBrowRP[2], self.landingBrowRP[3] + oy, self.landingBrowRP[4], self.landingBrowRP[5] + oy)
+					ctx.stroke()
+				}
+				ctx.restore()
+
+				// eyes
+				ctx.save()
+				ctx.fillStyle = '#2e2a42'
+				var er = self.landingEyeR
+				ctx.beginPath()
+				ctx.save()
+				ctx.translate(96, 99 + oy)
+				ctx.scale(1, er / 7)
+				ctx.arc(0, 0, 7, 0, Math.PI * 2)
+				ctx.restore()
+				ctx.fill()
+				ctx.fillStyle = 'rgba(255,255,255,0.85)'
+				ctx.beginPath()
+				ctx.save()
+				ctx.translate(94, 97 + oy)
+				ctx.arc(0, 0, 2.2, 0, Math.PI * 2)
+				ctx.restore()
+				ctx.fill()
+				ctx.fillStyle = '#2e2a42'
+				ctx.beginPath()
+				ctx.save()
+				ctx.translate(146, 99 + oy)
+				ctx.scale(1, er / 7)
+				ctx.arc(0, 0, 7, 0, Math.PI * 2)
+				ctx.restore()
+				ctx.fill()
+				ctx.fillStyle = 'rgba(255,255,255,0.85)'
+				ctx.beginPath()
+				ctx.save()
+				ctx.translate(144, 97 + oy)
+				ctx.arc(0, 0, 2.2, 0, Math.PI * 2)
+				ctx.restore()
+				ctx.fill()
+				ctx.restore()
+
+				// blush
+				ctx.save()
+				ctx.globalAlpha = self.landingBlushA * 0.38
+				ctx.fillStyle = '#FF8FAB'
+				ctx.beginPath()
+				ctx.save()
+				ctx.translate(66, 110 + oy)
+				ctx.scale(17/6, 1)
+				ctx.arc(0, 0, 6, 0, Math.PI * 2)
+				ctx.restore()
+				ctx.fill()
+				ctx.beginPath()
+				ctx.save()
+				ctx.translate(176, 110 + oy)
+				ctx.scale(17/6, 1)
+				ctx.arc(0, 0, 6, 0, Math.PI * 2)
+				ctx.restore()
+				ctx.fill()
+				ctx.restore()
+
+				// tears
+				ctx.save()
+				ctx.globalAlpha = self.landingTearA * 0.72
+				ctx.fillStyle = '#99CCFF'
+				self._drawTear(ctx, 96, 112 + oy)
+				self._drawTear(ctx, 146, 112 + oy)
+				ctx.restore()
+
+				// mouth
+				ctx.save()
+				ctx.strokeStyle = '#3e3858'
+				ctx.lineWidth = 3.6
+				ctx.lineCap = 'round'
+				if (self.landingMouthP && self.landingMouthP.length >= 6) {
+					ctx.beginPath()
+					ctx.moveTo(self.landingMouthP[0], self.landingMouthP[1] + oy)
+					ctx.quadraticCurveTo(self.landingMouthP[2], self.landingMouthP[3] + oy, self.landingMouthP[4], self.landingMouthP[5] + oy)
+					ctx.stroke()
+				}
+				ctx.restore()
+
+				ctx.draw()
+			},
 			startLandingAnim() {
 				var self = this
 				if (this.landingAnimTimer) clearTimeout(this.landingAnimTimer)
@@ -482,6 +635,7 @@
 					self.landingEyeR = Math.max(1.4, self.landingBaseEyeR * blink)
 					self.landingBlushA = self.clamp(self.landingBaseBlushA * (0.94 + pulse * 0.08), 0.04, 0.84)
 					self.landingSparkA = self.clamp(self.landingBaseSparkA * (0.88 + pulse * 0.16), 0.16, 0.98)
+					self.drawShadowSprite()
 					self.landingAnimTimer = setTimeout(tick, 33)
 				})()
 			},
@@ -537,6 +691,7 @@
 				this.landingEyeR = this.landingBaseEyeR
 				this.landingBlushA = this.landingBaseBlushA
 				this.landingSparkA = this.landingBaseSparkA
+				this.drawShadowSprite()
 			},
 			goBack() {
 				if (getCurrentPages().length > 1) {
@@ -1050,12 +1205,14 @@
 	/* ===== 顶部导航 ===== */
 	.nav-header {
 		position: fixed; top: 0; left: 0; width: 100%;
+		padding-top: env(safe-area-inset-top);
 		background: rgba(250, 247, 255, 0.82);
 		backdrop-filter: blur(32px);
 		-webkit-backdrop-filter: blur(32px);
 		z-index: 100;
 		display: flex; align-items: center; justify-content: center;
-		height: 44px;
+		height: calc(env(safe-area-inset-top) + 44px);
+		box-sizing: border-box;
 		border-bottom: 1rpx solid rgba(210, 200, 235, 0.40);
 	}
 	.nav-back {
@@ -1092,7 +1249,7 @@
 	}
 
 	/* ===== 聊天滚动区 ===== */
-	.chat-scroll { flex: 1; height: 100vh; box-sizing: border-box; }
+	.chat-scroll { flex: 1; height: 100vh; box-sizing: border-box; padding-top: calc(env(safe-area-inset-top) + 44px + 10rpx); padding-bottom: calc(260rpx + env(safe-area-inset-bottom)); }
 	.chat-list { padding: 28rpx 28rpx 20rpx; display: flex; flex-direction: column; gap: 8rpx; }
 	.chat-list--landing {
 		min-height: calc(100vh - 320rpx);
@@ -1125,12 +1282,13 @@
 		transform-origin: 50% 62%;
 		will-change: transform;
 	}
-	.landing-mascot {
+	.landing-mascot-canvas {
 		width: 168rpx;
 		height: 130rpx;
 		display: block;
 		filter: drop-shadow(0 14rpx 26rpx rgba(190, 172, 255, 0.25));
 	}
+	
 	.landing-caption {
 		font-size: 25rpx;
 		line-height: 1.65;

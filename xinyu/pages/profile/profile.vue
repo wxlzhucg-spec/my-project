@@ -1,11 +1,11 @@
 <template>
-	<view class="container" :style="containerStyle">
+	<view class="container">
 		<view class="top-bg-glow"></view>
 
 		<!-- 用户信息头部 -->
 		<view class="user-header" @tap="goEditProfile">
 			<view class="avatar-container">
-				<view class="avatar" :style="userInfo.avatar ? ('background-image:url(' + userInfo.avatar + ')') : ''">
+				<view class="avatar" :style="avatarStyle">
 					<view v-if="!userInfo.avatar" class="avatar-empty"><text class="avatar-empty-text">+</text></view>
 				</view>
 				<view class="avatar-badge"><text class="badge-icon">✎</text></view>
@@ -84,7 +84,7 @@
 			</view>
 			<view class="record-list">
 				<view class="record-item" v-for="(item, index) in testRecords" :key="index">
-					<view class="record-dot" :class="'dot-' + (index % 2 === 0 ? 'green' : 'blue')"></view>
+					<view class="record-dot" :class="item.dotCls"></view>
 					<view class="record-content">
 						<text class="record-name">{{ item.title }}</text>
 						<text class="record-date">{{ item.date }}</text>
@@ -102,7 +102,7 @@
 			</view>
 			<view class="record-list">
 				<view class="record-item" v-for="(item, index) in reportRecords" :key="index">
-					<view class="record-dot" :class="'dot-' + (index % 2 === 0 ? 'purple' : 'orange')"></view>
+					<view class="record-dot" :class="item.dotCls"></view>
 					<view class="record-content">
 						<text class="record-name">{{ item.title }}</text>
 						<text class="record-date">{{ item.date }}</text>
@@ -151,12 +151,12 @@
 					mbti: ''
 				},
 				testRecords: [
-					{ title: 'MBTI 职业性格测试', date: '2026-03-20', tag: '性格' },
-					{ title: 'SCL-90 症状自评量表', date: '2026-03-15', tag: '健康' }
+					{ title: 'MBTI 职业性格测试', date: '2026-03-20', tag: '性格', dotCls: 'dot-green' },
+					{ title: 'SCL-90 症状自评量表', date: '2026-03-15', tag: '健康', dotCls: 'dot-blue' }
 				],
 				reportRecords: [
-					{ title: '2026年3月 心理健康月报', date: '2026-03-21' },
-					{ title: '深度人格解析报告', date: '2026-03-16' }
+					{ title: '2026年3月 心理健康月报', date: '2026-03-21', dotCls: 'dot-purple' },
+					{ title: '深度人格解析报告', date: '2026-03-16', dotCls: 'dot-orange' }
 				],
 				navList: [
 					{ label: '首页', active: false, path: '/pages/index/index' },
@@ -277,26 +277,22 @@
 			}
 		},
 		computed: {
-			containerStyle() {
-				var statusBarHeight = 44
-				try {
-					var info = uni.getWindowInfo ? uni.getWindowInfo() : uni.getSystemInfoSync()
-					if (info && info.statusBarHeight) {
-						statusBarHeight = info.statusBarHeight
-					}
-				} catch (e) {}
-				return {
-					paddingTop: 'calc(' + statusBarHeight + 'px + 20rpx)',
-					paddingBottom: 'calc(240rpx + env(safe-area-inset-bottom))'
-				}
+		avatarStyle() {
+			if (this.userInfo.avatar) {
+				return { backgroundImage: 'url(' + this.userInfo.avatar + ')' }
 			}
+			return {}
 		}
+	}
 	}
 </script>
 
 <style scoped>
 	.container {
-		padding: 35rpx;
+		width: 100%;
+		box-sizing: border-box;
+		padding-top: calc(env(safe-area-inset-top) + 20rpx);
+		padding-left: 35rpx; padding-right: 35rpx; padding-bottom: calc(240rpx + env(safe-area-inset-bottom));
 		background: linear-gradient(180deg, #ddd8ea 0%, #cec6de 35%, #bfb5d2 65%, #a998c2 100%);
 		min-height: 100vh;
 		position: relative;

@@ -7,56 +7,9 @@
 	<view class="hero" :style="{ background: heroBg }">
 		<view class="mascot-stage">
 			<view class="mascot-halo" :style="{ background: haloBg, opacity: haloOp, transform: haloTf }"></view>
-			<view class="mascot-wrap" :style="{ transform: mascotTf }">
-				<svg class="sprite-svg" fill="none" viewBox="0 0 241.376 188.924">
-					<defs>
-						<mask id="body-mask-er" maskUnits="userSpaceOnUse" style="mask-type:alpha">
-							<path d="M148.652 0C182.792 0.000197914 210.468 27.6759 210.468 61.8154C210.468 65.0652 210.216 68.2567 209.732 71.3711C228.627 82.089 241.376 102.386 241.376 125.66C241.376 158.482 215.946 185.714 183.158 187.199C162.354 188.141 139.439 188.924 120.688 188.924C101.936 188.924 79.0222 188.141 58.2178 187.199C25.4299 185.714 0 158.482 0 125.66C0 100.709 14.651 79.1799 35.8194 69.2061C35.4947 67.2817 35.3233 65.3048 35.3233 63.2881C35.3233 43.7796 51.138 27.9648 70.6465 27.9648C78.9593 27.9648 86.6002 30.8374 92.6338 35.6426C102.489 14.5861 123.868 0 148.652 0Z" fill="white"/>
-						</mask>
-						<filter id="body-glow-filter-er" x="-40%" y="-30%" width="180%" height="160%" filterUnits="objectBoundingBox" color-interpolation-filters="sRGB">
-							<feFlood flood-opacity="0" result="BackgroundImageFix"/>
-							<feBlend in="SourceGraphic" in2="BackgroundImageFix" mode="normal" result="shape"/>
-							<feGaussianBlur stdDeviation="16"/>
-						</filter>
-						<radialGradient id="body-grad-er" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(125.451 107.208) rotate(90) scale(90.37 111.98)">
-							<stop offset="0.22" :stop-color="rgbStr(gradRGB)"/>
-							<stop offset="1" :stop-color="rgbStr(gradRGB)" stop-opacity="0.65"/>
-						</radialGradient>
-					</defs>
-
-					<g mask="url(#body-mask-er)">
-						<g filter="url(#body-glow-filter-er)">
-							<ellipse cx="125.451" cy="107.208" rx="111.979" ry="90.3693" fill="url(#body-grad-er)"/>
-						</g>
-						<rect x="-5" y="-5" width="252" height="200" :fill="rgbStr(tintRGBA)" :opacity="tintRGBA[3]"></rect>
-					</g>
-
-					<path d="M218 154 C222 152 227 145 228 138" :stroke="'rgba(198,185,255,' + sparkA.toFixed(2) + ')'" stroke-linecap="round" stroke-width="5.2" fill="none"/>
-					<path d="M29 89 C26 90 22 95 21 100" :stroke="'rgba(198,185,255,' + sparkA.toFixed(2) + ')'" stroke-linecap="round" stroke-width="5.2" fill="none"/>
-
-					<g :transform="'translate(0 ' + faceOY.toFixed(1) + ')'">
-						<path :d="buildQuadPath(browLP)" stroke="#38354a" stroke-width="3.6" stroke-linecap="round" fill="none" opacity="0.72"/>
-						<path :d="buildQuadPath(browRP)" stroke="#38354a" stroke-width="3.6" stroke-linecap="round" fill="none" opacity="0.72"/>
-
-						<ellipse cx="96" cy="99" rx="7.1" :ry="eyeR.toFixed(2)" fill="#2a2838"/>
-						<ellipse :cx="96 - 1.5" :cy="99 - eyeR * 0.32" :rx="2.4" :ry="(eyeR * 0.32).toFixed(2)" fill="white" opacity="0.82"/>
-						<ellipse cx="146" cy="99" rx="7.1" :ry="eyeR.toFixed(2)" fill="#2a2838"/>
-						<ellipse :cx="146 - 1.5" :cy="99 - eyeR * 0.32" :rx="2.4" :ry="(eyeR * 0.32).toFixed(2)" fill="white" opacity="0.82"/>
-
-						<g :opacity="blushA.toFixed(3)">
-							<ellipse cx="70" cy="110" rx="13" ry="5.5" fill="#FF87A8" opacity="0.5" transform="rotate(-8, 70, 110)"/>
-							<ellipse cx="172" cy="110" rx="13" ry="5.5" fill="#FF87A8" opacity="0.5" transform="rotate(8, 172, 110)"/>
-						</g>
-
-						<g :opacity="tearA.toFixed(3)">
-							<path d="M96 112 Q92 121 94 129 Q96 137 98 129 Q100 121 96 112Z" fill="#99CCFF" opacity="0.78"/>
-							<path d="M146 112 Q142 121 144 129 Q146 137 148 129 Q150 121 146 112Z" fill="#99CCFF" opacity="0.78"/>
-						</g>
-
-						<path :d="buildQuadPath(mouthP)" fill="none" stroke="#32303e" stroke-width="5" stroke-linecap="round"/>
-					</g>
-				</svg>
-			</view>
+		<view class="mascot-wrap" :style="{ transform: mascotTf }">
+			<canvas canvas-id="erSpriteCanvas" id="erSpriteCanvas" class="sprite-canvas"></canvas>
+		</view>
 		</view>
 		<text class="mood-heading">{{ heading }}</text>
 	</view>
@@ -212,9 +165,10 @@ export default {
 	mounted: function() {
 		var self = this
 		this.$nextTick(function() {
+			try { self.canvasCtx = uni.createCanvasContext('erSpriteCanvas', self) } catch(e) {}
 			self.measureSliders()
 			self.lastTs = Date.now()
-			setTimeout(function() { self.tick() }, 100)
+			self.timerId = setTimeout(function() { self.tick() }, 33)
 		})
 	},
 	beforeDestroy: function() {
@@ -388,6 +342,192 @@ export default {
 			this.haloTf = 'translateX(-50%) scale('+hs.toFixed(3)+')'
 			this.haloBg = 'radial-gradient(circle,rgba('+~~gr+','+~~gg+','+~~gb+',0.10) 0%,rgba('+~~gr+','+~~gg+','+~~gb+',0.02) 40%,transparent 68%)'
 			this.vitTrackBg = 'linear-gradient(90deg, rgba(' + Math.round(lerp(96, 162, e)) + ',' + Math.round(lerp(88, 82, e)) + ',' + Math.round(lerp(136, 92, e)) + ',0.92) 0%, rgba(' + Math.round(lerp(128, 214, e)) + ',' + Math.round(lerp(118, 110, e)) + ',' + Math.round(lerp(174, 92, e)) + ',0.94) 52%, rgba(' + Math.round(lerp(148, 255, e)) + ',' + Math.round(lerp(136, 142, e)) + ',' + Math.round(lerp(192, 106, e)) + ',0.92) 100%)'
+
+			this.drawSprite()
+		},
+		drawSprite: function() {
+			var ctx = this.canvasCtx
+			if (!ctx) return
+			var self = this
+			ctx.clearRect(0, 0, 241, 189)
+
+			function bodyPath(ctx) {
+				ctx.beginPath()
+				ctx.moveTo(148.652, 0)
+				ctx.bezierCurveTo(182.792, 0.0002, 210.468, 27.676, 210.468, 61.815)
+				ctx.bezierCurveTo(210.468, 65.065, 210.216, 68.257, 209.732, 71.371)
+				ctx.bezierCurveTo(228.627, 82.089, 241.376, 102.386, 241.376, 125.66)
+				ctx.bezierCurveTo(241.376, 158.482, 215.946, 185.714, 183.158, 187.199)
+				ctx.bezierCurveTo(162.354, 188.141, 139.439, 188.924, 120.688, 188.924)
+				ctx.bezierCurveTo(101.936, 188.924, 79.022, 188.141, 58.218, 187.199)
+				ctx.bezierCurveTo(25.430, 185.714, 0, 158.482, 0, 125.66)
+				ctx.bezierCurveTo(0, 100.709, 14.651, 79.180, 35.819, 69.206)
+				ctx.bezierCurveTo(35.495, 67.282, 35.323, 65.305, 35.323, 63.288)
+				ctx.bezierCurveTo(35.323, 43.780, 51.138, 27.965, 70.647, 27.965)
+				ctx.bezierCurveTo(78.959, 27.965, 86.600, 30.837, 92.634, 35.643)
+				ctx.bezierCurveTo(102.489, 14.586, 123.868, 0, 148.652, 0)
+				ctx.closePath()
+			}
+
+			// body shadow
+			ctx.save()
+			ctx.globalAlpha = 0.06
+			ctx.fillStyle = '#161230'
+			ctx.beginPath()
+			ctx.save()
+			ctx.translate(121, 192)
+			ctx.scale(1.2, 0.12)
+			ctx.arc(0, 0, 50, 0, Math.PI * 2)
+			ctx.restore()
+			ctx.fill()
+			ctx.restore()
+
+			// body fill
+			var gradColor = self.rgbStr(self.gradRGB)
+			ctx.save()
+			ctx.globalAlpha = 0.92
+			if (ctx.createRadialGradient) {
+				var rg = ctx.createRadialGradient(110, 85, 12, 121, 100, 115)
+				rg.addColorStop(0, gradColor.replace('rgb', 'rgba').replace(')', ',1)'))
+				rg.addColorStop(1, gradColor.replace('rgb', 'rgba').replace(')', ',0.78)'))
+				ctx.fillStyle = rg
+			} else {
+				ctx.fillStyle = gradColor.replace('rgb', 'rgba').replace(')', ',0.90)')
+			}
+			bodyPath(ctx)
+			ctx.fill()
+			ctx.restore()
+
+			// tint
+			ctx.save()
+			ctx.globalAlpha = self.tintRGBA[3]
+			ctx.fillStyle = self.rgbStr(self.tintRGBA)
+			bodyPath(ctx)
+			ctx.fill()
+			ctx.restore()
+
+			// inner ear
+			ctx.save()
+			ctx.globalAlpha = 0.35
+			ctx.fillStyle = '#FFB0C8'
+			ctx.beginPath()
+			ctx.save()
+			ctx.translate(71, 28)
+			ctx.scale(0.78, 1.05)
+			ctx.arc(0, 0, 6.5, 0, Math.PI * 2)
+			ctx.restore()
+			ctx.fill()
+			ctx.beginPath()
+			ctx.save()
+			ctx.translate(150, 16)
+			ctx.scale(0.82, 1.0)
+			ctx.arc(0, 0, 7.5, 0, Math.PI * 2)
+			ctx.restore()
+			ctx.fill()
+			ctx.restore()
+
+			var oy = self.faceOY
+
+			// brows
+			ctx.save()
+			ctx.globalAlpha = 0.55
+			ctx.strokeStyle = '#48425e'
+			ctx.lineWidth = 2.8
+			ctx.lineCap = 'round'
+			self._drawQuad(ctx, self.browLP, oy)
+			ctx.stroke()
+			self._drawQuad(ctx, self.browRP, oy)
+			ctx.stroke()
+			ctx.restore()
+
+			// eyes
+			ctx.save()
+			ctx.fillStyle = '#2e2a42'
+			var er = self.eyeR
+			ctx.beginPath()
+			ctx.save()
+			ctx.translate(96, 99 + oy)
+			ctx.scale(1, er / 7.1)
+			ctx.arc(0, 0, 7.1, 0, Math.PI * 2)
+			ctx.restore()
+			ctx.fill()
+			ctx.fillStyle = 'rgba(255,255,255,0.85)'
+			ctx.beginPath()
+			ctx.save()
+			ctx.translate(94, 97 + oy)
+			ctx.arc(0, 0, 2.2, 0, Math.PI * 2)
+			ctx.restore()
+			ctx.fill()
+			ctx.fillStyle = '#2e2a42'
+			ctx.beginPath()
+			ctx.save()
+			ctx.translate(146, 99 + oy)
+			ctx.scale(1, er / 7.1)
+			ctx.arc(0, 0, 7.1, 0, Math.PI * 2)
+			ctx.restore()
+			ctx.fill()
+			ctx.fillStyle = 'rgba(255,255,255,0.85)'
+			ctx.beginPath()
+			ctx.save()
+			ctx.translate(144, 97 + oy)
+			ctx.arc(0, 0, 2.2, 0, Math.PI * 2)
+			ctx.restore()
+			ctx.fill()
+			ctx.restore()
+
+			// blush
+			ctx.save()
+			ctx.globalAlpha = self.blushA * 0.38
+			ctx.fillStyle = '#FF8FAB'
+			ctx.beginPath()
+			ctx.save()
+			ctx.translate(66, 110 + oy)
+			ctx.scale(17/6, 1)
+			ctx.arc(0, 0, 6, 0, Math.PI * 2)
+			ctx.restore()
+			ctx.fill()
+			ctx.beginPath()
+			ctx.save()
+			ctx.translate(176, 110 + oy)
+			ctx.scale(17/6, 1)
+			ctx.arc(0, 0, 6, 0, Math.PI * 2)
+			ctx.restore()
+			ctx.fill()
+			ctx.restore()
+
+			// tears
+			ctx.save()
+			ctx.globalAlpha = self.tearA * 0.72
+			ctx.fillStyle = '#99CCFF'
+			self._drawTear(ctx, 96, 112 + oy)
+			self._drawTear(ctx, 146, 112 + oy)
+			ctx.restore()
+
+			// mouth
+			ctx.save()
+			ctx.strokeStyle = '#3e3858'
+			ctx.lineWidth = 3.6
+			ctx.lineCap = 'round'
+			self._drawQuad(ctx, self.mouthP, oy)
+			ctx.stroke()
+			ctx.restore()
+
+			ctx.draw()
+		},
+		_drawQuad: function(ctx, points, oy) {
+			if (!points || points.length < 6) return
+			ctx.beginPath()
+			ctx.moveTo(points[0], points[1] + oy)
+			ctx.quadraticCurveTo(points[2], points[3] + oy, points[4], points[5] + oy)
+		},
+		_drawTear: function(ctx, cx, cy) {
+			ctx.beginPath()
+			ctx.moveTo(cx, cy)
+			ctx.quadraticCurveTo(cx - 4, cy + 9, cx - 2, cy + 17)
+			ctx.quadraticCurveTo(cx, cy + 25, cx + 2, cy + 17)
+			ctx.quadraticCurveTo(cx + 4, cy + 9, cx, cy)
+			ctx.closePath()
+			ctx.fill()
 		},
 		buildQuadPath: function(points) {
 			if (!points || points.length < 6) return ''
@@ -503,11 +643,13 @@ export default {
 	pointer-events: none;
 }
 
-.sprite-svg {
+.sprite-canvas {
 	width: 492rpx;
 	height: 388rpx;
 	display: block;
 }
+
+
 
 .mood-heading {
 	margin-top: -6rpx;

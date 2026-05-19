@@ -25,10 +25,10 @@
 			</view>
 			<view class="theme-tag-grid">
 				<view
-					v-for="t in tarotThemeTags"
+					v-for="(t, ti) in tarotThemeTags"
 					:key="t.id"
 					class="theme-tag"
-					:class="['theme-tag--' + t.cat, { 'theme-tag--on': selectedTagId === t.id }]"
+					:class="tagClsList[ti]"
 					hover-class="theme-tag-hover"
 					@tap="toggleThemeTag(t.id)">
 					<text class="theme-tag-t">{{ t.label }}</text>
@@ -49,7 +49,7 @@
 		<!-- 已抽卡：展示 3 张结果 -->
 		<view class="result-area" v-else>
 			<view class="result-pos-row">
-				<view v-for="(card, i) in drawnCards" :key="'r'+i" class="result-col">
+				<view v-for="(card, i) in drawnCards" :key="i" class="result-col">
 					<view class="result-card" :style="{ background: card.bg }">
 						<view class="rc-c rc-tl"></view>
 						<view class="rc-c rc-tr"></view>
@@ -71,12 +71,12 @@
 			<view
 				class="draw-btn"
 				:class="{ 'draw-btn--disabled': !canDraw }"
-				hover-class="canDraw ? 'draw-btn-hover' : ''"
+				hover-class="draw-btn-hover"
 				@tap="onDrawBtn"
 			>
 				<text class="draw-btn-text">{{ hasResult ? '解析卡牌' : '点击抽卡' }}</text>
 			</view>
-			<text class="draw-hint" :class="{ 'draw-hint--show': !hasResult && !canDraw }">请先选定标签再抽牌</text>
+			<text class="draw-hint" :class="drawHintCls">请先选定标签再抽牌</text>
 		</view>
 		<view v-if="hasResult" class="reset-row" @tap="resetDraw">
 			<text class="reset-link">重新抽一次</text>
@@ -116,22 +116,33 @@
 			selectedTagId: '',
 			customQuestion: '',
 			tarotThemeTags: [
-					{ id: 'l1', label: '恋情发展', cat: 'love' },
-					{ id: 'l2', label: '爱情真相', cat: 'love' },
-					{ id: 'l3', label: 'TA的真心', cat: 'love' },
-					{ id: 'l4', label: '终身伴侣', cat: 'love' },
-					{ id: 'w1', label: '工作运程', cat: 'work' },
-					{ id: 'w2', label: '认识自我', cat: 'work' },
-					{ id: 'w3', label: '事业决策', cat: 'work' },
-					{ id: 'w4', label: '事业工作', cat: 'work' },
-					{ id: 's1', label: '学习运程', cat: 'study' },
-					{ id: 's2', label: '学习问题', cat: 'study' }
+					{ id: 'l1', label: '恋情发展', cat: 'love', cls: ['theme-tag--love'] },
+					{ id: 'l2', label: '爱情真相', cat: 'love', cls: ['theme-tag--love'] },
+					{ id: 'l3', label: 'TA的真心', cat: 'love', cls: ['theme-tag--love'] },
+					{ id: 'l4', label: '终身伴侣', cat: 'love', cls: ['theme-tag--love'] },
+					{ id: 'w1', label: '工作运程', cat: 'work', cls: ['theme-tag--work'] },
+					{ id: 'w2', label: '认识自我', cat: 'work', cls: ['theme-tag--work'] },
+					{ id: 'w3', label: '事业决策', cat: 'work', cls: ['theme-tag--work'] },
+					{ id: 'w4', label: '事业工作', cat: 'work', cls: ['theme-tag--work'] },
+					{ id: 's1', label: '学习运程', cat: 'study', cls: ['theme-tag--study'] },
+					{ id: 's2', label: '学习问题', cat: 'study', cls: ['theme-tag--study'] }
 				]
 			}
 		},
 		computed: {
 			canDraw: function() {
 				return !!(this.selectedTagId || (this.customQuestion || '').trim())
+			},
+			tagClsList: function() {
+				var self = this
+				return this.tarotThemeTags.map(function(t) {
+					var c = t.cls.slice()
+					if (self.selectedTagId === t.id) c.push('theme-tag--on')
+					return c
+				})
+			},
+			drawHintCls: function() {
+				return { 'draw-hint--show': !this.hasResult && !this.canDraw }
 			}
 		},
 		mounted: function() { this.checkDrawn() },

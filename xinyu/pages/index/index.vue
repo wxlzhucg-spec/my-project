@@ -335,6 +335,8 @@
 
 <style scoped>
 	.container {
+		width: 100%;
+		box-sizing: border-box;
 		padding: 35rpx;
 		background: linear-gradient(180deg, #ede9f7 0%, #e4dff2 25%, #d8d1ec 55%, #c8c2de 100%);
 		min-height: 100vh;
@@ -356,6 +358,7 @@
 
 	/* 问候头部 */
 	.home-header {
+		padding-top: env(safe-area-inset-top);
 		display: flex;
 		justify-content: space-between;
 		align-items: center;

@@ -1,8 +1,8 @@
 <template>
-	<view class="page" :style="pageStyle">
+	<view class="page">
 		<!-- 星空背景 -->
 		<view class="star-layer">
-			<view v-for="(s,i) in stars" :key="'s'+i" class="star" :style="s"></view>
+			<view v-for="(s,i) in stars" :key="i" class="star" :style="s"></view>
 		</view>
 		<view class="orb orb-a"></view>
 		<view class="orb orb-b"></view>
@@ -130,11 +130,6 @@ export default {
 		}
 	},
 	computed: {
-		pageStyle: function() {
-			var h = 44
-			try { var info = uni.getWindowInfo ? uni.getWindowInfo() : uni.getSystemInfoSync(); if (info.statusBarHeight) h = info.statusBarHeight } catch(e){}
-			return { paddingTop: h + 'px' }
-		},
 		canSubmit: function() {
 			var f = this.form
 			return !!(f.date && f.time && f.province)
@@ -418,6 +413,7 @@ export default {
 
 <style scoped>
 .page {
+	padding-top: env(safe-area-inset-top);
 	position: relative;
 	min-height: 100vh;
 	background:
