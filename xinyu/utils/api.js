@@ -795,8 +795,11 @@ export function streamShadowChat(payload, callbacks) {
 	// #endif
 
 	// #ifndef H5
-	// 小程序端：用 uni.request + enableChunked
-	var chunkReceived = false  // 标记 onChunkData 是否真正收到了数据
+	// 小程序端：先用 enableChunked 尝试流式，若不支持则降级到非流式 /api/chat
+	var chunkReceived = false
+	var fallbackUsed = false
+
+	// 先尝试 enableChunked 流式请求
 	var requestTask = uni.request({
 		url: url,
 		method: 'POST',
@@ -806,54 +809,57 @@ export function streamShadowChat(payload, callbacks) {
 		timeout: 300000,
 		success: function(res) {
 			if (aborted) return
+			// 如果 onChunkData 已经真正收到了数据，不再重复处理
+			if (chunkReceived) return
 			var sc = res.statusCode
 			if (sc < 200 || sc >= 300) {
 				if (cb.onError) cb.onError('HTTP ' + sc)
 				return
 			}
-			// 如果 onChunkData 已经真正收到了数据，不再重复处理
-			if (chunkReceived) return
 			var raw = res.data
-			if (typeof raw !== 'string') {
-				// 非流式返回：可能是 /api/shadow 的 JSON 格式
-				if (raw && typeof raw === 'object') {
-					if (cb.onSession && raw.session_id) cb.onSession({ session_id: raw.session_id })
-					if (cb.onToken && raw.reply) {
-						// 模拟一次性 token
-						cb.onToken({ text: raw.reply, node: 'generate_node' })
-					}
-					if (cb.onDone) cb.onDone({
-						session_id: raw.session_id || '',
-						phase: raw.phase || 'complete',
-						category: raw.category || '',
-						reply: raw.reply || '',
-						error: raw.error || null
-					})
-				}
+			// SSE 文本格式（部分小程序版本会原样返回字符串）
+			if (typeof raw === 'string' && raw.indexOf('event:') >= 0) {
+				_parseSSEChunks(raw, cb, true)
 				return
 			}
-			// SSE 文本解析（fallback：onChunkData 不可用或不触发时，数据在 success 中一次性返回）
-			_parseSSEChunks(raw, cb, true)
+			// JSON 对象（微信可能自动解析了 SSE 中的 JSON）
+			if (raw && typeof raw === 'object') {
+				if (cb.onSession && raw.session_id) cb.onSession({ session_id: raw.session_id })
+				if (cb.onToken && raw.reply) {
+					cb.onToken({ text: raw.reply, node: 'generate_node' })
+				}
+				if (cb.onDone) cb.onDone({
+					session_id: raw.session_id || '',
+					phase: raw.phase || 'complete',
+					category: raw.category || '',
+					reply: raw.reply || '',
+					error: raw.error || null
+				})
+				return
+			}
+			// res.data 为空或不可识别 — 降级到非流式接口
+			console.warn('[streamShadowChat] enableChunked 未返回有效数据，降级到 /api/chat')
+			_doFallbackChat(body, cb)
 		},
 		fail: function(err) {
-			if (aborted) return
-			var em = (err && err.errMsg) || ''
-			if (cb.onError) cb.onError(em || '网络请求失败')
+			if (aborted || fallbackUsed) return
+			// enableChunked 失败（某些版本不支持），降级到非流式
+			console.warn('[streamShadowChat] enableChunked 请求失败，降级到 /api/chat')
+			_doFallbackChat(body, cb)
 		}
 	})
 
-	if (requestTask && requestTask.onChunkData) {
+	// 监听 onChunkData（如果运行时支持）
+	if (requestTask && typeof requestTask.onChunkData === 'function') {
 		var buffer = ''
 		requestTask.onChunkData(function(chunk) {
 			if (aborted) return
 			var str = ''
 			if (typeof chunk === 'object' && chunk.data) {
-				// ArrayBuffer → UTF-8 字符串（使用 TextDecoder 兼容中文）
 				try {
 					var decoder = new TextDecoder('utf-8')
 					str = decoder.decode(new Uint8Array(chunk.data), { stream: true })
 				} catch(e) {
-					// fallback：逐字节转字符（仅对 ASCII 可靠）
 					var arr = chunk.data
 					for (var i = 0; i < arr.length; i++) str += String.fromCharCode(arr[i])
 				}
@@ -863,12 +869,53 @@ export function streamShadowChat(payload, callbacks) {
 			if (!str) return
 			chunkReceived = true
 			buffer += str
-			// 只解析以 \n\n 结尾的完整事件块，保留不完整的尾部
 			var lastSep = buffer.lastIndexOf('\n\n')
 			if (lastSep >= 0) {
 				var completePart = buffer.substring(0, lastSep)
 				buffer = buffer.substring(lastSep + 2)
 				_parseSSEChunks(completePart, cb, false)
+			}
+		})
+	}
+
+	/** 降级：用非流式 /api/chat 接口 */
+	function _doFallbackChat(bodyData, callbacks) {
+		if (aborted || fallbackUsed) return
+		fallbackUsed = true
+		uni.request({
+			url: (SHADOW_API_BASE || API_BASE).replace(/\/+$/, '') + API.SHADOW_CHAT,
+			method: 'POST',
+			header: { 'Content-Type': 'application/json' },
+			data: bodyData,
+			timeout: 200000,
+			success: function(res) {
+				if (aborted) return
+				var sc = res.statusCode
+				var d = res.data
+				if (sc < 200 || sc >= 300) {
+					if (callbacks.onError) callbacks.onError(formatShadowHttpDetail(d) || ('HTTP ' + sc))
+					return
+				}
+				if (d && d.error) {
+					if (callbacks.onError) callbacks.onError(d.error)
+					return
+				}
+				if (callbacks.onSession && d.session_id) callbacks.onSession({ session_id: d.session_id })
+				if (callbacks.onToken && d.reply) {
+					callbacks.onToken({ text: d.reply, node: 'generate_node' })
+				}
+				if (callbacks.onDone) callbacks.onDone({
+					session_id: d.session_id || '',
+					phase: d.phase || 'complete',
+					category: d.category || '',
+					reply: d.reply || '',
+					error: d.error || null
+				})
+			},
+			fail: function(err) {
+				if (aborted) return
+				var em = (err && err.errMsg) || ''
+				if (callbacks.onError) callbacks.onError(em || '网络请求失败')
 			}
 		})
 	}
